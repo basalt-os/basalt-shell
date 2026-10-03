@@ -1,0 +1,6 @@
+[Unit]
+Description=Basalt shell session
+Documentation=https://github.com/openbasalt/basalt-shell
+BindsTo=graphical-session.target
+Wants=graphical-session-pre.target xdg-desktop-autostart.target
+After=graphical-session-pre.target

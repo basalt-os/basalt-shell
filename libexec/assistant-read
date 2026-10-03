@@ -1,0 +1,37 @@
+#!/bin/bash
+# Read-only bridge from the desktop shell to the Basalt OS system
+# assistant. Runs as root through pkexec (polkit action
+# org.openbasalt.shell.assistant-read) and accepts only read commands:
+# status, why UNIT, fix selinux, disk, snapshots, pending, show ID, audit N,
+# and ask TEXT (the assistant's translator, which itself never runs a
+# change). Anything else is refused.
+set -eu
+PATH=/usr/sbin:/usr/bin
+word='^[A-Za-z0-9@._:-]{1,100}$'
+[ $# -ge 1 ] || { echo "usage: assistant-read COMMAND [ARGS]" >&2; exit 2; }
+for a in "$@"; do
+  case "$a" in --apply|--yes|--confirm|--confirm=*|rollback) echo "refused: $a is a change" >&2; exit 3 ;; esac
+done
+cmd=$1; shift
+case "$cmd" in
+  status|disk|snapshots|pending)
+    for a in "$@"; do case "$a" in --json|--all) ;; *) echo "refused argument" >&2; exit 3 ;; esac; done
+    exec basalt "$cmd" "$@" ;;
+  why|show)
+    [ $# -ge 1 ] && [[ $1 =~ $word ]] || { echo "refused argument" >&2; exit 3; }
+    arg=$1; shift
+    for a in "$@"; do case "$a" in --json) ;; *) echo "refused argument" >&2; exit 3 ;; esac; done
+    exec basalt "$cmd" "$arg" "$@" ;;
+  fix)
+    [ "${1:-}" = selinux ] || { echo "refused" >&2; exit 3; }
+    shift
+    for a in "$@"; do case "$a" in --json|--since=*) ;; *) echo "refused argument" >&2; exit 3 ;; esac; done
+    exec basalt fix selinux "$@" ;;
+  audit)
+    [ $# -le 1 ] && [[ ${1:-20} =~ ^[0-9]{1,4}$ ]] || { echo "refused argument" >&2; exit 3; }
+    exec basalt audit "${1:-20}" ;;
+  ask)
+    [ $# -eq 1 ] && [ ${#1} -le 500 ] || { echo "refused" >&2; exit 3; }
+    exec basalt ask --dry-run "$1" ;;
+  *) echo "refused: $cmd is not a read command" >&2; exit 3 ;;
+esac

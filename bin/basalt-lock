@@ -1,0 +1,12 @@
+#!/bin/bash
+# Lock the screen with swaylock in the current theme's colors (read from
+# the daemon); falls back to plain colors.
+set -u
+bg=111418; ring=b5502f; text=ece7e1
+if out=$(basalt-shell ctl theme 2>/dev/null); then
+  t() { printf '%s' "$out" | sed -n "s/.*\"$1\": \"#\([0-9a-f]\{6\}\).*/\1/p" | head -1; }
+  bg=$(t color.bg || echo $bg); ring=$(t color.accent || echo $ring); text=$(t color.text || echo $text)
+fi
+exec swaylock -f -c "${bg:-111418}" --ring-color "${ring:-b5502f}" --key-hl-color "${text:-ece7e1}" \
+  --inside-color "${bg:-111418}" --line-color 00000000 --separator-color 00000000 --text-color "${text:-ece7e1}" \
+  --indicator-radius 80 --indicator-thickness 8

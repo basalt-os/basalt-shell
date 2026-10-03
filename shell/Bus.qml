@@ -1,0 +1,144 @@
+pragma Singleton
+
+import QtQuick
+import Quickshell
+import Quickshell.Io
+
+// Connection to the basalt-shell daemon (newline-delimited JSON over a
+// Unix socket). The UI takes the "ui" role: it receives events (desktop,
+// theme, proposals, activity) and is the only client allowed to confirm
+// proposals or act directly.
+Singleton {
+    id: bus
+
+    property bool connected: false
+    property bool ready: false
+    property var desktop: ({ compositor: "", windows: [], workspaces: [], outputs: [], caps: {} })
+    property var themeState: null
+    property var tokens: themeState ? themeState.tokens : ({})
+    property var pending: []          // shell proposals waiting for a decision
+    property var activity: []         // audit records, newest last
+    property var actions: []
+    property bool assistantAvailable: false
+    property bool translatorAvailable: false
+    property var assistantPending: []
+    property string version: ""
+
+    signal notify(var data)           // notification.show from an agent
+    signal openRequested(string surface, string page)
+    signal proposalChanged(var proposal)
+
+    property int _next: 1
+    property var _callbacks: ({})
+
+    readonly property string socketPath: {
+        const p = Quickshell.env("BASALT_SHELL_SOCKET");
+        if (p) return p;
+        return Quickshell.env("XDG_RUNTIME_DIR") + "/basalt-shell/shell.sock";
+    }
+
+    function call(op, args, cb) {
+        if (!sock.connected) {
+            if (cb) cb(false, "not connected to basalt-shell");
+            return;
+        }
+        const id = bus._next++;
+        if (cb) bus._callbacks[id] = cb;
+        sock.write(JSON.stringify({ id: id, op: op, args: args || {} }) + "\n");
+        sock.flush();
+    }
+
+    // Direct actions started by the person in the UI (no proposal).
+    function execute(calls, cb) { call("execute", { calls: calls }, cb); }
+    function act(action, args, cb) { execute([{ action: action, args: args || {} }], cb); }
+    function decide(id, approve, cb) { call("decide", { id: id, approve: approve }, cb); }
+    function ask(text, cb) { call("ask", { text: text }, cb); }
+
+    function refreshAssistant() {
+        if (!assistantAvailable) return;
+        call("assistant.pending", {}, (ok, res) => {
+            if (ok && Array.isArray(res)) bus.assistantPending = res;
+        });
+    }
+
+    function _upsertPending(p) {
+        let list = bus.pending.filter(x => x.id !== p.id);
+        if (p.status === "pending") list.push(p);
+        bus.pending = list;
+        bus.proposalChanged(p);
+    }
+
+    function _handle(line) {
+        let m;
+        try { m = JSON.parse(line); } catch (e) { console.warn("basalt-shell: bad message", e); return; }
+        if (m.event !== undefined) {
+            switch (m.event) {
+            case "desktop": bus.desktop = m.data; break;
+            case "theme": bus.themeState = m.data; break;
+            case "proposal": bus._upsertPending(m.data); break;
+            case "activity": {
+                let a = bus.activity.slice();
+                a.push(m.data);
+                if (a.length > 200) a = a.slice(a.length - 200);
+                bus.activity = a;
+                break;
+            }
+            case "notify": bus.notify(m.data); break;
+            case "ui": bus.openRequested(m.data.open || "", m.data.page || ""); break;
+            }
+            return;
+        }
+        const cb = bus._callbacks[m.id];
+        if (cb) {
+            delete bus._callbacks[m.id];
+            cb(m.ok, m.ok ? m.result : m.error);
+        }
+    }
+
+    function _onConnected() {
+        call("hello", { role: "ui", client: "quickshell" }, (ok, res) => {
+            if (!ok) console.warn("basalt-shell: hello refused:", res);
+        });
+        call("state", {}, (ok, s) => {
+            if (!ok) return;
+            bus.desktop = s.desktop;
+            bus.themeState = s.theme;
+            bus.pending = s.pending || [];
+            bus.activity = s.activity || [];
+            bus.actions = s.actions || [];
+            bus.assistantAvailable = s.assistant;
+            bus.translatorAvailable = s.translator;
+            bus.version = s.version;
+            bus.ready = true;
+            bus.refreshAssistant();
+        });
+    }
+
+    Socket {
+        id: sock
+        path: bus.socketPath
+        connected: true
+        onConnectedChanged: {
+            bus.connected = connected;
+            if (connected) bus._onConnected();
+        }
+        parser: SplitParser {
+            onRead: data => bus._handle(data)
+        }
+    }
+
+    // Reconnect when the daemon restarts.
+    Timer {
+        interval: 1500
+        running: !sock.connected
+        repeat: true
+        onTriggered: { sock.connected = false; sock.connected = true; }
+    }
+
+    Timer {
+        interval: 60000
+        running: bus.assistantAvailable
+        repeat: true
+        onTriggered: bus.refreshAssistant()
+    }
+}

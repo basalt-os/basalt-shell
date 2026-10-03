@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Basalt (niri)
+Comment=Basalt shell on niri, floating windows by default
+Exec=basalt-session niri
+Type=Application
+DesktopNames=niri;Basalt

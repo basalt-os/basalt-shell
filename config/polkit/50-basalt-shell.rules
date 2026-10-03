@@ -1,0 +1,9 @@
+// Local administrators (group wheel) in an active session may read the
+// system assistant's reports from the desktop shell without a password.
+// Changes (basalt apply) still need authentication every time.
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.openbasalt.shell.assistant-read" &&
+        subject.active && subject.local && subject.isInGroup("wheel")) {
+        return polkit.Result.YES;
+    }
+});

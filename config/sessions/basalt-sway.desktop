@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Basalt (SwayFX)
+Comment=Basalt shell on sway or SwayFX, floating windows by default
+Exec=basalt-session sway
+Type=Application
+DesktopNames=sway;Basalt

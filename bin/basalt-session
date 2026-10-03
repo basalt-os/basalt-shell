@@ -1,0 +1,59 @@
+#!/bin/bash
+# Start a Basalt shell session on sway / SwayFX or niri.
+#   basalt-session [sway|niri]   (default: $BASALT_COMPOSITOR, else swayfx/sway if installed, else niri)
+# Used by the wayland-sessions entries and by the nested "try it" scripts.
+set -eu
+
+share=${BASALT_SHELL_DATA:-}
+if [ -z "$share" ]; then
+  for d in "$(dirname "$(readlink -f "$0")")/../share/basalt-shell" /usr/local/share/basalt-shell /usr/share/basalt-shell; do
+    if [ -d "$d" ]; then share=$(readlink -f "$d"); break; fi
+  done
+fi
+export BASALT_SHELL_DATA=$share
+
+which=${1:-${BASALT_COMPOSITOR:-}}
+if [ -z "$which" ]; then
+  if command -v sway >/dev/null; then which=sway; else which=niri; fi
+fi
+
+# Toolkit integration: Wayland first, X11 apps through XWayland (sway) or
+# xwayland-satellite (niri); Qt follows qt6ct (palette written by the
+# daemon), GTK and libadwaita follow gsettings and the portal.
+export XDG_SESSION_TYPE=wayland
+export QT_QPA_PLATFORM="wayland;xcb"
+export QT_QPA_PLATFORMTHEME=qt6ct
+export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+export MOZ_ENABLE_WAYLAND=1
+export ELECTRON_OZONE_PLATFORM_HINT=auto
+export SDL_VIDEODRIVER="wayland,x11"
+export _JAVA_AWT_WM_NONREPARENTING=1
+export XCURSOR_THEME=${XCURSOR_THEME:-Adwaita}
+export XCURSOR_SIZE=${XCURSOR_SIZE:-24}
+
+conf=${XDG_CONFIG_HOME:-$HOME/.config}/basalt-shell
+mkdir -p "$conf/sway.d"
+
+case "$which" in
+  sway|swayfx)
+    export XDG_CURRENT_DESKTOP=sway:Basalt
+    export XDG_SESSION_DESKTOP=sway
+    exec sway -c "$share/sway/config" "${@:2}"
+    ;;
+  niri)
+    export XDG_CURRENT_DESKTOP=niri:Basalt
+    export XDG_SESSION_DESKTOP=niri
+    # niri reads NIRI_CONFIG; the theme include is written next to it.
+    mkdir -p "$conf/niri"
+    cp -n "$share/niri/basalt-theme.kdl" "$conf/niri/basalt-theme.kdl" 2>/dev/null || true
+    if [ ! -e "$conf/niri/config.kdl" ] || [ "$conf/niri/config.kdl" -ot "$share/niri/config.kdl" ]; then
+      cp "$share/niri/config.kdl" "$conf/niri/config.kdl"
+    fi
+    export NIRI_CONFIG="$conf/niri/config.kdl"
+    exec niri --session "${@:2}"
+    ;;
+  *)
+    echo "basalt-session: unknown compositor $which (sway or niri)" >&2
+    exit 2
+    ;;
+esac

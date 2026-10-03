@@ -1,0 +1,16 @@
+// Placeholder until the basalt-shell daemon writes the theme.
+layout {
+    gaps 8
+    focus-ring {
+        width 2
+        active-color "#b5502f"
+        inactive-color "#343b44"
+    }
+    border {
+        off
+    }
+}
+window-rule {
+    geometry-corner-radius 10
+    clip-to-geometry true
+}

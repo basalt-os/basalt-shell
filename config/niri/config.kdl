@@ -1,0 +1,93 @@
+// Basalt shell session on niri.
+//
+// The shell is basalt-shell-ui (Quickshell). Window style (focus ring,
+// corners, shadows, gaps, animations, cursor) lives in basalt-theme.kdl,
+// next to this file, which the basalt-shell daemon rewrites from the theme
+// tokens; niri reloads it live.
+//
+// Windows float by default; Super+T moves the focused window between the
+// floating layer and niri's scrollable tiling.
+
+include "basalt-theme.kdl"
+
+input {
+    keyboard {
+        xkb {
+        }
+    }
+    touchpad {
+        tap
+        natural-scroll
+        dwt
+    }
+    focus-follows-mouse max-scroll-amount="0%"
+}
+
+layout {
+    center-focused-column "on-overflow"
+    default-column-width { proportion 0.5; }
+}
+
+prefer-no-csd
+
+// Floating by default, sized like a normal desktop window.
+window-rule {
+    open-floating true
+    default-column-width { fixed 1100; }
+    default-window-height { fixed 720; }
+}
+
+spawn-at-startup "sh" "-c" "dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY NIRI_SOCKET XDG_CURRENT_DESKTOP XDG_SESSION_TYPE QT_QPA_PLATFORMTHEME; systemctl --user import-environment WAYLAND_DISPLAY DISPLAY NIRI_SOCKET XDG_CURRENT_DESKTOP XDG_SESSION_TYPE QT_QPA_PLATFORMTHEME; systemctl --user start basalt-session.target"
+spawn-at-startup "basalt-shell" "daemon"
+spawn-at-startup "basalt-shell-ui"
+spawn-at-startup "sh" "-c" "wl-paste --watch cliphist store"
+spawn-at-startup "swayidle" "-w" "timeout" "900" "basalt-lock" "before-sleep" "basalt-lock"
+
+screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
+
+hotkey-overlay {
+    skip-at-startup
+}
+
+binds {
+    Mod+Space { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "launcher"; }
+    Mod+D { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "launcher"; }
+    Mod+A { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "commandbar"; }
+    Mod+N { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "notifications"; }
+    Mod+S { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "quicksettings"; }
+    Mod+Comma { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "settings"; }
+    Mod+Escape { spawn "basalt-shell-ui" "ipc" "call" "shell" "close"; }
+
+    Mod+Return { spawn "foot"; }
+    Mod+E { spawn "nautilus"; }
+    Mod+Q { close-window; }
+    Mod+F { fullscreen-window; }
+    Mod+T { toggle-window-floating; }
+    Mod+L { spawn "basalt-lock"; }
+    Mod+Left { focus-column-or-monitor-left; }
+    Mod+Right { focus-column-or-monitor-right; }
+    Mod+Up { focus-window-or-workspace-up; }
+    Mod+Down { focus-window-or-workspace-down; }
+    Mod+Shift+Left { move-column-left; }
+    Mod+Shift+Right { move-column-right; }
+    Alt+Tab { focus-window-down-or-column-right; }
+    Mod+O repeat=false { toggle-overview; }
+    Print { screenshot; }
+
+    Mod+1 { focus-workspace 1; }
+    Mod+2 { focus-workspace 2; }
+    Mod+3 { focus-workspace 3; }
+    Mod+4 { focus-workspace 4; }
+    Mod+5 { focus-workspace 5; }
+    Mod+Shift+1 { move-window-to-workspace 1; }
+    Mod+Shift+2 { move-window-to-workspace 2; }
+    Mod+Shift+3 { move-window-to-workspace 3; }
+    Mod+Shift+4 { move-window-to-workspace 4; }
+    Mod+Shift+5 { move-window-to-workspace 5; }
+
+    XF86AudioRaiseVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%+"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%-"; }
+    XF86AudioMute allow-when-locked=true { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle"; }
+
+    Mod+Shift+E { quit; }
+}

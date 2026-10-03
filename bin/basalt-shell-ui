@@ -1,0 +1,16 @@
+#!/bin/bash
+# Run the Basalt shell UI (Quickshell), or talk to a running one:
+#   basalt-shell-ui                      start the shell
+#   basalt-shell-ui ipc call shell toggle launcher
+set -eu
+qml=${BASALT_SHELL_QML:-}
+if [ -z "$qml" ]; then
+  for d in "$(dirname "$(readlink -f "$0")")/../share/basalt-shell/qml" "$(dirname "$(readlink -f "$0")")/../shell" /usr/local/share/basalt-shell/qml /usr/share/basalt-shell/qml; do
+    if [ -f "$d/shell.qml" ]; then qml=$(readlink -f "$d"); break; fi
+  done
+fi
+qs=$(command -v qs || command -v quickshell)
+if [ $# -gt 0 ]; then
+  exec "$qs" -p "$qml" "$@"
+fi
+exec "$qs" -p "$qml"

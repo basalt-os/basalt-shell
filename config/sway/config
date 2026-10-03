@@ -1,0 +1,99 @@
+# Basalt shell session on sway or SwayFX.
+#
+# The shell (panel, launcher, command bar, notifications, settings) is
+# basalt-shell-ui (Quickshell); window style (borders, gaps, and on SwayFX
+# corners, shadows, blur) is applied at runtime by the basalt-shell daemon
+# from the theme tokens, so nothing here hardcodes colors.
+#
+# Windows float by default, like most desktops. Tiling is one key away:
+# Super+T tiles or floats the focused window, the Windows settings page and
+# the command bar ("tile windows") arrange a whole workspace.
+
+set $mod Mod4
+set $ui basalt-shell-ui ipc call shell
+
+# Floating by default (Wayland and X11 windows).
+for_window [app_id=".*"] floating enable
+for_window [class=".*"] floating enable
+floating_modifier $mod normal
+floating_minimum_size 240 x 160
+focus_follows_mouse no
+default_border pixel 2
+default_floating_border pixel 2
+gaps inner 8
+titlebar_padding 6 4
+
+# XWayland for X11 apps.
+xwayland enable
+
+# Inputs: natural defaults; tap to click on touchpads.
+input type:touchpad {
+    tap enabled
+    natural_scroll enabled
+    dwt enabled
+}
+
+# Session plumbing: environment for D-Bus activated services (portals),
+# then the session target (autostart, polkit agent fallback, keyring).
+exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP XDG_SESSION_TYPE QT_QPA_PLATFORMTHEME
+exec systemctl --user import-environment WAYLAND_DISPLAY DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP XDG_SESSION_TYPE QT_QPA_PLATFORMTHEME
+exec systemctl --user start basalt-session.target
+
+# The shell.
+exec basalt-shell daemon
+exec basalt-shell-ui
+
+# Clipboard history and idle lock.
+exec wl-paste --watch cliphist store
+exec swayidle -w timeout 900 'basalt-lock' before-sleep 'basalt-lock'
+
+# Shell surfaces.
+bindsym $mod+space exec $ui toggle launcher
+bindsym $mod+d exec $ui toggle launcher
+bindsym $mod+a exec $ui toggle commandbar
+bindsym $mod+n exec $ui toggle notifications
+bindsym $mod+s exec $ui toggle quicksettings
+bindsym $mod+comma exec $ui toggle settings
+bindsym $mod+Escape exec $ui close
+
+# Apps and windows.
+bindsym $mod+Return exec foot
+bindsym $mod+e exec nautilus
+bindsym $mod+q kill
+bindsym $mod+f fullscreen toggle
+bindsym $mod+t floating toggle
+bindsym $mod+l exec basalt-lock
+bindsym $mod+Left focus left
+bindsym $mod+Right focus right
+bindsym $mod+Up focus up
+bindsym $mod+Down focus down
+bindsym $mod+Shift+Left move left 40 px
+bindsym $mod+Shift+Right move right 40 px
+bindsym $mod+Shift+Up move up 40 px
+bindsym $mod+Shift+Down move down 40 px
+bindsym Alt+Tab focus next
+bindsym Print exec grim -g "$(slurp)" - | wl-copy
+
+# Workspaces.
+bindsym $mod+1 workspace number 1
+bindsym $mod+2 workspace number 2
+bindsym $mod+3 workspace number 3
+bindsym $mod+4 workspace number 4
+bindsym $mod+5 workspace number 5
+bindsym $mod+Shift+1 move container to workspace number 1
+bindsym $mod+Shift+2 move container to workspace number 2
+bindsym $mod+Shift+3 move container to workspace number 3
+bindsym $mod+Shift+4 move container to workspace number 4
+bindsym $mod+Shift+5 move container to workspace number 5
+
+# Media keys.
+bindsym XF86AudioRaiseVolume exec wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
+bindsym XF86AudioLowerVolume exec wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+bindsym XF86AudioMute exec wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+bindsym XF86MonBrightnessUp exec brightnessctl set 5%+
+bindsym XF86MonBrightnessDown exec brightnessctl set 5%-
+
+bindsym $mod+Shift+e exec swaymsg exit
+
+# Local additions (not overwritten by updates).
+include ~/.config/basalt-shell/sway.d/*
