@@ -14,7 +14,7 @@ PanelWindow {
     WlrLayershell.namespace: "basalt-wallpaper"
     color: Theme.bg
 
-    readonly property string size: wp.width * (screen ? screen.devicePixelRatio : 1) > 2000 ? "3840x2160" : "1920x1080"
+    readonly property string size: wp.width > 2000 ? "3840x2160" : "1920x1080"
     function src(m) { return Qt.resolvedUrl("wallpapers/basalt-" + m + "-" + wp.size + ".png"); }
 
     Image {

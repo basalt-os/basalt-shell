@@ -2,7 +2,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
-import Quickshell.Networking
 
 // Network, audio and battery state from D-Bus (NetworkManager, PipeWire,
 // UPower), through Quickshell's service modules. Clicking opens quick
@@ -11,12 +10,8 @@ Row {
     id: st
     spacing: Theme.s2
     readonly property var sink: Pipewire.defaultAudioSink
-    readonly property var net: {
-        const devs = Networking.devices ? Networking.devices.values : [];
-        for (let i = 0; i < devs.length; i++) if (devs[i].connected) return devs[i];
-        return null;
-    }
-    readonly property bool wifi: net !== null && net.type === DeviceType.Wifi
+    readonly property bool online: Net.online
+    readonly property bool wifi: Net.kind === "wifi"
     readonly property var battery: UPower.displayDevice
 
     PwObjectTracker { objects: st.sink ? [st.sink] : [] }
@@ -30,9 +25,9 @@ Row {
             anchors.centerIn: parent
             spacing: Theme.s2
             Icon {
-                name: st.net === null ? "offline" : (st.wifi ? "wifi" : "network")
+                name: !st.online ? "offline" : (st.wifi ? "wifi" : "network")
                 size: Theme.fontSize * 1.5
-                color: st.net === null ? Theme.textMuted : Theme.text
+                color: !st.online ? Theme.textMuted : Theme.text
                 anchors.verticalCenter: parent.verticalCenter
             }
             Icon {

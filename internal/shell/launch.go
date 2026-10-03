@@ -18,7 +18,7 @@ var reUnitChar = regexp.MustCompile(`[^A-Za-z0-9_.-]`)
 // it is tracked, can be inspected and outlives the shell; without
 // systemd it falls back to the compositor's spawn.
 func (c *Core) Launch(ctx context.Context, id string, argv []string) error {
-	if sr, err := exec.LookPath("systemd-run"); err == nil && os.Getenv("BASALT_SHELL_NO_SCOPE") != "1" {
+	if sr, err := exec.LookPath("systemd-run"); err == nil && userManager() && os.Getenv("BASALT_SHELL_NO_SCOPE") != "1" {
 		b := make([]byte, 4)
 		_, _ = rand.Read(b)
 		unit := "app-basalt-" + strings.Trim(reUnitChar.ReplaceAllString(id, "_"), "_") + "-" + hex.EncodeToString(b)
@@ -32,4 +32,15 @@ func (c *Core) Launch(ctx context.Context, id string, argv []string) error {
 		}
 	}
 	return c.Comp.Spawn(ctx, argv)
+}
+
+// userManager reports whether a systemd user manager runs for this user
+// (not the case in containers or nested test sessions).
+func userManager() bool {
+	rt := os.Getenv("XDG_RUNTIME_DIR")
+	if rt == "" {
+		return false
+	}
+	_, err := os.Stat(rt + "/systemd/private")
+	return err == nil
 }

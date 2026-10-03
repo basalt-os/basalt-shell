@@ -356,11 +356,11 @@ var Actions = []*ActionDef{
 	},
 	{
 		Name: "theme.switch", Title: "Switch theme or mode",
-		Description: "Switch to another theme and/or between light and dark mode. Overrides are kept unless reset is true.",
+		Description: "Switch to another theme and/or between light and dark mode. A new theme starts from its own values (the person's token overrides are dropped unless keep_overrides is true); a mode switch keeps them.",
 		Params: []Param{
 			{Name: "theme", Type: "string", Description: "theme id (see theme_get)"},
 			{Name: "mode", Type: "string", Enum: []string{"light", "dark", "toggle"}, Description: "mode"},
-			{Name: "reset", Type: "boolean", Description: "drop the user's token overrides"},
+			{Name: "keep_overrides", Type: "boolean", Description: "keep the person's token overrides when switching theme"},
 		},
 		plan: func(ctx context.Context, p *planner, a map[string]any) (step, error) {
 			id, mode := argStr(a, "theme"), argStr(a, "mode")
@@ -371,6 +371,11 @@ var Actions = []*ActionDef{
 			if id != "" {
 				if _, ok := p.c.Themes.Theme(id); !ok {
 					return step{}, fmt.Errorf("unknown theme %q", id)
+				}
+				if id != p.settings.Theme {
+					if keep, _ := argBool(a, "keep_overrides"); !keep {
+						p.settings.Overrides, p.settings.Light, p.settings.Dark = nil, nil, nil
+					}
 				}
 				p.settings.Theme = id
 				parts = append(parts, "theme "+id)
@@ -389,10 +394,6 @@ var Actions = []*ActionDef{
 				parts = append(parts, mode+" mode")
 			default:
 				return step{}, errors.New("mode must be light, dark or toggle")
-			}
-			if r, _ := argBool(a, "reset"); r {
-				p.settings.Overrides, p.settings.Light, p.settings.Dark = nil, nil, nil
-				parts = append(parts, "without overrides")
 			}
 			p.touched = true
 			return step{Summary: "Switch to " + strings.Join(parts, ", ")}, nil

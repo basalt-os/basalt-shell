@@ -443,7 +443,8 @@ func (a *Adapter) ApplyStyle(_ context.Context, s compositor.Style) error {
 	}
 	var first error
 	for _, c := range cmds {
-		if err := a.run(c); err != nil && first == nil {
+		// "[all] ..." with no windows yet is not an error.
+		if err := a.run(c); err != nil && first == nil && !strings.Contains(err.Error(), "No matching node") {
 			first = err
 		}
 	}

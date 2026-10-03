@@ -10,6 +10,12 @@ if [ -z "$qml" ]; then
   done
 fi
 qs=$(command -v qs || command -v quickshell)
+if [ "${1:-}" = ipc ]; then
+  # The instance may not know its display (started by the compositor
+  # before WAYLAND_DISPLAY was exported): match it by config path only.
+  shift
+  exec "$qs" -p "$qml" ipc --any-display "$@"
+fi
 if [ $# -gt 0 ]; then
   exec "$qs" -p "$qml" "$@"
 fi

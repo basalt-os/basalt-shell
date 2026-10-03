@@ -34,18 +34,12 @@ input type:touchpad {
 }
 
 # Session plumbing: environment for D-Bus activated services (portals),
-# then the session target (autostart, polkit agent fallback, keyring).
-exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP XDG_SESSION_TYPE QT_QPA_PLATFORMTHEME
-exec systemctl --user import-environment WAYLAND_DISPLAY DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP XDG_SESSION_TYPE QT_QPA_PLATFORMTHEME
-exec systemctl --user start basalt-session.target
+# the session target (autostart), clipboard history and the idle lock.
+exec basalt-session-init
 
 # The shell.
 exec basalt-shell daemon
 exec basalt-shell-ui
-
-# Clipboard history and idle lock.
-exec wl-paste --watch cliphist store
-exec swayidle -w timeout 900 'basalt-lock' before-sleep 'basalt-lock'
 
 # Shell surfaces.
 bindsym $mod+space exec $ui toggle launcher

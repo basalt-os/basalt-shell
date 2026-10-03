@@ -13,6 +13,12 @@ Singleton {
 
     function str(k, d) { const v = t.tk[k]; return (v === undefined || v === null || v === "") ? d : v; }
     function num(k, d) { const v = t.tk[k]; return (typeof v === "number") ? v : d; }
+    // Tokens store colors as #RRGGBB or #RRGGBBAA; QML reads 8 digits as
+    // #AARRGGBB, so the alpha moves to the front.
+    function col(k, d) {
+        const v = str(k, d);
+        return (typeof v === "string" && v.length === 9) ? "#" + v.substr(7, 2) + v.substr(1, 6) : v;
+    }
     function bool(k, d) { const v = t.tk[k]; return (typeof v === "boolean") ? v : d; }
 
     readonly property string themeId: str("theme", "basalt")
@@ -20,18 +26,18 @@ Singleton {
     readonly property bool dark: mode === "dark"
 
     // Colors.
-    readonly property color bg: str("color.bg", "#111418")
-    readonly property color surface: str("color.surface", "#181c21")
-    readonly property color surfaceAlt: str("color.surfaceAlt", "#22272e")
-    readonly property color border: str("color.border", "#343b44")
-    readonly property color text: str("color.text", "#ece7e1")
-    readonly property color textMuted: str("color.textMuted", "#a0a6ae")
-    readonly property color accent: str("color.accent", "#b5502f")
-    readonly property color accentText: str("color.accentText", "#ffffff")
-    readonly property color success: str("color.success", "#5fae7b")
-    readonly property color warning: str("color.warning", "#d9a23a")
-    readonly property color danger: str("color.danger", "#e0605a")
-    readonly property color scrim: str("color.scrim", "#b30a0c0f")
+    readonly property color bg: col("color.bg", "#111418")
+    readonly property color surface: col("color.surface", "#181c21")
+    readonly property color surfaceAlt: col("color.surfaceAlt", "#22272e")
+    readonly property color border: col("color.border", "#343b44")
+    readonly property color text: col("color.text", "#ece7e1")
+    readonly property color textMuted: col("color.textMuted", "#a0a6ae")
+    readonly property color accent: col("color.accent", "#b5502f")
+    readonly property color accentText: col("color.accentText", "#ffffff")
+    readonly property color success: col("color.success", "#5fae7b")
+    readonly property color warning: col("color.warning", "#d9a23a")
+    readonly property color danger: col("color.danger", "#e0605a")
+    readonly property color scrim: col("color.scrim", "#0a0c0fb3")
     // Hover and pressed overlays derived from the text color.
     readonly property color hover: Qt.rgba(text.r, text.g, text.b, 0.08)
     readonly property color pressed: Qt.rgba(text.r, text.g, text.b, 0.14)

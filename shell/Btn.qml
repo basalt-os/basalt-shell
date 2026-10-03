@@ -11,6 +11,7 @@ Rectangle {
     property string e2e: ""
     property alias hovered: ma.containsMouse
     property bool focusable: false
+    property bool alignLeft: false
     signal clicked()
     signal rightClicked()
 
@@ -32,7 +33,10 @@ Rectangle {
 
     Row {
         id: row
-        anchors.centerIn: parent
+        anchors.centerIn: b.alignLeft ? undefined : parent
+        anchors.left: b.alignLeft ? parent.left : undefined
+        anchors.leftMargin: Theme.s3
+        anchors.verticalCenter: parent.verticalCenter
         spacing: Theme.s2
         Icon {
             visible: b.icon !== ""

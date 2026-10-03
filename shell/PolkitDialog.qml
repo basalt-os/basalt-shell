@@ -45,7 +45,7 @@ Scope {
                     placeholder: agent.flow ? (agent.flow.inputPrompt || "Password") : "Password"
                     input.echoMode: agent.flow && agent.flow.responseVisible ? TextInput.Normal : TextInput.Password
                     onAccepted: if (agent.flow) { agent.flow.submit(text); text = ""; }
-                    onEscape: if (agent.flow) agent.flow.cancelAuthenticationRequest()
+                    onEscapePressed: if (agent.flow) agent.flow.cancelAuthenticationRequest()
                 }
                 Txt {
                     visible: text !== ""

@@ -4,7 +4,6 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
-import Quickshell.Networking
 
 // Quick settings: light/dark, theme, motion, volume, network, battery and
 // a door to the full settings page. Changes made here are the person's
@@ -65,13 +64,9 @@ PanelWindow {
                 }
                 Tile {
                     icon: "network"
-                    label: {
-                        const devs = Networking.devices ? Networking.devices.values : [];
-                        for (let i = 0; i < devs.length; i++) if (devs[i].connected) return devs[i].name;
-                        return "Offline";
-                    }
-                    sub: "Network"
-                    on: label !== "Offline"
+                    label: Net.online ? (Net.name || Net.kind) : "Offline"
+                    sub: Net.online ? (Net.kind === "wifi" ? "Wi-Fi" : "Wired") : "Network"
+                    on: Net.online
                     onClicked: Bus.act("app.launch", { app: "nm-connection-editor" })
                 }
                 Tile {

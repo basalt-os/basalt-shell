@@ -62,6 +62,7 @@ make install DESTDIR=%{buildroot} PREFIX=%{_prefix} SYSCONFDIR=%{_sysconfdir} LI
 %{_bindir}/basalt-shell-ui
 %{_bindir}/basalt-session
 %{_bindir}/basalt-lock
+%{_bindir}/basalt-session-init
 %{_datadir}/basalt-shell/
 %{_datadir}/wayland-sessions/basalt-sway.desktop
 %{_datadir}/wayland-sessions/basalt-niri.desktop

@@ -69,7 +69,7 @@ PanelWindow {
     Surface {
         id: card
         width: Math.min(640, parent.width - Theme.s6 * 2)
-        height: Math.min(560, parent.height * 0.7)
+        height: Math.min(560, parent.height * 0.7, search.height + Theme.s4 * 2 + Theme.s3 + Math.max(1, win.results.length) * (Theme.fontSize * 4.2 + 2))
         anchors.horizontalCenter: parent.horizontalCenter
         y: parent.height * 0.14 + (Ui.launcher ? 0 : Theme.s6)
         opacity: Ui.launcher ? 1 : 0
@@ -87,9 +87,9 @@ PanelWindow {
                 icon: "search"
                 placeholder: "Search applications"
                 onEdited: win.update()
-                onEscape: Ui.launcher = false
-                onDown: win.sel = Math.min(win.results.length - 1, win.sel + 1)
-                onUp: win.sel = Math.max(0, win.sel - 1)
+                onEscapePressed: Ui.launcher = false
+                onDownPressed: win.sel = Math.min(win.results.length - 1, win.sel + 1)
+                onUpPressed: win.sel = Math.max(0, win.sel - 1)
                 onAccepted: win.launch(win.results[win.sel])
             }
             ListView {

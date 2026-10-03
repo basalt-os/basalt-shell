@@ -1,1 +1,294 @@
-# Design (work in progress)
+# Basalt shell design
+
+Status: prototype (0.1.0). This document describes how the shell is put
+together and why. Measurements, the compositor comparison and open
+questions are in [prototype-report.md](prototype-report.md).
+
+## Goals
+
+- An AI-native desktop: a model (local by default, or one the person plugs
+  in) can coordinate the whole desktop through typed actions, never by
+  driving the mouse, and never without the person's confirmation.
+- Our own shell, beautiful and easy for end users to change: one set of
+  design tokens, editable from a settings page, applied live.
+- Compositor-agnostic: the shell talks to the compositor through one
+  adapter interface, so the compositor can be swapped later.
+- What people expect from a desktop: windows float by default, tiling is
+  optional; regular apps (GTK, libadwaita, Qt, Electron, X11, Flatpak)
+  work and follow the theme.
+- Subtle animations, with a reduced-motion setting, turned off
+  automatically on weak hardware.
+
+## Components
+
+```
+                 person                                   agents
+                   |                                         |
+   Quickshell UI (QML, role "ui")              basalt-shell mcp (stdio)    basalt-shell ctl / scripts
+   panel, launcher, command bar,                       |                          |
+   confirmation sheet, settings, ...                   +------------+-------------+
+                   |                                                |  role "agent"
+                   +---------------- Unix socket -------------------+
+                                $XDG_RUNTIME_DIR/basalt-shell/shell.sock
+                                          |
+                               basalt-shell daemon (Go)
+        +----------------+----------------+-----------------+------------------+
+        |                |                |                 |                  |
+  compositor adapter  theme store    typed actions     audit log        appearance sync
+  sway/SwayFX (i3 IPC) tokens, themes, + proposals     (hash chain)     gsettings, portal,
+  niri (JSON socket)   settings.json   (confirmation)                   GTK css, qt6ct
+                                          |
+                               system assistant bridge
+                               (basalt CLI: read through a polkit helper,
+                                apply through basalt apply --confirm)
+```
+
+- `basalt-shell daemon` is the single owner of desktop state and of every
+  change. It has no third-party Go modules.
+- `basalt-shell-ui` runs Quickshell (Qt 6 / QML) with the shell's QML. The
+  UI holds no logic that changes the desktop: it asks the daemon.
+- `basalt-shell mcp` is an MCP server (protocol 2025-06-18, stdio). It is
+  just another client of the daemon's socket, with the agent role.
+- `basalt-shell ctl OP [JSON]` and `basalt-shell propose ACTION [JSON]` are
+  the local IPC from scripts.
+
+## IPC protocol
+
+Newline-delimited JSON over a Unix socket (mode 0600, directory 0700).
+
+```
+-> {"id": 1, "op": "hello", "args": {"role": "ui", "client": "quickshell"}}
+<- {"id": 1, "ok": true, "result": {"role": "ui", "version": "0.1.0"}}
+-> {"id": 2, "op": "propose", "args": {"calls": [{"action": "theme.set_tokens", "args": {"tokens": {"radius.md": 14}}}], "wait": 120}}
+<- {"id": 2, "ok": true, "result": {"id": "d-1a2b3c4d", "status": "applied", "steps": [...], "diff": [...]}}
+<- {"event": "theme", "data": {...}}          (ui role only: desktop, theme, proposal, activity, notify, ui)
+```
+
+| Op | Who | What |
+|---|---|---|
+| `state`, `desktop`, `theme`, `apps`, `actions`, `activity`, `pending`, `proposal` | any | read |
+| `propose` (optionally `wait`), `wait` | any | ask for typed actions; they run only after the person confirms |
+| `execute` | ui | run actions the person started in the UI (a click, a slider) |
+| `decide` | ui | confirm or decline a proposal |
+| `ask` | ui | command bar request (understand, then propose) |
+| `theme.save_as`, `reload` | ui | save the current look as a user theme, reload theme files |
+| `assistant.pending`, `assistant.show` | any | the system assistant's proposals |
+| `assistant.apply`, `assistant.ignore` | ui | the system assistant's own confirmation flow |
+
+Roles. Every connection starts as `agent`. The `ui` role is granted only
+when the peer (SO_PEERCRED) is the same user and its executable is
+Quickshell. This keeps MCP clients and scripts from confirming their own
+requests through the socket. It is not a security boundary against code
+already running as the user (such code could also send keystrokes); the
+real boundary for the product is SELinux confinement of agent processes,
+as for the system assistant (ADR 0004). Writes from agents are always
+proposals, whatever they claim to be.
+
+## Typed actions
+
+The closed set (15 kinds). Each has a JSON-schema of parameters, strict
+validation, a human summary, and runs only through the daemon:
+
+| Action | Parameters |
+|---|---|
+| `window.focus`, `window.close` | window (id, app id, title fragment or "focused") |
+| `window.move` | window, x, y, width, height (floats the window) |
+| `window.set_floating` | window, floating |
+| `window.to_workspace` | window, workspace |
+| `windows.arrange` | layout: grid, columns, rows, cascade, center, tile, float; workspace |
+| `workspace.switch` | workspace |
+| `app.launch` | app (installed desktop entry only; no free-form command) |
+| `theme.set_tokens` | tokens {key: value}, mode |
+| `theme.switch` | theme, mode (light, dark, toggle), reset |
+| `theme.reset` | tokens (default: all) |
+| `motion.set` | motion: auto, full, reduced |
+| `notification.show` | summary, body, urgency |
+| `settings.open` | page |
+| `shell.open` | surface: launcher, commandbar, quicksettings, activity, notifications, settings |
+
+Read tools for MCP: `desktop_state`, `theme_get`, `apps_list`,
+`activity_recent`, `proposal_status`. Write tools are the actions above,
+named with underscores (`window_move`, `theme_set_tokens`, ...).
+
+## Proposals and confirmation
+
+A proposal is a list of action calls, planned against the current state:
+every call is validated (unknown actions or parameters, values out of
+range and unknown windows are refused), summarized, and theme changes are
+computed into a token diff. Then it waits for the person:
+
+- from an agent (MCP or IPC): a confirmation sheet over the desktop shows
+  who asks, each step and the diff, with Decline and Confirm;
+- from the command bar: the proposal appears in the bar with Apply and
+  Ignore.
+
+Proposals expire after 5 minutes. A theme proposal computed against
+settings that have changed since is refused as stale instead of applying
+something other than what the person saw. Applied, declined, expired,
+refused and failed requests are all written to the audit log.
+
+The MCP write tool blocks until the decision (default 180 s) and tells
+the model plainly what happened ("declined: nothing changed, do not
+retry without asking").
+
+## Audit log
+
+`$XDG_STATE_HOME/basalt-shell/audit.jsonl`: one JSON record per line with
+sequence, time, type (`request`, `confirm`, `apply`, `decline`, `expire`,
+`refuse`, `fail`, `ask`, `start`), actor (`ui`, `commandbar`,
+`agent:mcp`, `agent:ctl`, `assistant`), text, data, the previous record's
+hash and its own SHA-256. `basalt-shell audit verify` checks the chain.
+The activity feed in the shell is this log.
+
+## Command bar
+
+Free text goes to the daemon (`ask`):
+
+1. If a local language model is configured (the system assistant's
+   `[translator]` section in `/etc/basalt/assistant.conf`, the same local
+   llama.cpp service as `basalt ask`, or `BASALT_SHELL_TRANSLATOR`), the
+   request is translated into action calls with output constrained by a
+   JSON schema of the action set. A non-local endpoint is refused unless
+   `allow_remote = yes`.
+2. Otherwise, or when the model fails, deterministic rules (English and
+   Portuguese) understand short requests: darker or lighter, light or dark
+   mode, rounder or sharper corners, bigger or smaller text, spacing,
+   accent color, a theme by name, panel position, shadows, blur, motion,
+   open an app, close, focus, move to a workspace, arrange windows, open
+   settings. Clauses compose: "make it darker with rounder corners" is one
+   theme proposal with both changes.
+3. System questions ("why nginx", "disk", "snapshots", "selinux denials",
+   "status", "pending", "show p-1a2b3c") go to the system assistant.
+
+The result is a proposal shown with its diff; nothing runs until Apply.
+
+## System assistant bridge
+
+The `basalt` assistant (basalt-os repository) keeps its state root-only.
+The shell reads it through `/usr/libexec/basalt-shell/assistant-read`, run
+with pkexec: it accepts only read commands (status, why UNIT, fix
+selinux, disk, snapshots, pending, show ID, audit N). A polkit rule lets
+local administrators (wheel, active local session) run it without a
+password. When an answer contains a proposal, the shell shows the
+assistant's own report with the exact commands and the confirmation code;
+Apply runs `pkexec basalt apply ID --yes --confirm CODE`, so the person
+authenticates (in the shell's own polkit dialog) and the assistant
+re-checks that the code matches the commands, takes snapshots, runs,
+verifies and audits. The shell never applies system changes itself.
+
+## Design tokens
+
+One flat, closed set of tokens (`internal/theme/tokens.go`), each with a
+kind, range and group:
+
+| Group | Tokens |
+|---|---|
+| color (per mode) | bg, surface, surfaceAlt, border, text, textMuted, accent, accentText, success, warning, danger, scrim |
+| typography | font.family, font.mono, font.size, font.scale (modular type scale) |
+| shape | radius.sm, radius.md, radius.lg, radius.window |
+| spacing | spacing.unit (4 px grid), panel.height, panel.position, panel.opacity |
+| elevation | elevation.shadow (strength), elevation.blur (softness) |
+| motion | motion.fast, motion.normal, motion.slow (ms), motion.easing |
+| windows | window.gaps, window.border, window.shadows, window.blur, window.dimInactive |
+| apps | apps.iconTheme, apps.cursorTheme, apps.cursorSize, apps.palette (full, accent, off) |
+
+A theme file (`themes/*.json`) has shared tokens and one color set for
+light and one for dark. The person's settings
+(`~/.config/basalt-shell/settings.json`) pick a theme, a mode and a motion
+preference, and hold overrides (color overrides per mode). The resolved
+set is: theme tokens, then the mode's colors, then overrides, then motion
+(durations become 0 when motion is reduced). Unknown keys and values out
+of range are rejected everywhere, so a model cannot invent a token.
+
+Three sample themes: Basalt (ink and terra roxa, the brand), Lichen (moss
+greens, rounder, calmer motion) and Tide (slate and sea blue, tighter
+corners, panel at the bottom). A test checks WCAG contrast (4.5:1 for
+text, 3:1 for muted text) for every theme and mode.
+
+End users change tokens from Settings: Appearance (theme cards, light and
+dark, accent swatches, corner roundness, text size, spacing, panel) for
+everyone, Design tokens (every token, with its range, override marker and
+reset) for the curious, and "Save as theme" writes the current look as a
+new theme file. Themes are plain JSON and can be shared.
+
+## Motion
+
+Every animation in the QML binds its duration to a motion token. Motion
+"auto" turns animations off when the hardware is weak: no GPU render node
+(software rendering, as in a VM without 3D), very few CPUs or less than
+3 GiB of memory (`internal/hw`); `BASALT_SHELL_WEAK=0|1` overrides it.
+Reduced motion also turns off shadows drawn by the shell (expensive with
+software rendering), the compositor's animations (niri) and GTK
+animations (`enable-animations`).
+
+## Compositor adapters
+
+```go
+type Adapter interface {
+    Name() string; Version(ctx) string; Caps() Caps
+    Windows(ctx) ([]Window, error); Workspaces(ctx) ([]Workspace, error); Outputs(ctx) ([]Output, error)
+    Focus(ctx, id) error; Close(ctx, id) error; SetFloating(ctx, id, on) error
+    MoveResize(ctx, id, Rect) error; MoveToWorkspace(ctx, id, Workspace) error
+    SwitchWorkspace(ctx, Workspace) error; Spawn(ctx, argv) error
+    ApplyStyle(ctx, Style) error; Subscribe(ctx) (<-chan Event, error)
+}
+```
+
+- sway / SwayFX: the i3 binary IPC on `$SWAYSOCK` (GET_TREE, GET_WORKSPACES,
+  GET_OUTPUTS, RUN_COMMAND, SUBSCRIBE). Style through runtime commands:
+  client colors, borders, gaps on sway; on SwayFX also corner_radius,
+  shadows, blur and dimming, live. SwayFX is detected from its version
+  string or by probing a SwayFX command.
+- niri: JSON requests on `$NIRI_SOCKET` (Windows, Workspaces, Outputs,
+  Action, EventStream). niri has no runtime styling command, so the
+  adapter writes `basalt-theme.kdl` next to the niri config (which
+  includes it) and niri reloads it live: focus ring, corner radius,
+  shadows, gaps, animations on or off, cursor.
+
+`Caps` says what a backend can do so tools can be honest (for example
+`config_reload` for niri, `live_corners` only on SwayFX among the sway
+family). Applications are launched in their own systemd scope
+(`app-basalt-<id>-<random>.scope`), not through the compositor, when a
+user manager runs.
+
+Floating by default: sway `for_window [app_id=".*"] floating enable` (and
+for X11 classes); niri `window-rule { open-floating true }`. Tiling stays
+one key away (Super+T per window) and per workspace (`windows.arrange
+tile`, the Windows settings page, or "tile windows" in the command bar).
+
+## Regular applications
+
+| Need | How |
+|---|---|
+| File chooser, app chooser, settings portal | xdg-desktop-portal with -gtk on both compositors |
+| Screenshot, screen sharing (PipeWire) | -wlr on sway / SwayFX (output chosen by clicking, slurp), -gnome on niri (niri implements the Mutter screen cast API) |
+| Dark/light and accent for every app (Flatpak too) | org.freedesktop.appearance color-scheme and accent-color through the portal, from gsettings written by the daemon |
+| GTK 4 / libadwaita | the portal settings live; exact palette from a managed block in ~/.config/gtk-4.0/gtk.css (new windows) |
+| GTK 3 | adw-gtk3 / adw-gtk3-dark theme switched with the mode, same managed gtk.css block |
+| Qt 5 / 6 | qt6ct (QT_QPA_PLATFORMTHEME) with a generated color scheme and fonts |
+| Icons, cursor, fonts | gsettings (icon-theme, cursor-theme, cursor-size, font-name, monospace-font-name) and the compositor's cursor |
+| X11 apps | XWayland on sway; xwayland-satellite on niri (started on demand by niri) |
+| Electron | Ozone Wayland (ELECTRON_OZONE_PLATFORM_HINT=auto), dark mode from the portal |
+| Polkit agent | the shell's own (Quickshell polkit service), themed |
+| Secrets | gnome-keyring (Secret Service and the Secret portal) |
+| Tray | StatusNotifierItem host in the panel |
+| Notifications | org.freedesktop.Notifications served by the shell |
+| Clipboard | wl-clipboard, cliphist history |
+| Idle and lock | swayidle and swaylock in the theme's colors (basalt-lock) |
+| Autostart | basalt-session.target wants xdg-desktop-autostart.target |
+
+## Session
+
+`basalt-session sway|niri` sets the toolkit environment and starts the
+compositor with the shell's config; the wayland-sessions entries "Basalt
+(SwayFX)" and "Basalt (niri)" call it. The desktop profile of the Basalt
+installer uses greetd with tuigreet. Run inside another desktop (a nested
+window), the session does not export anything to the host's systemd user
+manager and does not change the host's application settings.
+
+## Packaging
+
+`basalt-shell` RPM (spec in `packaging/`): daemon, QML, themes, session
+files, portal configuration, polkit policy and helper. Fedora 44 has
+Quickshell, niri, xwayland-satellite, the portals and every other
+dependency in its own repositories; SwayFX comes from its upstream COPR.

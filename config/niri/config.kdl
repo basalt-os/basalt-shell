@@ -37,11 +37,9 @@ window-rule {
     default-window-height { fixed 720; }
 }
 
-spawn-at-startup "sh" "-c" "dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY NIRI_SOCKET XDG_CURRENT_DESKTOP XDG_SESSION_TYPE QT_QPA_PLATFORMTHEME; systemctl --user import-environment WAYLAND_DISPLAY DISPLAY NIRI_SOCKET XDG_CURRENT_DESKTOP XDG_SESSION_TYPE QT_QPA_PLATFORMTHEME; systemctl --user start basalt-session.target"
+spawn-at-startup "basalt-session-init"
 spawn-at-startup "basalt-shell" "daemon"
 spawn-at-startup "basalt-shell-ui"
-spawn-at-startup "sh" "-c" "wl-paste --watch cliphist store"
-spawn-at-startup "swayidle" "-w" "timeout" "900" "basalt-lock" "before-sleep" "basalt-lock"
 
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 

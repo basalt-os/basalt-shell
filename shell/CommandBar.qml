@@ -98,7 +98,7 @@ PanelWindow {
                     icon: "spark"
                     placeholder: "Ask the system: \"make it darker with rounder corners\", \"why nginx\""
                     onAccepted: win.submit()
-                    onEscape: Ui.commandBar = false
+                    onEscapePressed: Ui.commandBar = false
                 }
 
                 Row {

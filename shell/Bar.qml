@@ -6,7 +6,6 @@ import Quickshell.Widgets
 import Quickshell.Services.SystemTray
 import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
-import Quickshell.Networking
 
 // The panel: one per screen, top or bottom (token panel.position).
 PanelWindow {
@@ -137,7 +136,8 @@ PanelWindow {
                     visible: n > 0
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: 2
+                    anchors.rightMargin: -2
+                    anchors.topMargin: -2
                     width: Math.max(height, badge.implicitWidth + 6)
                     height: Theme.fontSmall * 1.6
                     radius: height / 2
@@ -177,7 +177,7 @@ PanelWindow {
                 }
             }
 
-            StatusIcons { implicitHeight: Theme.panelHeight - Theme.s2 }
+            StatusIcons { height: Theme.panelHeight - Theme.s2 }
 
             Btn {
                 icon: "bell"

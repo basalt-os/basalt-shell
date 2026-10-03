@@ -278,7 +278,14 @@ func (c *Core) ApplyTheme(ctx context.Context) {
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 			defer cancel()
-			r := appearance.Apply(ctx, t, c.ConfigDir)
+			ls, ds := st.Settings.Clone(), st.Settings.Clone()
+			ls.Mode, ds.Mode = "light", "dark"
+			lt, err1 := c.Themes.Resolve(ls, c.HW.Weak)
+			dt, err2 := c.Themes.Resolve(ds, c.HW.Weak)
+			if err1 != nil || err2 != nil {
+				lt, dt = t, t
+			}
+			r := appearance.Apply(ctx, t, lt, dt, c.ConfigDir)
 			c.mu.Lock()
 			c.lastApps = r
 			c.mu.Unlock()

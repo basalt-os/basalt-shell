@@ -1,0 +1,17 @@
+#!/bin/bash
+# Session start-up helpers run by the compositor config. In a nested
+# session (BASALT_NESTED=1, a window inside another desktop) nothing is
+# exported to the systemd user manager and no idle lock runs, so the host
+# session is left alone.
+set -u
+if [ "${BASALT_NESTED:-0}" != 1 ]; then
+  vars="WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP QT_QPA_PLATFORMTHEME"
+  [ -n "${SWAYSOCK:-}" ] && vars="$vars SWAYSOCK"
+  [ -n "${NIRI_SOCKET:-}" ] && vars="$vars NIRI_SOCKET"
+  dbus-update-activation-environment --systemd $vars
+  systemctl --user import-environment $vars
+  systemctl --user start basalt-session.target
+  swayidle -w timeout 900 basalt-lock before-sleep basalt-lock &
+fi
+command -v cliphist >/dev/null && wl-paste --watch cliphist store &
+wait

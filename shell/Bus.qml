@@ -53,6 +53,15 @@ Singleton {
     function act(action, args, cb) { execute([{ action: action, args: args || {} }], cb); }
     function decide(id, approve, cb) { call("decide", { id: id, approve: approve }, cb); }
     function ask(text, cb) { call("ask", { text: text }, cb); }
+    function setTokens(obj) { act("theme.set_tokens", { tokens: obj }); }
+    function setToken(key, value) { const t = {}; t[key] = value; setTokens(t); }
+    // Whether the person overrides a token (colors: in the current mode).
+    function overridden(key) {
+        const s = themeState ? themeState.settings : null;
+        if (!s) return false;
+        const o = s.overrides || {}, l = s.light || {}, d = s.dark || {};
+        return key in o || (s.mode === "dark" ? key in d : key in l);
+    }
 
     function refreshAssistant() {
         if (!assistantAvailable) return;

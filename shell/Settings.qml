@@ -63,6 +63,7 @@ FloatingWindow {
                         Layout.fillWidth: true
                         icon: modelData.icon
                         text: modelData.label
+                        alignLeft: true
                         active: Ui.settingsPage === modelData.id
                         onClicked: Ui.settingsPage = modelData.id
                     }
@@ -233,14 +234,14 @@ FloatingWindow {
                         id: demo
                         Layout.preferredWidth: 360; Layout.preferredHeight: 60
                         radius: Theme.radiusMd; color: Theme.bg; border.width: 1; border.color: Theme.border
-                        property bool right: false
+                        property bool atEnd: false
                         Rectangle {
                             width: 44; height: 44; radius: Theme.radiusSm; color: Theme.accent
                             anchors.verticalCenter: parent.verticalCenter
-                            x: demo.right ? demo.width - width - 8 : 8
+                            x: demo.atEnd ? demo.width - width - 8 : 8
                             Behavior on x { NumberAnimation { duration: Theme.slow; easing.type: Theme.easing } }
                         }
-                        Timer { interval: 1200; running: Ui.settings && Ui.settingsPage === "motion"; repeat: true; onTriggered: demo.right = !demo.right }
+                        Timer { interval: 1200; running: Ui.settings && Ui.settingsPage === "motion"; repeat: true; onTriggered: demo.atEnd = !demo.atEnd }
                     }
                 }
 
@@ -393,7 +394,7 @@ FloatingWindow {
         property var spec
         readonly property var val: Bus.tokens ? Bus.tokens[spec.key] : undefined
         spacing: Theme.s3
-        Rectangle { width: 6; height: 6; radius: 3; color: win.overridden(tr.spec.key) ? Theme.accent : "transparent" }
+        Rectangle { width: 6; height: 6; radius: 3; color: Bus.overridden(tr.spec.key) ? Theme.accent : "transparent" }
         Column {
             Layout.preferredWidth: 240
             Txt { text: tr.spec.label; width: 240 }
@@ -411,7 +412,7 @@ FloatingWindow {
             Field {
                 width: 140
                 text: tr.spec.kind === "color" ? (tr.val || "") : ""
-                onAccepted: { const t = {}; t[tr.spec.key] = text.trim(); win.setTokens(t); }
+                onAccepted: Bus.setToken(tr.spec.key, text.trim())
             }
         }
         // Number.
@@ -421,14 +422,14 @@ FloatingWindow {
             from: tr.spec.min || 0; to: tr.spec.max || 1; stepSize: tr.spec.step || 0
             value: typeof tr.val === "number" ? tr.val : 0
             onMoved: v => { numLive.text = Math.round(v * 100) / 100; numTimer.v = v; numTimer.restart(); }
-            Timer { id: numTimer; property real v; interval: 250; onTriggered: { const t = {}; t[tr.spec.key] = v; win.setTokens(t); } }
+            Timer { id: numTimer; property real v; interval: 250; onTriggered: Bus.setToken(tr.spec.key, v) }
         }
         Txt { id: numLive; visible: tr.spec.kind === "number"; text: typeof tr.val === "number" ? Math.round(tr.val * 100) / 100 : ""; role: "mono"; Layout.preferredWidth: 60 }
         // Bool.
         Btn {
             visible: tr.spec.kind === "bool"
             text: tr.val ? "On" : "Off"; variant: "outline"; active: tr.val === true
-            onClicked: { const t = {}; t[tr.spec.key] = !tr.val; win.setTokens(t); }
+            onClicked: Bus.setToken(tr.spec.key, !tr.val)
         }
         // Enum.
         Row {
@@ -437,7 +438,7 @@ FloatingWindow {
             Repeater {
                 model: tr.spec.kind === "enum" ? tr.spec.options : []
                 delegate: Btn { required property var modelData; text: modelData; variant: "outline"; active: tr.val === modelData
-                    onClicked: { const t = {}; t[tr.spec.key] = modelData; win.setTokens(t); } }
+                    onClicked: Bus.setToken(tr.spec.key, modelData) }
             }
         }
         // Text.
@@ -445,11 +446,11 @@ FloatingWindow {
             visible: tr.spec.kind === "text"
             Layout.preferredWidth: 220
             text: tr.spec.kind === "text" ? (tr.val || "") : ""
-            onAccepted: { const t = {}; t[tr.spec.key] = text.trim(); win.setTokens(t); }
+            onAccepted: Bus.setToken(tr.spec.key, text.trim())
         }
         Item { Layout.fillWidth: tr.spec.kind !== "number" }
         Btn {
-            visible: win.overridden(tr.spec.key)
+            visible: Bus.overridden(tr.spec.key)
             text: "Reset"; variant: "ghost"
             onClicked: Bus.act("theme.reset", { tokens: [tr.spec.key] })
         }

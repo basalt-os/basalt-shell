@@ -9,9 +9,9 @@ Rectangle {
     property string icon: ""
     signal accepted()
     signal edited(string text)
-    signal escape()
-    signal up()
-    signal down()
+    signal escapePressed()
+    signal upPressed()
+    signal downPressed()
     function focusInput() { input.forceActiveFocus(); }
     implicitHeight: Theme.fontLarge * 2.6
     radius: Theme.radiusMd
@@ -45,9 +45,9 @@ Rectangle {
         clip: true
         onAccepted: f.accepted()
         onTextChanged: f.edited(text)
-        Keys.onEscapePressed: f.escape()
-        Keys.onUpPressed: f.up()
-        Keys.onDownPressed: f.down()
+        Keys.onEscapePressed: f.escapePressed()
+        Keys.onUpPressed: f.upPressed()
+        Keys.onDownPressed: f.downPressed()
         Txt {
             anchors.fill: parent
             text: f.placeholder

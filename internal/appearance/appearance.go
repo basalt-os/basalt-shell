@@ -7,8 +7,12 @@
 //     org.freedesktop.appearance to every app, Flatpak included; libadwaita,
 //     Firefox and Electron follow it live), gtk-theme (adw-gtk3 or
 //     adw-gtk3-dark for GTK 3), icon and cursor themes, fonts;
-//   - ~/.config/gtk-4.0/gtk.css and gtk-3.0/gtk.css: a managed block of
-//     libadwaita named colors with the exact palette (new windows);
+//   - ~/.config/gtk-4.0/gtk.css: a managed block of libadwaita CSS
+//     variables with the exact palette for both modes (prefers-color-scheme
+//     media query, so a later mode switch stays consistent); read when an
+//     app starts;
+//   - ~/.config/gtk-3.0/gtk.css: the accent only (GTK 3 has no media
+//     queries; the adw-gtk3 theme follows the mode);
 //   - qt6ct: a generated color scheme and qt6ct.conf (Qt apps started with
 //     QT_QPA_PLATFORMTHEME=qt6ct).
 package appearance
@@ -19,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -31,9 +36,10 @@ type Result struct {
 	Errors  []string `json:"errors,omitempty"`
 }
 
-// Apply pushes the tokens to the application settings. configDir is
-// $XDG_CONFIG_HOME.
-func Apply(ctx context.Context, t theme.Tokens, configDir string) Result {
+// Apply pushes the tokens to the application settings: t is the current
+// set, light and dark the same settings resolved in each mode. configDir
+// is $XDG_CONFIG_HOME.
+func Apply(ctx context.Context, t, lightT, darkT theme.Tokens, configDir string) Result {
 	var r Result
 	ok := func(s string) { r.Applied = append(r.Applied, s) }
 	fail := func(s string, err error) { r.Errors = append(r.Errors, s+": "+err.Error()) }
@@ -87,14 +93,19 @@ func Apply(ctx context.Context, t theme.Tokens, configDir string) Result {
 	if palette == "" {
 		palette = "full"
 	}
-	css := GTKCSS(t, palette)
-	for _, d := range []string{"gtk-4.0", "gtk-3.0"} {
-		p := filepath.Join(configDir, d, "gtk.css")
-		if err := writeManaged(p, css); err != nil {
-			fail(p, err)
-		} else {
-			ok(p)
-		}
+	gtk4 := GTK4CSS(lightT, darkT, palette)
+	p4 := filepath.Join(configDir, "gtk-4.0", "gtk.css")
+	if err := writeManaged(p4, gtk4); err != nil {
+		fail(p4, err)
+	} else {
+		ok(p4)
+	}
+	css3 := GTK3CSS(t, palette)
+	p3 := filepath.Join(configDir, "gtk-3.0", "gtk.css")
+	if err := writeManaged(p3, css3); err != nil {
+		fail(p3, err)
+	} else {
+		ok(p3)
 	}
 	if err := writeQt6ct(t, configDir); err != nil {
 		fail("qt6ct", err)
@@ -109,42 +120,59 @@ const (
 	endMark   = "/* END basalt-shell */"
 )
 
-// GTKCSS returns libadwaita / adw-gtk3 named color definitions.
-func GTKCSS(t theme.Tokens, palette string) string {
+// gtk4Vars maps one mode's tokens to libadwaita's CSS variables.
+func gtk4Vars(t theme.Tokens, palette string) string {
+	var b strings.Builder
+	v := func(name, val string) { fmt.Fprintf(&b, "  --%s: %s;\n", name, val) }
+	accent := t.Str("color.accent")
+	v("accent-bg-color", accent)
+	v("accent-fg-color", t.Str("color.accentText"))
+	v("accent-color", accent)
+	if palette == "full" {
+		bg, surface, alt, text := t.Str("color.bg"), t.Str("color.surface"), t.Str("color.surfaceAlt"), t.Str("color.text")
+		v("window-bg-color", surface)
+		v("window-fg-color", text)
+		v("view-bg-color", bg)
+		v("view-fg-color", text)
+		v("headerbar-bg-color", alt)
+		v("headerbar-fg-color", text)
+		v("headerbar-backdrop-color", surface)
+		v("sidebar-bg-color", alt)
+		v("sidebar-fg-color", text)
+		v("secondary-sidebar-bg-color", surface)
+		v("card-bg-color", alt)
+		v("card-fg-color", text)
+		v("dialog-bg-color", alt)
+		v("dialog-fg-color", text)
+		v("popover-bg-color", alt)
+		v("popover-fg-color", text)
+		v("thumbnail-bg-color", alt)
+		v("destructive-bg-color", t.Str("color.danger"))
+		v("success-bg-color", t.Str("color.success"))
+		v("warning-bg-color", t.Str("color.warning"))
+		v("error-bg-color", t.Str("color.danger"))
+	}
+	return b.String()
+}
+
+// GTK4CSS returns the libadwaita palette for both modes (libadwaita 1.6+
+// CSS variables, GTK 4.16+ media queries).
+func GTK4CSS(light, dark theme.Tokens, palette string) string {
 	if palette == "off" {
 		return ""
 	}
-	var b strings.Builder
-	def := func(name, val string) { fmt.Fprintf(&b, "@define-color %s %s;\n", name, val) }
-	accent := t.Str("color.accent")
-	def("accent_bg_color", accent)
-	def("accent_fg_color", t.Str("color.accentText"))
-	def("accent_color", accent)
-	if palette == "full" {
-		bg, surface, alt, text := t.Str("color.bg"), t.Str("color.surface"), t.Str("color.surfaceAlt"), t.Str("color.text")
-		def("window_bg_color", surface)
-		def("window_fg_color", text)
-		def("view_bg_color", bg)
-		def("view_fg_color", text)
-		def("headerbar_bg_color", alt)
-		def("headerbar_fg_color", text)
-		def("headerbar_backdrop_color", surface)
-		def("sidebar_bg_color", alt)
-		def("sidebar_fg_color", text)
-		def("secondary_sidebar_bg_color", surface)
-		def("card_bg_color", alt)
-		def("card_fg_color", text)
-		def("dialog_bg_color", alt)
-		def("dialog_fg_color", text)
-		def("popover_bg_color", alt)
-		def("popover_fg_color", text)
-		def("thumbnail_bg_color", alt)
-		def("destructive_bg_color", t.Str("color.danger"))
-		def("success_bg_color", t.Str("color.success"))
-		def("warning_bg_color", t.Str("color.warning"))
-		def("error_bg_color", t.Str("color.danger"))
+	return ":root {\n" + gtk4Vars(light, palette) + "}\n@media (prefers-color-scheme: dark) {\n  :root {\n" +
+		strings.ReplaceAll(gtk4Vars(dark, palette), "  --", "    --") + "  }\n}\n"
+}
+
+// GTK3CSS returns the accent for GTK 3 (adw-gtk3 reads libadwaita's
+// named colors).
+func GTK3CSS(t theme.Tokens, palette string) string {
+	if palette == "off" {
+		return ""
 	}
-	return b.String()
+	return fmt.Sprintf("@define-color accent_bg_color %s;\n@define-color accent_fg_color %s;\n@define-color accent_color %s;\n",
+		t.Str("color.accent"), t.Str("color.accentText"), t.Str("color.accent"))
 }
 
 // writeManaged replaces the managed block of a file, keeping the rest.
@@ -265,19 +293,11 @@ func writeQt6ct(t theme.Tokens, configDir string) error {
 		for k := range conf[sec] {
 			keys = append(keys, k)
 		}
-		sortStrings(keys)
+		sort.Strings(keys)
 		for _, k := range keys {
 			fmt.Fprintf(&b, "%s=%s\n", k, conf[sec][k])
 		}
 		b.WriteString("\n")
 	}
 	return os.WriteFile(confPath, []byte(b.String()), 0o644)
-}
-
-func sortStrings(s []string) {
-	for i := 1; i < len(s); i++ {
-		for j := i; j > 0 && s[j] < s[j-1]; j-- {
-			s[j], s[j-1] = s[j-1], s[j]
-		}
-	}
 }
