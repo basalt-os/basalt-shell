@@ -55,8 +55,13 @@ func New(path string) *Adapter {
 		cfg = filepath.Join(home, ".config")
 	}
 	style := filepath.Join(cfg, "niri", "basalt-theme.kdl")
-	if nc := os.Getenv("NIRI_CONFIG"); nc != "" {
-		style = filepath.Join(filepath.Dir(nc), "basalt-theme.kdl")
+	// niri does not pass NIRI_CONFIG on to the programs it starts, so the
+	// session also exports BASALT_NIRI_CONFIG.
+	for _, v := range []string{"BASALT_NIRI_CONFIG", "NIRI_CONFIG"} {
+		if nc := os.Getenv(v); nc != "" {
+			style = filepath.Join(filepath.Dir(nc), "basalt-theme.kdl")
+			break
+		}
 	}
 	return &Adapter{path: path, StylePath: style}
 }

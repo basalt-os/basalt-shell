@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Screen share test</title>
+<style>
+  body { font: 18px system-ui, sans-serif; margin: 0; background: #1b1f24; color: #ece7e1; }
+  button { font-size: 22px; padding: 18px 28px; margin: 24px; border-radius: 10px; border: 0; background: #b5502f; color: white; }
+  video { width: 90vw; border: 2px solid #b5502f; margin: 0 24px; }
+  #s { margin: 0 24px; }
+</style>
+<button id="b">Share screen</button>
+<div id="s">Not sharing</div>
+<video id="v" autoplay muted></video>
+<script>
+  document.getElementById("b").onclick = async () => {
+    const s = document.getElementById("s");
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      document.getElementById("v").srcObject = stream;
+      const t = stream.getVideoTracks()[0].getSettings();
+      s.textContent = "Sharing through the portal (PipeWire): " + t.width + "x" + t.height;
+    } catch (e) {
+      s.textContent = "Failed: " + e;
+    }
+  };
+</script>

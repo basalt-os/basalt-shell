@@ -40,6 +40,8 @@ Item {
         "chevron": '<path d="M6 9l6 6 6-6"/>',
         "warning": '<path d="M12 4l9 16H3z"/><path d="M12 10v4"/><circle cx="12" cy="17" r="0.8"/>',
         "info": '<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="8" r="0.8"/>',
+        "screen": '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+        "mic": '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>',
         "logo": '<path d="M20.9 6.7L21.6 16.1L13.4 22.1L3.4 17.8L2.6 7.7L12.5 2.2" stroke-width="2.6"/><path d="M12 8.4L15.4 11L14.2 15.1L9.6 14.9L8.6 10.8Z" fill="ACCENT" stroke="none"/>'
     })
 

@@ -30,11 +30,11 @@ layout {
 
 prefer-no-csd
 
-// Floating by default, sized like a normal desktop window.
+// Floating by default, sized relative to the screen (works at any scale).
 window-rule {
     open-floating true
-    default-column-width { fixed 1100; }
-    default-window-height { fixed 720; }
+    default-column-width { proportion 0.6; }
+    default-window-height { proportion 0.7; }
 }
 
 spawn-at-startup "basalt-session-init"

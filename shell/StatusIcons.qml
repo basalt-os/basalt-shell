@@ -16,6 +16,31 @@ Row {
 
     PwObjectTracker { objects: st.sink ? [st.sink] : [] }
 
+    // Privacy indicators: an application is capturing the screen or a
+    // camera (a video input stream), or recording audio.
+    readonly property var streams: Pipewire.nodes ? Pipewire.nodes.values.filter(n => !n.isSink && !(n.audio && !n.isStream)) : []
+    PwObjectTracker { objects: st.streams }
+    function streamClass(n) { return n && n.properties ? (n.properties["media.class"] || "") : ""; }
+    readonly property bool capturingVideo: streams.some(n => streamClass(n) === "Stream/Input/Video")
+    readonly property bool capturingAudio: streams.some(n => streamClass(n) === "Stream/Input/Audio")
+
+    Rectangle {
+        visible: st.capturingVideo || st.capturingAudio
+        anchors.verticalCenter: parent.verticalCenter
+        height: parent.height - Theme.s2
+        width: privRow.implicitWidth + Theme.s3
+        radius: height / 2
+        color: Theme.danger
+        Row {
+            id: privRow
+            anchors.centerIn: parent
+            spacing: Theme.s1
+            Icon { visible: st.capturingVideo; name: "screen"; color: "#ffffff"; size: Theme.fontSize * 1.3; anchors.verticalCenter: parent.verticalCenter }
+            Icon { visible: st.capturingAudio; name: "mic"; color: "#ffffff"; size: Theme.fontSize * 1.3; anchors.verticalCenter: parent.verticalCenter }
+            Txt { text: st.capturingVideo ? "Sharing" : "Mic on"; color: "#ffffff"; role: "small"; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+        }
+    }
+
     Item {
         width: row.implicitWidth + Theme.s3
         height: parent.height

@@ -5,11 +5,20 @@
 # session is left alone.
 set -u
 if [ "${BASALT_NESTED:-0}" != 1 ]; then
-  vars="WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP QT_QPA_PLATFORMTHEME"
-  [ -n "${SWAYSOCK:-}" ] && vars="$vars SWAYSOCK"
-  [ -n "${NIRI_SOCKET:-}" ] && vars="$vars NIRI_SOCKET"
-  dbus-update-activation-environment --systemd $vars
-  systemctl --user import-environment $vars
+  # Applications are started by the systemd user manager (in their own
+  # scope), so it needs the session's toolkit environment too.
+  vars="WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP
+        QT_QPA_PLATFORM QT_QPA_PLATFORMTHEME QT_WAYLAND_DISABLE_WINDOWDECORATION MOZ_ENABLE_WAYLAND
+        ELECTRON_OZONE_PLATFORM_HINT SDL_VIDEODRIVER _JAVA_AWT_WM_NONREPARENTING XCURSOR_THEME XCURSOR_SIZE
+        BASALT_NIRI_CONFIG"
+  # niri starts xwayland-satellite on demand and sets DISPLAY for its
+  # children; wait briefly so it can be exported as well.
+  for _ in 1 2 3 4 5; do [ -n "${DISPLAY:-}" ] && break; sleep 0.5; done
+  vars="$vars SWAYSOCK NIRI_SOCKET"
+  present=""
+  for v in $vars; do [ -n "${!v:-}" ] && present="$present $v"; done
+  dbus-update-activation-environment --systemd $present
+  systemctl --user import-environment $present
   systemctl --user start basalt-session.target
   swayidle -w timeout 900 basalt-lock before-sleep basalt-lock &
 fi

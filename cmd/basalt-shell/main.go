@@ -143,7 +143,13 @@ func main() {
 }
 
 func ctl(ctx context.Context, op string, args any) {
-	cl, err := mcp.Dial(shell.DefaultSocket(), shell.RoleAgent, "ctl")
+	// BASALT_SHELL_ROLE=ui is only honored by a daemon started with
+	// BASALT_SHELL_INSECURE_UI=1 (development and lab tests).
+	role := shell.RoleAgent
+	if os.Getenv("BASALT_SHELL_ROLE") == shell.RoleUI {
+		role = shell.RoleUI
+	}
+	cl, err := mcp.Dial(shell.DefaultSocket(), role, "ctl")
 	if err != nil {
 		log.Fatal(err)
 	}
