@@ -98,6 +98,7 @@ scene_notifications() {
   ui open notifications; sleep 1.5
   shot 03-notification-center
   ui close; sleep 1
+  ui dismissPopups
   rec_stop
 }
 
@@ -174,6 +175,10 @@ scene_apps() {
   close_all
   for a in gnome-text-editor mousepad featherpad keepassxc firefox xterm xeyes; do spawn "$a"; sleep 1.5; done
   sleep 6
+  ui open commandbar; sleep 1
+  type_slow "arrange windows in a grid"; key Return 1.5
+  key Tab 0.4; key Return 3
+  ui close; sleep 1
   shot 08-apps
 }
 

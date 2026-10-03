@@ -65,5 +65,6 @@ Singleton {
         function close(): void { ui.closeAll(); }
         function ask(text: string): void { ui.commandText = text; ui.open("commandbar", ""); }
         function settingsPage(page: string): void { ui.open("settings", page); }
+        function dismissPopups(): void { Notifs.popups = []; }
     }
 }
