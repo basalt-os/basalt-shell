@@ -8,6 +8,7 @@ import Quickshell.Services.Polkit
 Scope {
     id: root
     PolkitAgent { id: agent }
+    Binding { target: Ui; property: "polkitActive"; value: agent.isActive && agent.flow !== null }
 
     PanelWindow {
         visible: agent.isActive && agent.flow !== null

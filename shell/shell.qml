@@ -22,6 +22,7 @@ ShellRoot {
     Drawer {}
     Popups {}
     ConfirmSheet {}
+    ChooserSheet {}
     Settings {}
     PolkitDialog {}
 

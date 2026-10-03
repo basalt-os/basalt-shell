@@ -41,11 +41,23 @@ fi
 conf=${XDG_CONFIG_HOME:-$HOME/.config}/basalt-shell
 mkdir -p "$conf/sway.d"
 
+# When the compositor exits, stop the session's user services (portals,
+# autostarted apps) so the next session starts them with its own
+# environment instead of reusing ones bound to a dead display.
+session_end() {
+  [ "${BASALT_NESTED:-0}" = 1 ] && return
+  systemctl --user stop basalt-session.target graphical-session.target 2>/dev/null
+  systemctl --user stop xdg-desktop-portal.service xdg-desktop-portal-gtk.service \
+    xdg-desktop-portal-wlr.service xdg-desktop-portal-gnome.service 2>/dev/null
+  systemctl --user unset-environment WAYLAND_DISPLAY DISPLAY SWAYSOCK NIRI_SOCKET 2>/dev/null
+}
+
 case "$which" in
   sway|swayfx)
     export XDG_CURRENT_DESKTOP=sway:Basalt
     export XDG_SESSION_DESKTOP=sway
-    exec sway -c "$share/sway/config" "${@:2}"
+    sway -c "$share/sway/config" "${@:2}"
+    session_end
     ;;
   niri)
     export XDG_CURRENT_DESKTOP=niri:Basalt
@@ -53,12 +65,14 @@ case "$which" in
     # niri reads NIRI_CONFIG; the theme include is written next to it.
     mkdir -p "$conf/niri"
     cp -n "$share/niri/basalt-theme.kdl" "$conf/niri/basalt-theme.kdl" 2>/dev/null || true
+    [ -e "$conf/niri/local.kdl" ] || printf '// Your additions to the Basalt niri config (kept across updates).\n' >"$conf/niri/local.kdl"
     if [ ! -e "$conf/niri/config.kdl" ] || [ "$conf/niri/config.kdl" -ot "$share/niri/config.kdl" ]; then
       cp "$share/niri/config.kdl" "$conf/niri/config.kdl"
     fi
     export NIRI_CONFIG="$conf/niri/config.kdl" BASALT_NIRI_CONFIG="$conf/niri/config.kdl"
     if [ "${BASALT_NESTED:-0}" = 1 ]; then exec niri "${@:2}"; fi
-    exec niri --session "${@:2}"
+    niri --session "${@:2}"
+    session_end
     ;;
   *)
     echo "basalt-session: unknown compositor $which (sway or niri)" >&2

@@ -15,7 +15,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Normal
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "basalt-drawer"
-    WlrLayershell.keyboardFocus: Ui.drawer ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: Ui.drawer && !Ui.modal ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     MouseArea { anchors.fill: parent; onClicked: Ui.drawer = false }
 

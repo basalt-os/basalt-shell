@@ -16,7 +16,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Normal
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "basalt-quicksettings"
-    WlrLayershell.keyboardFocus: Ui.quickSettings ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: Ui.quickSettings && !Ui.modal ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     readonly property var st: Bus.themeState
     readonly property var sink: Pipewire.defaultAudioSink

@@ -14,7 +14,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "basalt-commandbar"
-    WlrLayershell.keyboardFocus: Ui.commandBar ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: Ui.commandBar && !Ui.modal ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     property var result: null      // AskResult from the daemon
     property bool busy: false

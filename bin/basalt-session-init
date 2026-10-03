@@ -17,10 +17,20 @@ if [ "${BASALT_NESTED:-0}" != 1 ]; then
   vars="$vars SWAYSOCK NIRI_SOCKET"
   present=""
   for v in $vars; do [ -n "${!v:-}" ] && present="$present $v"; done
+  # Portals left from an earlier session would talk to a dead display.
+  systemctl --user stop xdg-desktop-portal.service xdg-desktop-portal-gtk.service \
+    xdg-desktop-portal-wlr.service xdg-desktop-portal-gnome.service 2>/dev/null
   dbus-update-activation-environment --systemd $present
   systemctl --user import-environment $present
   systemctl --user start basalt-session.target
   swayidle -w timeout 900 basalt-lock before-sleep basalt-lock &
+fi
+# Screen sharing on sway asks which output to share (slurp); per-user
+# default, kept if the person changed it.
+share=${BASALT_SHELL_DATA:-/usr/share/basalt-shell}
+xdpw=${XDG_CONFIG_HOME:-$HOME/.config}/xdg-desktop-portal-wlr/config
+if [ -n "${SWAYSOCK:-}" ] && [ ! -e "$xdpw" ] && [ -f "$share/portals/xdpw-config" ]; then
+  mkdir -p "$(dirname "$xdpw")" && cp "$share/portals/xdpw-config" "$xdpw"
 fi
 command -v cliphist >/dev/null && wl-paste --watch cliphist store &
 wait

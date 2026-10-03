@@ -16,9 +16,12 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "basalt-confirm"
-    WlrLayershell.keyboardFocus: current !== null ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    readonly property bool hasKeyboard: current !== null && !Ui.polkitActive && !Ui.chooserActive
+    WlrLayershell.keyboardFocus: hasKeyboard ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    Binding { target: Ui; property: "confirmActive"; value: win.current !== null }
 
     onCurrentChanged: if (current !== null) { shown = current; confirmBtn.forceActiveFocus(); }
+    onHasKeyboardChanged: if (hasKeyboard) confirmBtn.forceActiveFocus()
 
     property int remaining: 0
     Timer {

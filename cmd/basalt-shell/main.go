@@ -6,6 +6,7 @@
 //	basalt-shell ctl OP [JSON]     send one IPC request (agent role) and print the reply
 //	basalt-shell propose ACTION [JSON-ARGS] [--wait N]
 //	                               propose one typed action; the person confirms it in the shell
+//	basalt-shell choose-output     ask the person which screen to share (portal chooser)
 //	basalt-shell audit verify      check the activity log's hash chain
 //	basalt-shell version
 package main
@@ -128,6 +129,10 @@ func main() {
 			}
 		}
 		ctl(ctx, "propose", map[string]any{"calls": []shell.Call{{Action: os.Args[2], Args: args}}, "wait": wait})
+	case "choose-output":
+		// Screen-share output chooser for xdg-desktop-portal-wlr
+		// (chooser_cmd): prints the output the person picked in the shell.
+		chooseOutput(ctx)
 	case "audit":
 		n, err := audit.Verify(filepath.Join(stateDir(), "audit.jsonl"))
 		if err != nil {
@@ -162,6 +167,34 @@ func ctl(ctx context.Context, op string, args any) {
 	}
 	b, _ := json.MarshalIndent(out, "", "  ")
 	fmt.Println(string(b))
+}
+
+func chooseOutput(ctx context.Context) {
+	cl, err := mcp.Dial(shell.DefaultSocket(), shell.RoleAgent, "screen-share")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer cl.Close()
+	var d shell.Desktop
+	if err := cl.Call(ctx, "desktop", nil, &d); err != nil {
+		log.Fatal(err)
+	}
+	var opts []shell.Option
+	for _, o := range d.Outputs {
+		opts = append(opts, shell.Option{ID: o.Name, Label: o.Name, Hint: fmt.Sprintf("%dx%d", o.Rect.W, o.Rect.H)})
+	}
+	var res struct {
+		Choice string `json:"choice"`
+	}
+	cctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+	defer cancel()
+	if err := cl.Call(cctx, "choose", map[string]any{"title": "Share your screen", "body": "An application wants to see your screen. Pick what to share, or cancel.", "options": opts, "wait": 120}, &res); err != nil {
+		log.Fatal(err)
+	}
+	if res.Choice == "" {
+		os.Exit(1)
+	}
+	fmt.Println(res.Choice)
 }
 
 func daemon(ctx context.Context) error {

@@ -1,6 +1,7 @@
-# xdg-desktop-portal-wlr: ask which output to share by clicking it (slurp),
-# so screen sharing always needs the person's choice.
+# xdg-desktop-portal-wlr: the shell asks which output to share (a sheet
+# in the Basalt shell, answer audited), so screen sharing always needs the
+# person's choice.
 [screencast]
 chooser_type=simple
-chooser_cmd=slurp -f %o -or
+chooser_cmd=basalt-shell choose-output
 max_fps=30

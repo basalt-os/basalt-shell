@@ -14,7 +14,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "basalt-launcher"
-    WlrLayershell.keyboardFocus: Ui.launcher ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: Ui.launcher && !Ui.modal ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     property var apps: []
     property var results: []

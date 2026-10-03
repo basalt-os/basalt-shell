@@ -90,6 +90,7 @@ type Core struct {
 	appsTime  time.Time
 	desktop   Desktop
 	lastApps  appearance.Result
+	choices   map[string]chan string
 }
 
 // Event goes to UI subscribers.
@@ -112,7 +113,7 @@ type Desktop struct {
 func New(comp compositor.Adapter, store *theme.Store, log *audit.Log, rep hw.Report, configDir string) *Core {
 	c := &Core{Comp: comp, Themes: store, Audit: log, HW: rep, ConfigDir: configDir,
 		ApplyApps: true, ProposalTTL: 5 * time.Minute,
-		proposals: map[string]*Proposal{}, subs: map[chan Event]struct{}{}}
+		proposals: map[string]*Proposal{}, subs: map[chan Event]struct{}{}, choices: map[string]chan string{}}
 	log.OnAppend = func(r audit.Record) { c.Broadcast("activity", r) }
 	return c
 }
@@ -567,4 +568,66 @@ func (c *Core) Wait(ctx context.Context, id string) (Proposal, error) {
 	case <-ctx.Done():
 		return pr.public(), ctx.Err()
 	}
+}
+
+// Option is one entry of a choice the person makes in the shell.
+type Option struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	Hint  string `json:"hint,omitempty"`
+}
+
+// Choose asks the person to pick one option in the shell UI (for example
+// which screen to share) and returns its id, or "" when cancelled or timed
+// out. The question and the answer are audited.
+func (c *Core) Choose(ctx context.Context, actor, title, body string, opts []Option) (string, error) {
+	if len(opts) == 0 {
+		return "", errors.New("no options")
+	}
+	id := newID()
+	ch := make(chan string, 1)
+	c.mu.Lock()
+	c.choices[id] = ch
+	c.mu.Unlock()
+	defer func() {
+		c.mu.Lock()
+		delete(c.choices, id)
+		c.mu.Unlock()
+		c.Broadcast("choice-done", map[string]any{"id": id})
+	}()
+	c.Broadcast("choose", map[string]any{"id": id, "title": title, "body": body, "options": opts, "actor": actor})
+	select {
+	case v := <-ch:
+		typ := "confirm"
+		if v == "" {
+			typ = "decline"
+		}
+		_, _ = c.Audit.Append(typ, "ui", title+": "+orNone(v), map[string]any{"choice": id, "asked_by": actor, "options": opts})
+		return v, nil
+	case <-ctx.Done():
+		_, _ = c.Audit.Append("expire", actor, title+": no answer", map[string]any{"choice": id})
+		return "", ctx.Err()
+	}
+}
+
+func orNone(s string) string {
+	if s == "" {
+		return "cancelled"
+	}
+	return s
+}
+
+// Chosen delivers the person's answer (UI only).
+func (c *Core) Chosen(id, value string) error {
+	c.mu.Lock()
+	ch, ok := c.choices[id]
+	c.mu.Unlock()
+	if !ok {
+		return fmt.Errorf("no open choice %s", id)
+	}
+	select {
+	case ch <- value:
+	default:
+	}
+	return nil
 }

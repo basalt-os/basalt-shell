@@ -27,6 +27,8 @@ Singleton {
     signal notify(var data)           // notification.show from an agent
     signal openRequested(string surface, string page)
     signal proposalChanged(var proposal)
+    signal chooseRequested(var req)
+    signal chooseDone(string id)
 
     property int _next: 1
     property var _callbacks: ({})
@@ -94,6 +96,8 @@ Singleton {
             }
             case "notify": bus.notify(m.data); break;
             case "ui": bus.openRequested(m.data.open || "", m.data.page || ""); break;
+            case "choose": bus.chooseRequested(m.data); break;
+            case "choice-done": bus.chooseDone(m.data.id); break;
             }
             return;
         }

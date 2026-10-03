@@ -89,3 +89,6 @@ binds {
 
     Mod+Shift+E { quit; }
 }
+
+// Local additions (keybindings, window rules, outputs): kept across updates.
+include "local.kdl"

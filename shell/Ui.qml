@@ -18,6 +18,16 @@ Singleton {
     property string settingsPage: "appearance"
     property string commandText: ""
 
+    // Modal surfaces (authentication, confirmation, choice). While one is
+    // up, the others give up keyboard focus: compositors differ in which
+    // of several exclusive-focus surfaces gets the keyboard (in the lab,
+    // SwayFX gave it to the newest and niri to an older one), so the
+    // shell makes sure there is only one.
+    property bool polkitActive: false
+    property bool confirmActive: false
+    property bool chooserActive: false
+    readonly property bool modal: polkitActive || confirmActive || chooserActive
+
     function closeAll() {
         launcher = false; commandBar = false; quickSettings = false; drawer = false;
     }

@@ -421,6 +421,38 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		c.ApplyTheme(ctx)
 		return c.Theme(), nil
 
+	case "choose":
+		// Any client may ask the person a question with fixed options
+		// (the screen-share output chooser uses this); only the UI answers.
+		var a struct {
+			Title   string   `json:"title"`
+			Body    string   `json:"body"`
+			Options []Option `json:"options"`
+			Wait    int      `json:"wait"`
+		}
+		if err := decode(req.Args, &a); err != nil {
+			return nil, err
+		}
+		if a.Wait <= 0 || a.Wait > 300 {
+			a.Wait = 120
+		}
+		wctx, cancel := context.WithTimeout(ctx, time.Duration(a.Wait)*time.Second)
+		defer cancel()
+		v, err := c.Choose(wctx, ss.actor(), a.Title, a.Body, a.Options)
+		if err != nil && !errors.Is(err, context.DeadlineExceeded) {
+			return nil, err
+		}
+		return map[string]any{"choice": v}, nil
+	case "chosen":
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		var a struct {
+			ID     string `json:"id"`
+			Choice string `json:"choice"`
+		}
+		_ = decode(req.Args, &a)
+		return nil, c.Chosen(a.ID, a.Choice)
 	case "assistant.pending":
 		if c.Assistant == nil || !c.Assistant.Available() {
 			return []any{}, nil
