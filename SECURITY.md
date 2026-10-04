@@ -10,8 +10,10 @@ privately and give us time to fix it before it is disclosed.
 
 Use GitHub's private vulnerability reporting for this repository:
 <https://github.com/basalt-os/basalt-shell/security/advisories/new>
-(the "Report a vulnerability" button under the Security tab). If you cannot
-use GitHub, write to security@openbasalt.org.
+(the "Report a vulnerability" button under the Security tab). This is the
+preferred channel. If you cannot use GitHub, write to openbasalt@openbasalt.org
+with "security" in the subject and without the details of the problem; we
+will reply with a private way to share them.
 
 Do not open a public issue, pull request or discussion for a security
 problem. If the problem is in another part of Basalt OS (the system
