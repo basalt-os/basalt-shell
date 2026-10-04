@@ -61,6 +61,28 @@ daemon, which applies the confirmation, control-session and audit rules
 `basalt-shell screenshot` writes the PNG to stdout, MCP clients get it
 inline.
 
+## Applications the shell starts
+
+An application started from the launcher, the command bar or an agent's
+confirmed `app.launch` runs in the person's own domain, the one their
+session runs in (`unconfined_t` for an unconfined user, the login domain
+of a confined one), never in `basalt_shell_t`. The daemon does not execute
+the program itself: it asks the systemd user manager to start a transient
+service (`systemd-run --user`, unit `app-basalt-<id>-<random>.service` in
+`app.slice`, `Type=exec`, `ExitType=cgroup`), and the manager, which runs
+in the person's domain, starts it. A scope (`systemd-run --scope`) would
+not do: the program would be a child of the daemon and inherit
+`basalt_shell_t`, which versions up to 0.3.1 did. Without a user manager
+(containers, nested test sessions) the compositor starts the program, also
+outside the daemon.
+
+Why it matters: the daemon's type is its identity. A program in
+`basalt_shell_t` could not confirm (only `basalt_shell_ui_t` can), but it
+would carry whatever the daemon's domain is allowed, now or once it is
+confined, and its denials and audit records would name the shell. The
+session's environment (display, toolkit and compositor variables) is
+passed to each service explicitly, so headless sessions work the same.
+
 ## The agent family (shared with basalt-agent)
 
 `basalt_agent_mcp_t` is a member of the Basalt agent family. The family's
@@ -106,11 +128,24 @@ same name; it was replaced by the one from basalt-agent before release.)
 | T6 to T9 `basalt_agent_mcp_t` connecting to the Wayland, D-Bus, X11 and PipeWire sockets | permission denied (SELinux; the base policy does not audit these) |
 | T10 the request after all attempts | still pending |
 | T11 the person presses Enter on the confirmation sheet | applied, decided by `ui` |
+| T12 an agent's confirmed `app.launch` (foot); the launcher (Firefox) | each in its own `app-basalt-*.service`, running in `unconfined_t`, the session's domain |
+| T13 processes in `basalt_shell_t` after the launches | only `basalt-shelld` |
 
 AVC denials during normal use (session start, shell UI, command bar, MCP
-tools, screenshots and a control session, the headless session): 0. The
-denials of T5 to T9 are hidden by `dontaudit` rules of the base policy
-and visible with `semodule -DB`.
+tools, screenshots and a control session, the headless session, apps
+started from the shell, among them Firefox playing audio with realtime
+threads from rtkit): 0. The only denials are those of T5 to T9, the
+attacks being refused (depending on the base policy version they are
+logged or hidden by `dontaudit` rules, visible with `semodule -DB`).
+Retested on the 0.3.1 live desktop image (SwayFX, enforcing) with the
+launch change: T1 to T13 pass.
+
+Before that change, an app started from the shell ran in
+`basalt_shell_t`. Firefox asks rtkit for a realtime audio thread at
+start, and `rtkit_daemon_t` may not set the scheduler of `basalt_shell_t`:
+the likely source of the rtkit AVC seen on the first live desktop image,
+gone since apps run in the person's domain (rtkit now grants Firefox's
+thread, no denial).
 
 ## Limits
 

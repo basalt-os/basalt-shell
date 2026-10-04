@@ -430,8 +430,8 @@ func quote(s string) string {
 
 // Spawn starts a program through sway's exec (sh -c). Arguments with
 // quotes, backslashes or sway's command separators are refused rather
-// than escaped: the shell launches applications in their own systemd
-// scope (see shell.Launch) and uses this only as a fallback.
+// than escaped: the shell launches applications as systemd user
+// services (see shell.Launch) and uses this only as a fallback.
 func (a *Adapter) Spawn(_ context.Context, argv []string) error {
 	if len(argv) == 0 {
 		return errors.New("empty command")

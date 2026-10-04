@@ -56,8 +56,11 @@ check "T10 after all attempts the proposal is still pending ($st)" ok "$([ "$st"
 
 # The person confirms on the sheet (Enter on the focused Confirm button,
 # from a kernel-level virtual keyboard standing in for a real one).
+# BASALT_TEST_CONFIRM replaces ydotool (for example a key sent by the VM's
+# host to its virtual keyboard).
+confirm=${BASALT_TEST_CONFIRM:-"env YDOTOOL_SOCKET=${YDOTOOL_SOCKET:-/run/ydotoold.socket} ydotool key 28:1 28:0"}
 sleep 1.5
-YDOTOOL_SOCKET=${YDOTOOL_SOCKET:-/run/ydotoold.socket} ydotool key 28:1 28:0 >/dev/null 2>&1
+$confirm >/dev/null 2>&1
 sleep 1.5
 st=$(basalt-shell ctl proposal "{\"id\": \"$id\"}" | jq -r '.status + " by " + .decided_by')
 check "T11 the person confirms in the shell UI ($st)" ok "$([[ $st == applied* ]] && echo ok || echo refused)"
@@ -67,6 +70,23 @@ check "T11 the person confirms in the shell UI ($st)" ok "$([[ $st == applied* ]
 timeout 6 /usr/libexec/basalt-shell/basalt-shell-ui-launch >/dev/null 2>&1
 out=$(tail -n 5 "${XDG_STATE_HOME:-$HOME/.local/state}/basalt-shell/audit.jsonl" | grep -o 'another shell UI[^"]*' | tail -1)
 check "T5b a second shell UI in basalt_shell_ui_t while the first runs" refused "${out:-accepted}"
+
+# Applications the shell starts run in the person's domain (the domain of
+# this script, the session's), never in the daemon's basalt_shell_t.
+mine=$(id -Z | cut -d: -f3)
+app=${BASALT_TEST_APP:-foot}
+before=$(systemctl --user list-units --plain --no-legend 'app-basalt-*' | awk '{print $1}' | sort)
+id=$(basalt-shell propose app.launch "{\"app\": \"$app\"}" --wait 0 2>&1 | jq -r .id)
+sleep 1.5
+$confirm >/dev/null 2>&1
+sleep 3
+unit=$(comm -13 <(echo "$before") <(systemctl --user list-units --plain --no-legend 'app-basalt-*' | awk '{print $1}' | sort) | head -1)
+pid=$(systemctl --user show -p MainPID --value "$unit" 2>/dev/null)
+dom=$(ps -o label= -p "${pid:-0}" 2>/dev/null | cut -d: -f3)
+check "T12 a launched app ($app, $unit) runs in the session's domain ($dom)" ok "$([ -n "$dom" ] && [ "$dom" = "$mine" ] && echo ok || echo refused)"
+others=$(ps -eo label=,comm= | awk '$1 ~ /:basalt_shell_t:/ && $2 != "basalt-shelld" {print $2}' | sort -u | tr '\n' ' ')
+check "T13 nothing but basalt-shelld runs in basalt_shell_t (${others:-none})" ok "$([ -z "$others" ] && echo ok || echo refused)"
+[ -n "$unit" ] && systemctl --user stop "$unit"
 
 echo "audit (last records of this test):"
 tail -n 14 "${XDG_STATE_HOME:-$HOME/.local/state}/basalt-shell/audit.jsonl" | jq -r '"  " + .type + "  " + .actor + "  " + .text' | cut -c1-160

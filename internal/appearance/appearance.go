@@ -14,7 +14,10 @@
 //   - ~/.config/gtk-3.0/gtk.css: the accent only (GTK 3 has no media
 //     queries; the adw-gtk3 theme follows the mode);
 //   - qt6ct and qt5ct: a generated color scheme and qt6ct.conf / qt5ct.conf
-//     (Qt 6 and Qt 5 apps started with QT_QPA_PLATFORMTHEME=qt6ct:qt5ct).
+//     (Qt 6 and Qt 5 apps started with QT_QPA_PLATFORMTHEME=qt6ct:qt5ct);
+//   - FeatherPad: its text area ignores the palette and has its own dark
+//     setting ([text] darkColorScheme in featherpad/fp.conf), set to the
+//     mode (read when FeatherPad starts).
 package appearance
 
 import (
@@ -134,6 +137,13 @@ func Apply(ctx context.Context, t, lightT, darkT theme.Tokens, configDir string,
 			fail(q.name, err)
 		} else {
 			ok(q.name + " colors")
+		}
+	}
+	if palette != "off" {
+		if err := writeFeatherPad(dark, configDir); err != nil {
+			fail("featherpad", err)
+		} else {
+			ok("featherpad darkColorScheme")
 		}
 	}
 	if msg, err := writeFoot(t, configDir); err != nil {
@@ -385,4 +395,75 @@ func writeQtct(t theme.Tokens, configDir string, q qtct) error {
 		b.WriteString("\n")
 	}
 	return os.WriteFile(confPath, []byte(b.String()), 0o644)
+}
+
+// writeFeatherPad sets FeatherPad's own dark text area setting to the
+// mode, keeping everything else of fp.conf. FeatherPad reads it when it
+// starts and writes its settings back when it quits, so a FeatherPad
+// running during a mode change keeps the old value until the next theme
+// change after it quits.
+func writeFeatherPad(dark bool, configDir string) error {
+	p := filepath.Join(configDir, "featherpad", "fp.conf")
+	old, err := os.ReadFile(p)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	val := "false"
+	if dark {
+		val = "true"
+	}
+	body := SetINIKey(string(old), "text", "darkColorScheme", val)
+	if body == string(old) {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(p, []byte(body), 0o644)
+}
+
+// SetINIKey sets key=value in [section] of an INI text (QSettings
+// format), adding the key or the section when missing; every other line
+// is kept as it is.
+func SetINIKey(ini, section, key, value string) string {
+	lines := strings.Split(ini, "\n")
+	if len(lines) > 0 && lines[len(lines)-1] == "" {
+		lines = lines[:len(lines)-1]
+	}
+	in, found, end := false, -1, -1
+	for i, l := range lines {
+		t := strings.TrimSpace(l)
+		if strings.HasPrefix(t, "[") && strings.HasSuffix(t, "]") {
+			if in {
+				break
+			}
+			in = t == "["+section+"]"
+			if in {
+				end = i + 1
+			}
+			continue
+		}
+		if !in {
+			continue
+		}
+		if t != "" {
+			end = i + 1
+		}
+		if k, _, ok := strings.Cut(t, "="); ok && strings.TrimSpace(k) == key {
+			found = i
+		}
+	}
+	kv := key + "=" + value
+	switch {
+	case found >= 0:
+		lines[found] = kv
+	case end >= 0:
+		lines = append(lines[:end], append([]string{kv}, lines[end:]...)...)
+	default:
+		if len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) != "" {
+			lines = append(lines, "")
+		}
+		lines = append(lines, "["+section+"]", kv)
+	}
+	return strings.Join(lines, "\n") + "\n"
 }

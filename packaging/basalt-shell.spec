@@ -223,6 +223,9 @@ fi
   windows; effects (shadows, blur, dimming) off on weak hardware
   (software rendering, few CPUs, little memory, headless).
 - Window states stay in sync with the panel after an action.
+- Apps started from the shell run as systemd user services in the
+  person's SELinux domain, no longer in the daemon's basalt_shell_t.
+- FeatherPad's text area follows the light or dark mode.
 
 * Sun Oct 04 2026 Basalt OS developers - 0.3.0-1
 - Window decorations that follow the theme on sway and niri; Qt windows

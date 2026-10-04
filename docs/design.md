@@ -306,9 +306,12 @@ type Adapter interface {
 
 `Caps` says what a backend can do so tools can be honest (for example
 `config_reload` for niri, `live_corners` only on SwayFX among the sway
-family). Applications are launched in their own systemd scope
-(`app-basalt-<id>-<random>.scope`), not through the compositor, when a
-user manager runs.
+family). Applications are launched as transient services of the systemd
+user manager (`app-basalt-<id>-<random>.service`, in `app.slice`), not
+through the compositor, when a user manager runs. Not a scope: a scope
+would run the program as a child of the daemon, in the daemon's SELinux
+domain; a service is started by the user manager, in the person's own
+domain (docs/selinux.md, "Applications the shell starts").
 
 ## Window decorations and window states
 
@@ -384,6 +387,7 @@ tile`, the Windows settings page, or "tile windows" in the command bar).
 | GTK 4 / libadwaita | the portal settings live; exact palette for both modes (libadwaita CSS variables under a prefers-color-scheme media query) in a managed block of ~/.config/gtk-4.0/gtk.css, read when an app starts |
 | GTK 3 | adw-gtk3 / adw-gtk3-dark switched with the mode; the accent in a managed block of ~/.config/gtk-3.0/gtk.css |
 | Qt 5 / 6 | qt5ct and qt6ct (QT_QPA_PLATFORMTHEME=qt6ct:qt5ct) with a generated color scheme and fonts, when the app starts |
+| Apps with their own colors | KeePassXC's default theme ("Automatic") follows the portal's color-scheme when it starts; FeatherPad's text area ignores the palette, so the daemon sets its `darkColorScheme` to the mode in `~/.config/featherpad/fp.conf` (read when it starts; not when the `apps.palette` token is `off`) |
 | Icons, cursor, fonts | gsettings (icon-theme, cursor-theme, cursor-size, font-name, monospace-font-name) and the compositor's cursor |
 | X11 apps | XWayland on sway; xwayland-satellite on niri (started on demand by niri) |
 | Electron | Ozone Wayland (ELECTRON_OZONE_PLATFORM_HINT=auto), dark mode from the portal |
