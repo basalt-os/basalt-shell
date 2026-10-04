@@ -57,6 +57,10 @@ binds {
     Mod+Space { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "launcher"; }
     Mod+D { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "launcher"; }
     Mod+A { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "commandbar"; }
+    // Push to talk: niri has no key-release bindings, so Mod+V toggles
+    // (press to start listening, press again to send); the panel's
+    // microphone button is hold to talk.
+    Mod+V { spawn "basalt-shell-ui" "ipc" "call" "shell" "voice" "toggle"; }
     Mod+N { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "notifications"; }
     Mod+S { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "quicksettings"; }
     Mod+Comma { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "settings"; }

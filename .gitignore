@@ -3,3 +3,4 @@ ACCESS.local.md
 *.local.md
 /lab/out/
 /media/raw/
+/lab/voice/tests/probe/probe

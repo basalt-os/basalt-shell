@@ -572,6 +572,48 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		_ = decode(req.Args, &a)
 		c.SetUIModal(a.Modal)
 		return nil, nil
+	case "voice.press":
+		// Push to talk: only the shell UI (the key binding reaches it
+		// through Quickshell IPC; the panel button is in it). Agents can
+		// never open the microphone.
+		if err := ss.requireUI(); err != nil {
+			_, _ = c.Audit.Append("refuse", ss.actor(), "microphone refused: not the shell UI", map[string]any{"pid": ss.pid, "context": ss.peer.Context})
+			return nil, err
+		}
+		return nil, c.VoicePress(ctx)
+	case "voice.release":
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		return nil, c.VoiceRelease(ctx)
+	case "voice.cancel":
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		c.VoiceCancel(ctx)
+		return nil, nil
+	case "voice.status":
+		return c.VoiceStatus(), nil
+	case "grants":
+		if c.Skills == nil {
+			return []any{}, nil
+		}
+		return c.Skills.Store.Active(""), nil
+	case "grant.revoke":
+		// Taking power away needs no confirmation, but only the person.
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		if c.Skills == nil {
+			return 0, nil
+		}
+		var a struct {
+			ID string `json:"id"`
+		}
+		_ = decode(req.Args, &a)
+		n := c.Skills.Store.Revoke(a.ID)
+		_, _ = c.Audit.Append("apply", "ui", fmt.Sprintf("revoked %d grants", n), map[string]any{"id": a.ID})
+		return n, nil
 	case "audit.verify":
 		n, err := audit.Verify(c.Audit.Path())
 		if err != nil {
@@ -581,4 +623,11 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 	}
 	log.Printf("unknown op %q from %s", req.Op, ss.actor())
 	return nil, fmt.Errorf("unknown op %q", req.Op)
+}
+
+func grantsOf(c *Core) any {
+	if c.Skills == nil {
+		return []any{}
+	}
+	return c.Skills.Store.Active("")
 }

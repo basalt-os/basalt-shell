@@ -27,6 +27,9 @@ Singleton {
     property var uiCheck: null        // how the daemon recognizes this UI (selinux, exe)
     property var agentIO: ({})        // last-resort capabilities (screen capture, input)
     property var lastAgentActivity: null
+    property var voice: ({ state: "idle", enabled: false })   // push to talk state
+    property var grants: []           // scopes the person gave the read-only skills
+    property bool skillsAvailable: false
 
     signal notify(var data)           // notification.show from an agent
     signal openRequested(string surface, string page)
@@ -34,6 +37,7 @@ Singleton {
     signal chooseRequested(var req)
     signal chooseDone(string id)
     signal agentActivity(var data)    // a screenshot or an input step by an agent
+    signal voiceResult(var data)      // the answer to a spoken request
 
     property int _next: 1
     property var _callbacks: ({})
@@ -60,6 +64,11 @@ Singleton {
     function act(action, args, cb) { execute([{ action: action, args: args || {} }], cb); }
     function decide(id, approve, cb) { call("decide", { id: id, approve: approve }, cb); }
     function ask(text, cb) { call("ask", { text: text }, cb); }
+    // Push to talk: only this UI may open the microphone.
+    function voicePress() { call("voice.press", {}, (ok, res) => { if (!ok) bus.voice = { state: "error", error: res, enabled: bus.voice.enabled }; }); }
+    function voiceRelease() { call("voice.release", {}); }
+    function voiceCancel() { call("voice.cancel", {}); }
+    function revokeGrant(id) { call("grant.revoke", { id: id || "" }); }
     function setTokens(obj) { act("theme.set_tokens", { tokens: obj }); }
     function setToken(key, value) { const t = {}; t[key] = value; setTokens(t); }
     // Whether the person overrides a token (colors: in the current mode).
@@ -105,6 +114,9 @@ Singleton {
             case "choice-done": bus.chooseDone(m.data.id); break;
             case "control": bus.control = m.data; break;
             case "agent-activity": bus.lastAgentActivity = m.data; bus.agentActivity(m.data); break;
+            case "voice": bus.voice = m.data; break;
+            case "voice-result": bus.voiceResult(m.data); break;
+            case "grants": bus.grants = m.data || []; break;
             }
             return;
         }
@@ -137,6 +149,9 @@ Singleton {
             bus.control = s.control || null;
             bus.uiCheck = s.ui_check || null;
             bus.agentIO = s.agent_io || ({});
+            bus.voice = s.voice || ({ state: "idle", enabled: false });
+            bus.grants = s.grants || [];
+            bus.skillsAvailable = !!s.skills;
             bus.ready = true;
             bus.call("ui.state", { modal: Ui.modal });
             bus.refreshAssistant();

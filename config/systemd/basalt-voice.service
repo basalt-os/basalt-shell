@@ -1,0 +1,24 @@
+[Unit]
+Description=Basalt voice: push to talk, local speech to text and text to speech
+Documentation=file:///usr/share/doc/basalt-shell/voice.md
+PartOf=basalt-session.target
+After=pipewire.service pipewire-pulse.service
+ConditionPathExists=/etc/basalt/voice.conf
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/basalt/voice.conf
+ExecStart=/usr/bin/basalt-voiced
+Restart=on-failure
+RestartSec=3s
+# No network at all (the SELinux domain has none either): Unix sockets
+# only, for PipeWire and the shell daemon.
+RestrictAddressFamilies=AF_UNIX
+NoNewPrivileges=yes
+LockPersonality=yes
+RestrictRealtime=no
+Nice=-2
+WorkingDirectory=%t
+
+[Install]
+WantedBy=basalt-session.target

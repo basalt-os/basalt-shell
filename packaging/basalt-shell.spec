@@ -37,6 +37,12 @@ Requires:       qt6ct
 Requires:       qt5ct
 Requires:       gnome-keyring
 Requires:       gnome-keyring-pam
+# The read-only skills: PDF text (poppler), the browse skill (headless
+# Chromium). Speech: basalt-voice (whisper.cpp) and the PipeWire tools.
+Requires:       poppler-utils
+Requires:       pipewire-utils
+Recommends:     chromium
+Recommends:     basalt-voice
 Recommends:     xdg-desktop-portal-wlr
 Recommends:     xdg-desktop-portal-gnome
 Recommends:     adw-gtk3-theme
@@ -180,9 +186,10 @@ fi
 
 %files
 %license LICENSE LICENSE-artwork NOTICE
-%doc README.md docs/design.md
+%doc README.md docs/design.md docs/voice.md
 %{_bindir}/basalt-shell
 %{_bindir}/basalt-shelld
+%{_bindir}/basalt-voiced
 %{_bindir}/basalt-shell-ui
 %{_bindir}/basalt-session
 %{_bindir}/basalt-lock
@@ -193,6 +200,9 @@ fi
 %config(noreplace) %{_sysconfdir}/xdg/xdg-desktop-portal/sway-portals.conf
 %{_userunitdir}/basalt-session.target
 %{_userunitdir}/basalt-headless.service
+%{_userunitdir}/basalt-voice.service
+%dir %{_sysconfdir}/basalt
+%config(noreplace) %{_sysconfdir}/basalt/voice.conf
 %{_libexecdir}/basalt-shell/
 %{_datadir}/polkit-1/actions/org.openbasalt.shell.policy
 %{_datadir}/polkit-1/rules.d/50-basalt-shell.rules

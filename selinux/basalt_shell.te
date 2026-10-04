@@ -1,4 +1,4 @@
-policy_module(basalt_shell, 0.1.0)
+policy_module(basalt_shell, 0.3.0)
 
 ########################################
 #
@@ -107,3 +107,238 @@ neverallow basalt_agent_domain basalt_shell_ui_t:process { transition dyntransit
 neverallow basalt_agent_domain basalt_shell_ui_t:unix_stream_socket connectto;
 neverallow basalt_agent_domain basalt_shell_ui_exec_t:file { entrypoint execute };
 neverallow basalt_agent_domain { basalt_shell_t basalt_shell_ui_t }:process { transition dyntransition ptrace };
+
+########################################
+#
+# Voice and the read-only skills (voice spike, 2026-10).
+#
+#   basalt_voice_t        basalt-voiced: push to talk. Uses PipeWire (the
+#                         microphone only between "listen" and "stop",
+#                         which only the shell daemon sends) and runs its
+#                         speech programs (whisper.cpp, Piper). No network,
+#                         no home files, no Wayland, no D-Bus.
+#   basalt_skill_t        basalt-skill: the skills worker (search the file
+#                         index, read a mailbox, read a web page with
+#                         headless Chromium). An agent domain. Network to
+#                         the web and IMAP ports and DNS only; which hosts
+#                         is decided per job by the session's kernel filter
+#                         (basalt-resolver, from the person's grants).
+#   basalt_skill_index_t  basalt-skill-index: builds the index of the
+#                         granted folders. Reads the person's documents
+#                         (user_home_t), never keys, keyrings or browser
+#                         data. No network.
+#
+
+type basalt_voice_t;
+type basalt_voice_exec_t;
+application_domain(basalt_voice_t, basalt_voice_exec_t)
+type basalt_voice_runtime_t;
+userdom_user_tmp_file(basalt_voice_runtime_t)
+
+type basalt_skill_t;
+type basalt_skill_exec_t;
+application_domain(basalt_skill_t, basalt_skill_exec_t)
+basalt_agent_domain_type(basalt_skill_t)
+
+type basalt_skill_index_t;
+type basalt_skill_index_exec_t;
+application_domain(basalt_skill_index_t, basalt_skill_index_exec_t)
+
+# ~/.local/share/basalt-skills: the file index (text of the granted
+# documents). Written by the indexer, read by the worker.
+type basalt_skill_data_t;
+userdom_user_home_content(basalt_skill_data_t)
+
+optional_policy(`
+	# The user systemd and the session start the voice service; tests
+	# start workers by hand.
+	unconfined_run_to(basalt_voice_t, basalt_voice_exec_t)
+	unconfined_run_to(basalt_skill_t, basalt_skill_exec_t)
+	unconfined_run_to(basalt_skill_index_t, basalt_skill_index_exec_t)
+	gen_require(`
+		type unconfined_t;
+	')
+	# The user unit runs with NoNewPrivileges: the transition into the
+	# (more restricted) voice domain must be allowed explicitly.
+	allow unconfined_t basalt_voice_t:process2 { nnp_transition nosuid_transition };
+')
+# The daemon starts the workers (through systemd-run --scope, which
+# executes them in place).
+domtrans_pattern(basalt_shell_t, basalt_skill_exec_t, basalt_skill_t)
+domtrans_pattern(basalt_shell_t, basalt_skill_index_exec_t, basalt_skill_index_t)
+
+# ---- basalt_voice_t
+
+allow basalt_voice_t self:process { fork sigchld sigkill signal signull getsched setsched getpgid setpgid };
+allow basalt_voice_t self:fifo_file rw_fifo_file_perms;
+allow basalt_voice_t self:unix_stream_socket { create_stream_socket_perms connectto };
+allow basalt_voice_t self:unix_dgram_socket create_socket_perms;
+allow basalt_voice_t basalt_voice_exec_t:file { map read execute getattr };
+kernel_read_system_state(basalt_voice_t)
+kernel_read_kernel_sysctls(basalt_voice_t)
+# The Go runtime reads its cgroup CPU limit.
+fs_search_cgroup_dirs(basalt_voice_t)
+fs_read_cgroup_files(basalt_voice_t)
+dev_read_sysfs(basalt_voice_t)
+dev_read_urand(basalt_voice_t)
+files_read_etc_files(basalt_voice_t)
+files_read_usr_files(basalt_voice_t)
+# Models downloaded by basalt-voice-fetch (/var/lib/basalt-voice/models).
+files_search_var_lib(basalt_voice_t)
+files_read_var_lib_files(basalt_voice_t)
+files_exec_usr_files(basalt_voice_t)
+libs_use_ld_so(basalt_voice_t)
+libs_use_shared_libs(basalt_voice_t)
+libs_exec_lib_files(basalt_voice_t)
+miscfiles_read_localization(basalt_voice_t)
+corecmd_exec_bin(basalt_voice_t)
+fs_getattr_xattr_fs(basalt_voice_t)
+# Its runtime directory: the socket for the daemon, the utterance being
+# transcribed and the sentence being spoken (memory, removed at once).
+userdom_search_user_tmp_dirs(basalt_voice_t)
+gen_require(`
+	type user_tmp_t, unconfined_t;
+')
+allow basalt_voice_t user_tmp_t:dir { add_entry_dir_perms };
+userdom_user_tmp_filetrans(basalt_voice_t, basalt_voice_runtime_t, dir, "basalt-voice")
+manage_dirs_pattern(basalt_voice_t, basalt_voice_runtime_t, basalt_voice_runtime_t)
+manage_files_pattern(basalt_voice_t, basalt_voice_runtime_t, basalt_voice_runtime_t)
+manage_sock_files_pattern(basalt_voice_t, basalt_voice_runtime_t, basalt_voice_runtime_t)
+# PipeWire: the session's server socket ($XDG_RUNTIME_DIR/pipewire-0)
+# gets a type of its own when PipeWire creates it, so the voice service
+# can reach PipeWire and not the other sockets of the session (the
+# Wayland socket is user_tmp_t too: the escape test connected to it
+# before this type existed).
+type basalt_pipewire_sock_t;
+userdom_user_tmp_file(basalt_pipewire_sock_t)
+type_transition unconfined_t user_tmp_t:sock_file basalt_pipewire_sock_t "pipewire-0";
+type_transition unconfined_t user_tmp_t:sock_file basalt_pipewire_sock_t "pipewire-0-manager";
+allow unconfined_t basalt_pipewire_sock_t:sock_file { create_sock_file_perms delete_sock_file_perms rw_sock_file_perms setattr };
+allow basalt_voice_t basalt_pipewire_sock_t:sock_file write_sock_file_perms;
+allow basalt_voice_t unconfined_t:unix_stream_socket connectto;
+dontaudit basalt_voice_t user_tmp_t:sock_file write;
+neverallow basalt_voice_t user_tmp_t:sock_file write;
+allow basalt_voice_t unconfined_t:fd use;
+# PipeWire clients (pw-record, pw-play): shared buffers (memfd, tmpfs_t),
+# the client configuration (~/.config/pipewire, defaults in /usr/share),
+# the user name, real-time priority for the audio thread.
+gen_require(`
+	type tmpfs_t, config_home_t;
+')
+allow basalt_voice_t tmpfs_t:file { rw_file_perms map };
+userdom_search_user_home_dirs(basalt_voice_t)
+allow basalt_voice_t config_home_t:dir search_dir_perms;
+auth_read_passwd(basalt_voice_t)
+allow basalt_voice_t self:process setrlimit;
+# The Go runtime (listen backlog) and the peer check: the SELinux context
+# check at start and the peer daemon's /proc entry.
+kernel_read_net_sysctls(basalt_voice_t)
+selinux_validate_context(basalt_voice_t)
+ps_process_pattern(basalt_voice_t, basalt_shell_t)
+# stdout and stderr to the journal (through the user manager).
+allow basalt_voice_t unconfined_t:unix_stream_socket { read write getattr };
+# Not needed: the session and system buses (PipeWire tools try them for
+# real-time scheduling and portals), the journal socket directory, the
+# home directory listing (the speech programs probe their working
+# directory).
+gen_require(`
+	type session_dbusd_tmp_t, unconfined_dbusd_t, syslogd_var_run_t, init_var_run_t, user_home_dir_t;
+')
+dontaudit basalt_voice_t session_dbusd_tmp_t:sock_file write;
+dontaudit basalt_voice_t unconfined_dbusd_t:unix_stream_socket connectto;
+dontaudit basalt_voice_t { syslogd_var_run_t init_var_run_t }:dir search;
+dontaudit basalt_voice_t user_home_dir_t:dir { read open getattr };
+# Never: the network, the person's files, credentials.
+neverallow basalt_voice_t self:{ tcp_socket udp_socket rawip_socket } create;
+
+# ---- basalt_skill_t
+
+allow basalt_skill_t basalt_skill_exec_t:file { map read execute getattr };
+basalt_agent_exec_tools(basalt_skill_t)
+# Chromium's JavaScript engine.
+basalt_agent_allow_jit(basalt_skill_t)
+miscfiles_read_fonts(basalt_skill_t)
+# The index.
+userdom_search_user_home_dirs(basalt_skill_t)
+gen_require(`
+	type data_home_t, gconf_home_t;
+')
+# ~/.local is gconf_home_t on Fedora, ~/.local/share data_home_t.
+allow { basalt_skill_t basalt_skill_index_t } gconf_home_t:dir search_dir_perms;
+allow basalt_skill_t data_home_t:dir search_dir_perms;
+list_dirs_pattern(basalt_skill_t, basalt_skill_data_t, basalt_skill_data_t)
+read_files_pattern(basalt_skill_t, basalt_skill_data_t, basalt_skill_data_t)
+# Network: web and IMAP ports, and DNS to the session's resolver (the
+# kernel redirects 127.0.0.1:53 there). The hosts are the session's.
+allow basalt_skill_t self:tcp_socket create_stream_socket_perms;
+allow basalt_skill_t self:udp_socket create_socket_perms;
+corenet_tcp_connect_http_port(basalt_skill_t)
+corenet_tcp_connect_pop_port(basalt_skill_t)
+corenet_tcp_connect_dns_port(basalt_skill_t)
+# Chromium reads a few kernel settings.
+kernel_read_fs_sysctls(basalt_skill_t)
+# Name resolution stays on the session's resolver: no resolv.conf (it
+# points into /run/systemd), no systemd-resolved varlink, no D-Bus. The C
+# library and Chromium then ask 127.0.0.1:53, which the session's rules
+# redirect to its own resolver port. Denied quietly (every lookup tries).
+gen_require(`
+	type net_conf_t, init_var_run_t, systemd_resolved_var_run_t, udev_var_run_t;
+	type session_dbusd_tmp_t, unconfined_dbusd_t, system_dbusd_t, system_dbusd_var_run_t, user_tmp_t;
+')
+dontaudit basalt_skill_t net_conf_t:file { getattr open read };
+dontaudit basalt_skill_t net_conf_t:lnk_file read;
+dontaudit basalt_skill_t { init_var_run_t systemd_resolved_var_run_t udev_var_run_t system_dbusd_var_run_t }:dir { search watch };
+dontaudit basalt_skill_t { session_dbusd_tmp_t system_dbusd_var_run_t }:sock_file write;
+dontaudit basalt_skill_t { unconfined_dbusd_t system_dbusd_t unconfined_t }:unix_stream_socket connectto;
+dontaudit basalt_skill_t user_tmp_t:dir search;
+dontaudit basalt_skill_t self:udp_socket name_bind;
+# Chromium's own sandbox (namespaces) and shared memory.
+allow basalt_skill_t self:user_namespace create;
+allow basalt_skill_t self:cap_userns { sys_admin sys_chroot setuid setgid sys_ptrace };
+allow basalt_skill_t self:process { setcap setrlimit };
+dontaudit basalt_skill_t self:capability { dac_override dac_read_search sys_ptrace };
+
+# ---- basalt_skill_index_t
+
+allow basalt_skill_index_t self:process { fork sigchld sigkill signal signull getsched setpgid };
+allow basalt_skill_index_t self:fifo_file rw_fifo_file_perms;
+allow basalt_skill_index_t self:unix_stream_socket create_stream_socket_perms;
+allow basalt_skill_index_t basalt_skill_index_exec_t:file { map read execute getattr };
+kernel_read_system_state(basalt_skill_index_t)
+fs_search_cgroup_dirs(basalt_skill_index_t)
+fs_read_cgroup_files(basalt_skill_index_t)
+dev_read_sysfs(basalt_skill_index_t)
+dev_read_urand(basalt_skill_index_t)
+files_read_etc_files(basalt_skill_index_t)
+files_read_usr_files(basalt_skill_index_t)
+libs_use_ld_so(basalt_skill_index_t)
+libs_use_shared_libs(basalt_skill_index_t)
+miscfiles_read_localization(basalt_skill_index_t)
+miscfiles_read_fonts(basalt_skill_index_t)
+# pdftotext and pdfinfo (poppler).
+corecmd_exec_bin(basalt_skill_index_t)
+# The person's documents: home content, read only.
+# Only plain home content (user_home_t: Documents, Downloads, Desktop...).
+# Not the userdom_*_user_home_content interfaces: their attribute also
+# covers ssh_home_t, config_home_t and the like (the lab escape test read
+# an SSH key and the mail password through it before this was narrowed).
+gen_require(`
+	type user_home_t, user_home_dir_t;
+')
+userdom_search_user_home_dirs(basalt_skill_index_t)
+list_dirs_pattern(basalt_skill_index_t, { user_home_dir_t user_home_t }, user_home_t)
+read_files_pattern(basalt_skill_index_t, user_home_t, user_home_t)
+read_lnk_files_pattern(basalt_skill_index_t, user_home_t, user_home_t)
+# The index it writes.
+allow basalt_skill_index_t data_home_t:dir rw_dir_perms;
+filetrans_pattern(basalt_skill_index_t, data_home_t, basalt_skill_data_t, dir, "basalt-skills")
+manage_dirs_pattern(basalt_skill_index_t, basalt_skill_data_t, basalt_skill_data_t)
+manage_files_pattern(basalt_skill_index_t, basalt_skill_data_t, basalt_skill_data_t)
+gen_require(`
+	type ssh_home_t, gpg_secret_t, home_cert_t;
+')
+dontaudit basalt_skill_index_t { ssh_home_t gpg_secret_t home_cert_t }:dir { getattr search read };
+# Never: credentials, the network, writing the person's files.
+neverallow basalt_skill_index_t { ssh_home_t gpg_secret_t home_cert_t }:file { open read };
+neverallow basalt_skill_index_t self:{ tcp_socket udp_socket rawip_socket } create;
+neverallow { basalt_skill_t basalt_skill_index_t basalt_voice_t } basalt_shell_ui_t:process { transition dyntransition ptrace };

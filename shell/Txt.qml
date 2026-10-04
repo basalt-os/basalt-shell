@@ -1,7 +1,10 @@
 import QtQuick
 
-// Text in the theme's typography.
+// Text in the theme's typography. Plain text always: content from mail,
+// web pages, files, logs or a model is never interpreted as markup (rich
+// text could load remote images, an exfiltration channel).
 Text {
+    textFormat: Text.PlainText
     property string role: "body" // body, small, large, title, display, mono
     color: Theme.text
     font.family: role === "mono" ? Theme.fontMono : Theme.fontFamily

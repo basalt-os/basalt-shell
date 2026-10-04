@@ -25,7 +25,9 @@ import (
 	"github.com/basalt-os/basalt-shell/internal/decor"
 	"github.com/basalt-os/basalt-shell/internal/hw"
 	"github.com/basalt-os/basalt-shell/internal/intent"
+	"github.com/basalt-os/basalt-shell/internal/skills"
 	"github.com/basalt-os/basalt-shell/internal/theme"
+	"github.com/basalt-os/basalt-shell/internal/voice"
 	"github.com/basalt-os/basalt-shell/internal/wlvirt"
 )
 
@@ -97,6 +99,12 @@ type Core struct {
 	// devices otherwise).
 	VirtualInput       bool
 	VirtualInputAlways bool
+	// Skills are the read-only skills (find files, e-mail, web pages);
+	// nil when not set up.
+	Skills *skills.Engine
+	// Voice is the push-to-talk voice service (basalt-voiced); nil when
+	// not running.
+	Voice *voice.Client
 
 	mu        sync.Mutex
 	proposals map[string]*Proposal
@@ -111,6 +119,10 @@ type Core struct {
 	virt      *wlvirt.Device
 	uiModal   bool
 	lastInput time.Time
+	// voice is the push-to-talk state shown by the UI.
+	voice            VoiceState
+	voicePress       time.Time
+	voiceLangNoticed bool
 	// placed remembers windows the shell maximized or snapped: their
 	// geometry before (to restore) and the placement given.
 	placed map[string]placement
@@ -139,6 +151,9 @@ type Desktop struct {
 	Workspaces []compositor.Workspace `json:"workspaces"`
 	Outputs    []compositor.Output    `json:"outputs"`
 }
+
+// WireSkills connects the skills' grants to the audit log and the UI.
+func (c *Core) WireSkills() { c.wireGrants() }
 
 // New builds a core.
 func New(comp compositor.Adapter, store *theme.Store, log *audit.Log, rep hw.Report, configDir string) *Core {

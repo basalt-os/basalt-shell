@@ -1,0 +1,8 @@
+# Lab IMAP server for the e-mail skill tests: Fedora's dovecot, one user,
+# plain IMAP on 143 (lab network only), mail in a mounted Maildir.
+FROM registry.fedoraproject.org/fedora:44
+RUN dnf -y -q install dovecot && dnf clean all && \
+    useradd -r -u 5000 -d /srv/mail vmail
+COPY dovecot.conf /etc/dovecot/dovecot.conf
+EXPOSE 143
+CMD ["/usr/sbin/dovecot", "-F"]

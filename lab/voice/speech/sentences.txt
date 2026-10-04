@@ -1,0 +1,28 @@
+# The English test set for speech to text: requests a person would say to
+# the desktop (the three read-only skills, desktop actions, system
+# questions). One per line; the reference transcript is the line itself.
+Find the PDF the bank sent last month.
+Show me the invoice from the electricity company.
+Where is my passport scan?
+Find the spreadsheet with the travel budget.
+Open the second result.
+What did Ana say in her last email?
+Summarize my unread emails from this week.
+Do I have any email from the landlord about the rent?
+Read me the latest message from the school.
+Search my mail for the flight confirmation.
+Summarize the news page.
+What does the weather page say about Friday?
+Summarize the article on the lab news site.
+Give me the main points of the release notes page.
+Make the text bigger.
+Switch to dark mode.
+Open the text editor.
+Arrange the windows side by side.
+Why did nginx stop?
+How much disk space is left?
+Allow access to my Documents folder for one hour.
+Find the contract I signed in March.
+Which emails mention the dentist appointment?
+Summarize the page about the new library opening hours.
+Find the receipt for order 4572.

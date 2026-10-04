@@ -8,6 +8,7 @@ import (
 
 	"github.com/basalt-os/basalt-shell/internal/assistant"
 	"github.com/basalt-os/basalt-shell/internal/intent"
+	"github.com/basalt-os/basalt-shell/internal/skills"
 )
 
 // AskResult is what the command bar shows for a request.
@@ -23,6 +24,11 @@ type AskResult struct {
 	Error     string              `json:"error,omitempty"`
 	Clarify   []string            `json:"clarify,omitempty"`
 	Model     *intent.ModelInfo   `json:"model,omitempty"`
+	// Skill is a read-only skill's answer (files, e-mail, web page).
+	Skill *skills.Answer `json:"skill,omitempty"`
+	// Retry is the request to run again once the proposal (a grant the
+	// skill needs) is applied.
+	Retry string `json:"retry,omitempty"`
 }
 
 // Ask understands a command-bar request: the fixed phrases (rules) when
@@ -38,6 +44,12 @@ func (c *Core) Ask(ctx context.Context, text string) AskResult {
 	if text == "" || len(text) > 500 {
 		res.Kind, res.Error = "error", "type a request (at most 500 characters)"
 		return res
+	}
+	// The read-only skills first: requests to find files, read mail or
+	// read a page (and grants, "open result N"). They are recognized by
+	// fixed rules on the person's words, before anything is read.
+	if r, ok := c.skillAsk(ctx, text); ok {
+		return r
 	}
 	st := c.Theme()
 	ictx := intent.Context{Tokens: st.Tokens, Themes: st.Themes}

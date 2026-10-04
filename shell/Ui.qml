@@ -109,5 +109,12 @@ Singleton {
         function dismissPopups(): void { Notifs.popups = []; }
         // minimize, maximize, left, right, restore, close, float, menu
         function window(op: string): void { ui.windowOp(op, ""); }
+        // Push to talk from the key binding: press, release, cancel.
+        function voice(op: string): void {
+            if (op === "press") Bus.voicePress();
+            else if (op === "release") Bus.voiceRelease();
+            else if (op === "cancel") Bus.voiceCancel();
+            else if (op === "toggle") { if (Bus.voice.state === "listening") Bus.voiceRelease(); else Bus.voicePress(); }
+        }
     }
 }

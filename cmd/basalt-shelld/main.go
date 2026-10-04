@@ -30,7 +30,9 @@ import (
 	"github.com/basalt-os/basalt-shell/internal/intent"
 	"github.com/basalt-os/basalt-shell/internal/paths"
 	"github.com/basalt-os/basalt-shell/internal/shell"
+	"github.com/basalt-os/basalt-shell/internal/skills"
 	"github.com/basalt-os/basalt-shell/internal/theme"
+	"github.com/basalt-os/basalt-shell/internal/voice"
 )
 
 var version = "0.2.0-dev"
@@ -89,6 +91,16 @@ func run(ctx context.Context) error {
 	if core.Translator != nil && core.Assistant != nil {
 		core.Translator.Helper = core.Assistant.TranslateHelper()
 	}
+	// The read-only skills share the command bar's model settings (the
+	// [translator] section; a remote endpoint only with allow_remote).
+	if os.Getenv("BASALT_SHELL_SKILLS") != "0" {
+		home, _ := os.UserHomeDir()
+		core.Skills = skills.New(home, core.Translator)
+		core.WireSkills()
+	}
+	if os.Getenv("BASALT_SHELL_VOICE") != "0" {
+		core.Voice = &voice.Client{Path: voice.DefaultSocket()}
+	}
 	ui := shell.DetectUICheck(os.Getenv("BASALT_SHELL_UI_CHECK"))
 	if os.Getenv("BASALT_SHELL_INSECURE_UI") == "1" {
 		ui = shell.DetectUICheck(shell.UICheckInsecure)
@@ -100,6 +112,7 @@ func run(ctx context.Context) error {
 	core.Refresh(ctx)
 	core.ApplyTheme(ctx)
 	go core.Watch(ctx)
+	go core.WatchVoice(ctx)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go exitWithCompositor(ctx, cancel, comp)

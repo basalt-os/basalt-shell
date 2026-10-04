@@ -1,0 +1,53 @@
+#!/bin/bash
+# lab-say FILE.wav [--hold]: "speak" into the lab microphone: hold the
+# push-to-talk key (Super+V through ydotool), play the 16 kHz mono WAV
+# into the PipeWire pipe source, release the key. Lab only.
+#   lab-say --text "find the PDF the bank sent last month" [VOICE]  synthesize with Piper first
+set -euo pipefail
+export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)} YDOTOOL_SOCKET=${YDOTOOL_SOCKET:-/run/ydotoold.socket}
+fifo=$XDG_RUNTIME_DIR/lab-mic.fifo
+if [ "${1:-}" = --text ]; then
+  voice=${3:-/usr/share/basalt-voice/voices/en_US-kristin-medium.onnx}
+  tmp=$(mktemp --suffix .raw)
+  echo "$2" | LD_LIBRARY_PATH=/usr/libexec/basalt-voice/piper /usr/libexec/basalt-voice/piper/piper --model "$voice" --output_raw --quiet > "$tmp"
+  # Piper speaks at 22.05 kHz: resample to 16 kHz with python (no sox in the image).
+  python3 - "$tmp" <<'PY'
+import sys, array
+# Linear interpolation (nearest-sample decimation aliased enough to turn
+# "dark" into "duck" in an early test).
+d = array.array("h"); d.frombytes(open(sys.argv[1], "rb").read())
+n = int(len(d) * 16000 / 22050); o = array.array("h")
+r = 22050 / 16000
+for i in range(n):
+    x = i * r; j = int(x); f = x - j
+    a = d[j] if j < len(d) else 0; b = d[j + 1] if j + 1 < len(d) else a
+    o.append(int(a + (b - a) * f))
+open(sys.argv[1], "wb").write(o.tobytes())
+PY
+  raw=$tmp
+else
+  raw=$(mktemp --suffix .raw); tail -c +45 "$1" > "$raw"
+fi
+# With LAB_SAY_ECHO=1 the utterance is also played on the speakers, so a
+# screen recording with the speakers' audio has both sides.
+if [ "${LAB_SAY_ECHO:-0}" = 1 ]; then
+  ( sleep 0.85; pw-play --rate 16000 --channels 1 --format s16 --raw "$raw" ) &
+fi
+KEY_SUPER=125 KEY_V=47
+ydotool key $KEY_SUPER:1 $KEY_V:1 >/dev/null
+sleep 0.35
+# Half a second of silence, the speech, a little silence: real time.
+python3 - "$raw" "$fifo" <<'PY'
+import sys, time
+pcm = open(sys.argv[1], "rb").read()
+data = b"\0" * 8000 + pcm + b"\0" * 6400
+with open(sys.argv[2], "wb", buffering=0) as f:
+    step = 3200  # 100 ms
+    t0 = time.monotonic()
+    for i in range(0, len(data), step):
+        f.write(data[i:i + step])
+        dt = t0 + (i + step) / 32000 - time.monotonic()
+        if dt > 0: time.sleep(dt)
+PY
+ydotool key $KEY_V:0 $KEY_SUPER:0 >/dev/null
+rm -f "$raw"

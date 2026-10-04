@@ -1,0 +1,368 @@
+package shell
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/basalt-os/basalt-shell/internal/docs"
+	"github.com/basalt-os/basalt-shell/internal/i18n"
+	"github.com/basalt-os/basalt-shell/internal/skills"
+	"github.com/basalt-os/basalt-shell/internal/voice"
+)
+
+// The read-only skills add two typed actions, both confirmed by the
+// person like every other action: grant.add (a consent sheet: let the
+// assistant read a folder, a mailbox or a site, for a limited time) and
+// file.open (open a found file with its default application). Neither is
+// ever planned from content: grant.add comes from the person's own
+// request or from a skill that needs a scope for the person's request;
+// file.open takes a path from the last search results, inside an active
+// folder grant.
+func init() {
+	Actions = append(Actions,
+		&ActionDef{
+			Name: "grant.add", Title: "Let the assistant read something",
+			Description: "Give the read-only skills a scope for a limited time: a folder (and below), a mailbox, or a web site. Read only: the skills search, read and summarize; they never change, send, submit or delete.",
+			Params: []Param{
+				{Name: "kind", Type: "string", Required: true, Enum: []string{skills.GrantFolder, skills.GrantMailbox, skills.GrantSite}, Description: "folder, mailbox or site"},
+				{Name: "targets", Type: "array", Required: true, Description: "folder paths, a mail account name, or a site host"},
+				{Name: "duration", Type: "string", Description: "how long: 30s to 7d (default 1h)"},
+			},
+			plan: planGrant,
+		},
+		&ActionDef{
+			Name: "file.open", Title: "Open a file",
+			Description: "Open a file found by the files skill with its default application. Only files inside a folder the person granted.",
+			Params:      []Param{{Name: "path", Type: "string", Required: true, Description: "absolute path of a search result"}},
+			plan:        planFileOpen,
+		},
+	)
+}
+
+func planGrant(ctx context.Context, p *planner, a map[string]any) (step, error) {
+	e := p.c.Skills
+	if e == nil {
+		return step{}, errors.New("the read-only skills are not available")
+	}
+	kind := argStr(a, "kind")
+	var targets []string
+	switch v := a["targets"].(type) {
+	case []any:
+		for _, x := range v {
+			targets = append(targets, strings.TrimSpace(fmt.Sprint(x)))
+		}
+	case []string:
+		targets = v
+	case string:
+		targets = []string{v}
+	}
+	if len(targets) == 0 || len(targets) > 8 {
+		return step{}, errors.New("give 1 to 8 targets")
+	}
+	d, err := skills.ParseDuration(argStr(a, "duration"))
+	if err != nil {
+		return step{}, err
+	}
+	var labels []string
+	switch kind {
+	case skills.GrantFolder:
+		for i, t := range targets {
+			t = filepath.Clean(t)
+			targets[i] = t
+			if !filepath.IsAbs(t) || docs.Denied(e.Home, t) {
+				return step{}, fmt.Errorf("%s cannot be granted", t)
+			}
+			if st, err := os.Lstat(t); err != nil || !st.IsDir() {
+				return step{}, fmt.Errorf("%s is not a folder", t)
+			}
+			rel, _ := filepath.Rel(e.Home, t)
+			if strings.HasPrefix(rel, "..") {
+				return step{}, fmt.Errorf("%s is outside your home folder", t)
+			}
+			labels = append(labels, "~/"+strings.TrimPrefix(rel, "."))
+		}
+	case skills.GrantMailbox, skills.GrantSite:
+		labels = targets
+	default:
+		return step{}, fmt.Errorf("kind must be folder, mailbox or site")
+	}
+	var summary string
+	switch kind {
+	case skills.GrantFolder:
+		summary = i18n.G("Let the assistant read and search the files in %s (and below; hidden files, keys and browser data stay closed) for %s",
+			strings.Join(labels, ", "), skills.Human(d))
+	case skills.GrantMailbox:
+		summary = i18n.G("Let the assistant read and summarize the mailbox %s (nothing is sent, deleted or marked as read) for %s",
+			strings.Join(labels, ", "), skills.Human(d))
+	default:
+		summary = i18n.G("Let the assistant read pages of %s in a separate browser profile (no forms are submitted; other sites stay blocked) for %s",
+			strings.Join(labels, ", "), skills.Human(d))
+	}
+	return step{Summary: summary, run: func(ctx context.Context) (any, error) {
+		gs, err := e.ApplyGrant(kind, targets, d, "ui")
+		if err != nil {
+			return nil, err
+		}
+		for _, g := range gs {
+			_, _ = p.c.Audit.Append("apply", "ui", "grant: "+g.Kind+" "+g.Label+" until "+g.Expires.Format(time.RFC3339),
+				map[string]any{"grant": g})
+		}
+		p.c.Broadcast("grants", e.Store.Active(""))
+		return gs, nil
+	}}, nil
+}
+
+func planFileOpen(ctx context.Context, p *planner, a map[string]any) (step, error) {
+	e := p.c.Skills
+	if e == nil {
+		return step{}, errors.New("the read-only skills are not available")
+	}
+	path := filepath.Clean(argStr(a, "path"))
+	if !filepath.IsAbs(path) {
+		return step{}, errors.New("path must be absolute")
+	}
+	if _, ok := e.Store.FolderFor(path); !ok {
+		return step{}, fmt.Errorf("%s is not inside a folder you granted", path)
+	}
+	if docs.Denied(e.Home, path) {
+		return step{}, fmt.Errorf("%s cannot be opened by the assistant", path)
+	}
+	st, err := os.Lstat(path)
+	if err != nil || !st.Mode().IsRegular() {
+		return step{}, fmt.Errorf("%s is not a regular file", path)
+	}
+	return step{Summary: i18n.G("Open %s with its default application", filepath.Base(path)), run: func(ctx context.Context) (any, error) {
+		return nil, p.c.Launch(ctx, "open", []string{"xdg-open", path})
+	}}, nil
+}
+
+// skillAsk answers a request with a read-only skill; ok is false when
+// the request is not for a skill.
+func (c *Core) skillAsk(ctx context.Context, text string) (AskResult, bool) {
+	if c.Skills == nil {
+		return AskResult{}, false
+	}
+	a, ok := c.Skills.Handle(ctx, text)
+	if !ok {
+		return AskResult{}, false
+	}
+	res := AskResult{Kind: "skill", Request: text, Backend: "skill", Skill: &a}
+	if a.Error != "" && a.NeedGrant == nil && a.Grant == nil && a.Open == "" {
+		res.Kind, res.Error = "error", a.Error
+		return res, true
+	}
+	var calls []Call
+	switch {
+	case a.NeedGrant != nil:
+		calls = []Call{{Action: "grant.add", Args: map[string]any{"kind": a.NeedGrant.Kind, "targets": anySlice(a.NeedGrant.Targets), "duration": a.NeedGrant.Duration}}}
+		res.Retry = text
+	case a.Grant != nil:
+		calls = []Call{{Action: "grant.add", Args: map[string]any{"kind": a.Grant.Kind, "targets": anySlice(a.Grant.Targets), "duration": a.Grant.Duration}}}
+	case a.Open != "":
+		calls = []Call{{Action: "file.open", Args: map[string]any{"path": a.Open}}}
+	}
+	if calls != nil {
+		pr, err := c.Propose(ctx, Meta{Origin: "commandbar", Actor: "commandbar", Request: text, Explain: a.Text, Backend: "skill"}, calls)
+		if err != nil {
+			res.Kind, res.Error = "error", err.Error()
+			return res, true
+		}
+		cp := pr.public()
+		res.Kind, res.Proposal = "proposal", &cp
+	}
+	return res, true
+}
+
+func anySlice(s []string) []any {
+	out := make([]any, len(s))
+	for i, v := range s {
+		out[i] = v
+	}
+	return out
+}
+
+// ------------------------------------------------------------ voice
+
+// VoiceState is what the UI shows while the person talks.
+type VoiceState struct {
+	State   string           `json:"state"` // idle, listening, transcribing, thinking, speaking, error
+	Text    string           `json:"text,omitempty"`
+	Error   string           `json:"error,omitempty"`
+	Since   time.Time        `json:"since"`
+	Timing  map[string]int64 `json:"timing,omitempty"`
+	Enabled bool             `json:"enabled"`
+}
+
+func (c *Core) setVoice(st VoiceState) {
+	st.Since = time.Now().UTC()
+	st.Enabled = c.Voice != nil && c.Voice.Available()
+	c.mu.Lock()
+	c.voice = st
+	c.mu.Unlock()
+	c.Broadcast("voice", st)
+}
+
+// VoiceStatus returns the current voice state.
+func (c *Core) VoiceStatus() VoiceState {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	st := c.voice
+	st.Enabled = c.Voice != nil && c.Voice.Available()
+	if st.State == "" {
+		st.State = "idle"
+	}
+	return st
+}
+
+// VoicePress opens the microphone (the person pressed the key or the
+// panel button). Only the shell UI may call it.
+func (c *Core) VoicePress(ctx context.Context) error {
+	if c.Voice == nil {
+		return errors.New(i18n.G("The voice service is not running."))
+	}
+	c.mu.Lock()
+	c.voicePress = time.Now()
+	c.mu.Unlock()
+	if _, err := c.Voice.Do(ctx, voice.Request{Op: "listen"}); err != nil {
+		c.setVoice(VoiceState{State: "error", Error: err.Error()})
+		return err
+	}
+	c.setVoice(VoiceState{State: "listening"})
+	_, _ = c.Audit.Append("voice", "ui", "microphone opened (push to talk)", nil)
+	return nil
+}
+
+// VoiceRelease closes the microphone, transcribes, answers the request
+// like the command bar and speaks the short answer. It returns at once;
+// the UI follows the "voice" and "voice-result" events.
+func (c *Core) VoiceRelease(ctx context.Context) error {
+	if c.Voice == nil {
+		return errors.New("the voice service is not running")
+	}
+	release := time.Now()
+	c.setVoice(VoiceState{State: "transcribing"})
+	go c.voiceTurn(release)
+	return nil
+}
+
+func (c *Core) voiceTurn(release time.Time) {
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
+	defer cancel()
+	timing := map[string]int64{}
+	rep, err := c.Voice.Do(ctx, voice.Request{Op: "stop"})
+	_, _ = c.Audit.Append("voice", "ui", "microphone closed", nil)
+	if err != nil || rep.Transcript == nil {
+		msg := i18n.G("Speech to text failed.")
+		if err != nil {
+			msg = err.Error()
+		}
+		c.setVoice(VoiceState{State: "error", Error: msg})
+		return
+	}
+	tr := rep.Transcript
+	timing["held"] = tr.AudioMS
+	timing["stt"] = tr.STTMS
+	timing["release_to_text"] = time.Since(release).Milliseconds()
+	if !tr.Speech || strings.TrimSpace(tr.Text) == "" {
+		c.setVoice(VoiceState{State: "idle", Error: i18n.G("I did not hear anything."), Timing: timing})
+		_, _ = c.Audit.Append("voice", "voice", "no speech", map[string]any{"timing": timing, "level": tr.Level})
+		return
+	}
+	c.setVoice(VoiceState{State: "thinking", Text: tr.Text, Timing: timing})
+	t := time.Now()
+	res := c.Ask(ctx, tr.Text)
+	timing["answer"] = time.Since(t).Milliseconds()
+	c.Broadcast("voice-result", map[string]any{"request": tr.Text, "result": res})
+	speech := spokenAnswer(res)
+	timing["release_to_answer"] = time.Since(release).Milliseconds()
+	var sp *voice.Spoken
+	if speech != "" && !strings.HasPrefix(i18n.Lang(), "en") && !c.voiceLangNoticed {
+		// ADR 0014: speak the person's language when a voice for it is
+		// installed, and say so when not. The spike ships English speech
+		// models only (Whisper .en, Piper en_US voices).
+		c.voiceLangNoticed = true
+		speech = i18n.G("Spoken answers are in English: no voice for your language is installed.") + " " + speech
+	}
+	if speech != "" {
+		c.setVoice(VoiceState{State: "speaking", Text: tr.Text, Timing: timing})
+		r, err := c.Voice.Do(ctx, voice.Request{Op: "speak", Text: speech})
+		if err == nil && r.Spoken != nil {
+			sp = r.Spoken
+			timing["tts_first_audio"] = sp.FirstAudioMS
+			timing["release_to_first_audio"] = time.Since(release).Milliseconds()
+		}
+	}
+	_, _ = c.Audit.Append("voice", "voice", tr.Text, map[string]any{"timing": timing, "stt_model": tr.Model, "kind": res.Kind,
+		"spoken": speech, "level": tr.Level, "tts": sp})
+	c.setVoice(VoiceState{State: "idle", Text: tr.Text, Timing: timing})
+}
+
+// spokenAnswer is the short text read aloud for a result.
+func spokenAnswer(r AskResult) string {
+	switch {
+	case r.Skill != nil && r.Skill.Speech != "":
+		return r.Skill.Speech
+	case r.Kind == "proposal" && r.Proposal != nil:
+		return i18n.G("Please confirm on the screen: %s.", strings.TrimSuffix(r.Proposal.summary(), "."))
+	case r.Kind == "system":
+		return i18n.G("Here is what the system assistant found.")
+	case r.Error != "":
+		return r.Error
+	}
+	return ""
+}
+
+// WatchVoice tells the UI when the voice service appears or goes away.
+func (c *Core) WatchVoice(ctx context.Context) {
+	if c.Voice == nil {
+		return
+	}
+	last := !c.Voice.Available()
+	t := time.NewTicker(3 * time.Second)
+	defer t.Stop()
+	for {
+		if up := c.Voice.Available(); up != last {
+			last = up
+			st := c.VoiceStatus()
+			c.setVoice(VoiceState{State: st.State, Text: st.Text})
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+		}
+	}
+}
+
+// VoiceCancel drops the recording (the person pressed Escape).
+func (c *Core) VoiceCancel(ctx context.Context) {
+	if c.Voice != nil {
+		_, _ = c.Voice.Do(ctx, voice.Request{Op: "cancel"})
+		_, _ = c.Voice.Do(ctx, voice.Request{Op: "hush"})
+	}
+	c.setVoice(VoiceState{State: "idle"})
+}
+
+// GrantsChanged is wired to the store (broadcast and audit expiry).
+func (c *Core) wireGrants() {
+	if c.Skills == nil {
+		return
+	}
+	c.Skills.Store.OnExpire = func(g skills.Grant) {
+		_, _ = c.Audit.Append("expire", "grants", "grant ended: "+g.Kind+" "+g.Label, map[string]any{"grant": g})
+	}
+	c.Skills.Store.OnChange = func(gs []skills.Grant) { c.Broadcast("grants", gs) }
+	c.Skills.Audit = func(typ, text string, data map[string]any) { _, _ = c.Audit.Append(typ, "skill", text, data) }
+	go func() {
+		t := time.NewTicker(2 * time.Second)
+		defer t.Stop()
+		for range t.C {
+			c.Skills.Store.Sweep()
+		}
+	}()
+}

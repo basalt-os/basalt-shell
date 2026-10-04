@@ -535,3 +535,62 @@ func Ground(text string, intents []ModelIntent, c Context) Result {
 	}
 	return res
 }
+
+// Completion is the answer of Complete.
+type Completion struct {
+	Content string `json:"-"`
+	Model   string `json:"model,omitempty"`
+	Via     string `json:"via"`
+	Elapsed int64  `json:"elapsed_ms"`
+	Remote  bool   `json:"remote,omitempty"`
+	Tokens  int    `json:"completion_tokens,omitempty"`
+	Prompt  int    `json:"prompt_tokens,omitempty"`
+}
+
+// Complete asks the model for one answer constrained by a JSON schema
+// (llama.cpp turns it into a grammar), with the same endpoint, the same
+// local-only rule (a remote endpoint needs allow_remote) and the same
+// helper as the command bar's translator. The read-only skills use it
+// to plan a search from the person's request and to summarize content;
+// the model gets no tools either way.
+func (m *Model) Complete(ctx context.Context, system, user string, schema map[string]any, maxTokens int) (Completion, error) {
+	if !m.Local() && !m.AllowRemote {
+		return Completion{}, errors.New("model endpoint is not local and allow_remote is off")
+	}
+	body := map[string]any{
+		"model": m.Model,
+		"messages": []map[string]string{
+			{"role": "system", "content": system},
+			{"role": "user", "content": user},
+		},
+		"temperature":          0,
+		"max_tokens":           maxTokens,
+		"chat_template_kwargs": map[string]any{"enable_thinking": false},
+	}
+	if schema != nil {
+		body["response_format"] = map[string]any{"type": "json_schema", "json_schema": map[string]any{"name": "answer", "strict": true, "schema": schema}}
+	}
+	raw, _ := json.Marshal(body)
+	start := time.Now()
+	rb, via, err := m.post(ctx, raw)
+	if err != nil {
+		return Completion{}, err
+	}
+	var cr struct {
+		Model   string `json:"model"`
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+		Usage struct {
+			Prompt     int `json:"prompt_tokens"`
+			Completion int `json:"completion_tokens"`
+		} `json:"usage"`
+	}
+	if err := json.Unmarshal(rb, &cr); err != nil || len(cr.Choices) == 0 {
+		return Completion{}, errors.New("model: bad response")
+	}
+	return Completion{Content: cr.Choices[0].Message.Content, Model: cr.Model, Via: via, Elapsed: time.Since(start).Milliseconds(),
+		Remote: !m.Local(), Tokens: cr.Usage.Completion, Prompt: cr.Usage.Prompt}, nil
+}

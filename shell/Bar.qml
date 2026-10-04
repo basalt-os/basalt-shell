@@ -230,6 +230,46 @@ PanelWindow {
                 }
             }
 
+            // Push to talk: hold the button (or Super+V) and speak; release
+            // to send. The microphone is open only while it is held.
+            Rectangle {
+                id: ptt
+                visible: Bus.voice.enabled
+                readonly property string st: Bus.voice.state || "idle"
+                implicitHeight: Theme.panelHeight - Theme.s2
+                implicitWidth: implicitHeight
+                radius: Theme.radiusSm
+                color: st === "listening" ? Theme.danger : (st === "transcribing" || st === "thinking" || st === "speaking" ? Theme.accentSoft
+                       : (pttMa.containsMouse ? Theme.hover : "transparent"))
+                Behavior on color { ColorAnimation { duration: Theme.fast } }
+                Icon {
+                    anchors.centerIn: parent
+                    name: "mic"
+                    size: Theme.panelHeight * 0.5
+                    color: ptt.st === "listening" ? "#ffffff" : (ptt.st === "idle" || ptt.st === "error" ? Theme.text : Theme.accent)
+                }
+                MouseArea {
+                    id: pttMa
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    property bool held: false
+                    onPressed: { held = true; Bus.voicePress(); }
+                    onReleased: if (held) { held = false; Bus.voiceRelease(); }
+                    onCanceled: if (held) { held = false; Bus.voiceRelease(); }
+                }
+            }
+
+            // Scopes the person gave the read-only skills (folders, mail,
+            // sites), while they last. Click: the list, with End buttons.
+            Btn {
+                visible: Bus.grants.length > 0
+                icon: "shield"
+                text: Bus.grants.length === 1 ? Bus.grants[0].label : qsTr("%1 permissions").arg(Bus.grants.length)
+                implicitHeight: Theme.panelHeight - Theme.s2
+                onClicked: Ui.toggle("commandbar")
+            }
+
             // An agent in control: who, and Stop.
             Btn {
                 visible: Bus.control !== null

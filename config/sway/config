@@ -64,6 +64,10 @@ bindsym $mod+comma exec $ui toggle settings
 bindsym $mod+Escape exec $ui close
 # Stop an agent's control session at once (any process may stop one).
 bindsym $mod+Shift+Escape exec basalt-shell ctl control.stop
+# Push to talk: hold Super+V and speak, release to send. The shell UI
+# opens the microphone on the press and closes it on the release.
+bindsym --no-repeat $mod+v exec $ui voice press
+bindsym --release $mod+v exec $ui voice release
 
 # Apps and windows.
 bindsym $mod+Return exec foot
