@@ -631,6 +631,21 @@ func (c *Core) run(ctx context.Context, runs []func(context.Context) (any, error
 		}
 		out = append(out, v)
 	}
+	if len(runs) > 0 {
+		// The compositor's events can arrive before the window committed
+		// its new size, so the last refresh may still show the old
+		// geometry (and no maximized or snapped state). Look again a
+		// little later, so the UI's toggles (Super+Up then Super+Down)
+		// see the state the action set.
+		go func() {
+			for _, d := range []time.Duration{300 * time.Millisecond, time.Second} {
+				time.Sleep(d)
+				rctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				c.Refresh(rctx)
+				cancel()
+			}
+		}()
+	}
 	if next != nil {
 		if err := c.Themes.Commit(*next); err != nil {
 			return out, err

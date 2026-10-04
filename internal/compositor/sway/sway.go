@@ -523,8 +523,14 @@ func (a *Adapter) ApplyStyle(ctx context.Context, s compositor.Style) error {
 		cmds = append(cmds,
 			fmt.Sprintf("corner_radius %d", s.CornerRadius),
 			"shadows "+onoff(s.Shadows),
+			// Most apps draw their own title bar (CSD); without this
+			// SwayFX gives only server-decorated windows a shadow.
+			"shadows_on_csd "+onoff(s.Shadows),
 			"blur "+onoff(s.Blur),
 			fmt.Sprintf("default_dim_inactive %.2f", s.DimInactive),
+			// default_dim_inactive only reaches new windows; set the
+			// open ones too, so a theme change applies everywhere.
+			fmt.Sprintf("[all] dim_inactive %.2f", s.DimInactive),
 		)
 		if s.ShadowColor != "" {
 			cmds = append(cmds, "shadow_color "+s.ShadowColor)
