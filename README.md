@@ -15,9 +15,12 @@ every change it asks for waits for the person's confirmation on a sheet in
 the shell and is written to a hash-chained activity log. Only the shell
 UI's SELinux domain can confirm; agents run confined and can only ask.
 
-The shell runs on sway (the default, from Fedora; also headless, without
-a display or GPU, for agents in VMs and servers) and on niri, through one
-adapter interface. Windows float by default; tiling is one key away.
+The shell runs on sway (the default; on SwayFX, when installed, with
+rounded corners, shadows, blur and dimmed inactive windows from the
+theme's tokens, turned off on weak hardware; also headless, without a
+display or GPU, for agents in VMs and servers) and, optionally, on niri
+(the basalt-shell-niri package), through one adapter interface. Windows
+float by default; tiling is one key away.
 
 ![The command bar proposing a theme change, on niri](media/niri/05-commandbar-proposal.webp)
 

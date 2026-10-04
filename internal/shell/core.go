@@ -339,6 +339,12 @@ func (c *Core) ApplyTheme(ctx context.Context) {
 		CursorSize:    int(t.Num("apps.cursorSize")),
 		Title:         TitleStyle(t),
 	}
+	// Compositor effects (SwayFX shadows, blur, dimming) cost GPU time
+	// every frame; with software rendering, few CPUs, little memory or
+	// headless (hw.Probe's "weak") they are off whatever the theme says.
+	if c.HW.Weak {
+		style.Shadows, style.Blur, style.DimInactive = false, false, 0
+	}
 	// The frame: the theme's border color (a little stronger on the
 	// focused window); the accent stays for focus inside apps.
 	style.FocusColor = theme.Mix(t.Str("color.border"), t.Str("color.textMuted"), 0.35)

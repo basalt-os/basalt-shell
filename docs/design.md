@@ -12,7 +12,8 @@ Decided (2026-10-03, after the 0.1.0 comparison in
 and MCP come before looks. The default compositor is upstream sway from
 Fedora (runs without a GPU and headless, the most complete IPC, wlroots
 protocols for screen capture, virtual input and toplevel lists); niri is
-an optional second session; SwayFX is not shipped.
+an optional second session (basalt-shell-niri). Since 2026-10-04 the sway
+session runs on SwayFX where Basalt OS ships it (same i3 IPC).
 
 ## Goals
 
@@ -293,8 +294,10 @@ type Adapter interface {
   GET_WORKSPACES, GET_OUTPUTS, RUN_COMMAND, SUBSCRIBE). Style through
   runtime commands: client colors, borders, gaps. sway 1.11 reports each
   window's foreign-toplevel identifier. Pointer fallback through `seat
-  cursor` commands. (The adapter still recognizes SwayFX and sets its
-  corners, shadows and blur; SwayFX is not shipped.)
+  cursor` commands. On SwayFX the adapter also sets corners, shadows (also on client-decorated
+  windows), blur and dimming of inactive windows from the tokens; on weak
+  hardware (hw.Probe: software rendering, few CPUs, little memory, headless)
+  shadows, blur and dimming stay off.
 - niri: JSON requests on `$NIRI_SOCKET` (Windows, Workspaces, Outputs,
   Action, EventStream). niri has no runtime styling command, so the
   adapter writes `basalt-theme.kdl` next to the niri config (which

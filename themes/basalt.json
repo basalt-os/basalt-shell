@@ -15,7 +15,7 @@
     "panel.height": 36,
     "panel.position": "top",
     "panel.opacity": 0.92,
-    "elevation.shadow": 0.35,
+    "elevation.shadow": 0.5,
     "elevation.blur": 24,
     "motion.fast": 120,
     "motion.normal": 200,

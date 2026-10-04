@@ -1,0 +1,11 @@
+# Basalt OS desktop edition: the login screen (greetd with tuigreet on
+# the first virtual terminal), starting the Basalt session on sway. Read by
+# greetd through /usr/lib/systemd/system/greetd.service.d/50-basalt.conf.
+# Other installed sessions (Basalt (niri) from basalt-shell-niri) appear in
+# tuigreet's session menu (F3).
+[terminal]
+vt = 1
+
+[default_session]
+command = "tuigreet --time --remember --remember-session --sessions /usr/share/wayland-sessions --cmd 'basalt-session sway'"
+user = "greetd"
