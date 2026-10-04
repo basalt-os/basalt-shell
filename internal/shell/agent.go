@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openbasalt/basalt-shell/internal/agentio"
-	"github.com/openbasalt/basalt-shell/internal/compositor"
-	"github.com/openbasalt/basalt-shell/internal/wlvirt"
+	"github.com/basalt-os/basalt-shell/internal/agentio"
+	"github.com/basalt-os/basalt-shell/internal/compositor"
+	"github.com/basalt-os/basalt-shell/internal/wlvirt"
 )
 
 // The agents' last-resort access to the desktop ("computer use"): screen

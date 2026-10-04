@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openbasalt/basalt-shell/internal/assistant"
-	"github.com/openbasalt/basalt-shell/internal/intent"
+	"github.com/basalt-os/basalt-shell/internal/assistant"
+	"github.com/basalt-os/basalt-shell/internal/intent"
 )
 
 // AskResult is what the command bar shows for a request.

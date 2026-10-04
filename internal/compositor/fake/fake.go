@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/openbasalt/basalt-shell/internal/compositor"
+	"github.com/basalt-os/basalt-shell/internal/compositor"
 )
 
 func init() {

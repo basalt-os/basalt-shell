@@ -3,7 +3,7 @@ package intent
 import (
 	"testing"
 
-	"github.com/openbasalt/basalt-shell/internal/theme"
+	"github.com/basalt-os/basalt-shell/internal/theme"
 )
 
 func tokens() theme.Tokens {

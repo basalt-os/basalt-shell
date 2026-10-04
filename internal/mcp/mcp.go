@@ -20,7 +20,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/openbasalt/basalt-shell/internal/shell"
+	"github.com/basalt-os/basalt-shell/internal/shell"
 )
 
 const protocolVersion = "2025-06-18"

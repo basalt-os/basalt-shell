@@ -26,10 +26,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openbasalt/basalt-shell/internal/audit"
-	"github.com/openbasalt/basalt-shell/internal/mcp"
-	"github.com/openbasalt/basalt-shell/internal/paths"
-	"github.com/openbasalt/basalt-shell/internal/shell"
+	"github.com/basalt-os/basalt-shell/internal/audit"
+	"github.com/basalt-os/basalt-shell/internal/mcp"
+	"github.com/basalt-os/basalt-shell/internal/paths"
+	"github.com/basalt-os/basalt-shell/internal/shell"
 )
 
 var version = "0.2.0-dev"

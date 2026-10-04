@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openbasalt/basalt-shell/internal/agentio"
+	"github.com/basalt-os/basalt-shell/internal/agentio"
 )
 
 func agentMeta(pid int) Meta {

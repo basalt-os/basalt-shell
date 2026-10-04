@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/openbasalt/basalt-shell/internal/compositor"
+	"github.com/basalt-os/basalt-shell/internal/compositor"
 )
 
 // fakeSway answers the i3 IPC with canned replies and records commands.

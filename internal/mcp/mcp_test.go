@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openbasalt/basalt-shell/internal/audit"
-	"github.com/openbasalt/basalt-shell/internal/compositor/fake"
-	"github.com/openbasalt/basalt-shell/internal/hw"
-	"github.com/openbasalt/basalt-shell/internal/shell"
-	"github.com/openbasalt/basalt-shell/internal/theme"
+	"github.com/basalt-os/basalt-shell/internal/audit"
+	"github.com/basalt-os/basalt-shell/internal/compositor/fake"
+	"github.com/basalt-os/basalt-shell/internal/hw"
+	"github.com/basalt-os/basalt-shell/internal/shell"
+	"github.com/basalt-os/basalt-shell/internal/theme"
 )
 
 func TestMCPFlow(t *testing.T) {

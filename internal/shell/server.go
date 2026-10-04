@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openbasalt/basalt-shell/internal/apps"
-	"github.com/openbasalt/basalt-shell/internal/audit"
+	"github.com/basalt-os/basalt-shell/internal/apps"
+	"github.com/basalt-os/basalt-shell/internal/audit"
 )
 
 // Request is one IPC message from a client (newline-delimited JSON).

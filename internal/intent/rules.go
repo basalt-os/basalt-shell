@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/openbasalt/basalt-shell/internal/theme"
+	"github.com/basalt-os/basalt-shell/internal/theme"
 )
 
 // Call mirrors shell.Call (kept separate to avoid an import cycle).

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openbasalt/basalt-shell/internal/apps"
-	"github.com/openbasalt/basalt-shell/internal/compositor"
-	"github.com/openbasalt/basalt-shell/internal/theme"
+	"github.com/basalt-os/basalt-shell/internal/apps"
+	"github.com/basalt-os/basalt-shell/internal/compositor"
+	"github.com/basalt-os/basalt-shell/internal/theme"
 )
 
 // Param describes one action parameter (rendered as JSON Schema for MCP).

@@ -16,17 +16,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openbasalt/basalt-shell/internal/agentio"
-	"github.com/openbasalt/basalt-shell/internal/appearance"
-	"github.com/openbasalt/basalt-shell/internal/apps"
-	"github.com/openbasalt/basalt-shell/internal/assistant"
-	"github.com/openbasalt/basalt-shell/internal/audit"
-	"github.com/openbasalt/basalt-shell/internal/compositor"
-	"github.com/openbasalt/basalt-shell/internal/decor"
-	"github.com/openbasalt/basalt-shell/internal/hw"
-	"github.com/openbasalt/basalt-shell/internal/intent"
-	"github.com/openbasalt/basalt-shell/internal/theme"
-	"github.com/openbasalt/basalt-shell/internal/wlvirt"
+	"github.com/basalt-os/basalt-shell/internal/agentio"
+	"github.com/basalt-os/basalt-shell/internal/appearance"
+	"github.com/basalt-os/basalt-shell/internal/apps"
+	"github.com/basalt-os/basalt-shell/internal/assistant"
+	"github.com/basalt-os/basalt-shell/internal/audit"
+	"github.com/basalt-os/basalt-shell/internal/compositor"
+	"github.com/basalt-os/basalt-shell/internal/decor"
+	"github.com/basalt-os/basalt-shell/internal/hw"
+	"github.com/basalt-os/basalt-shell/internal/intent"
+	"github.com/basalt-os/basalt-shell/internal/theme"
+	"github.com/basalt-os/basalt-shell/internal/wlvirt"
 )
 
 // Call is a request for one typed action.

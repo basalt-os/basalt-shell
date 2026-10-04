@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/openbasalt/basalt-shell/internal/compositor"
-	"github.com/openbasalt/basalt-shell/internal/decor"
+	"github.com/basalt-os/basalt-shell/internal/compositor"
+	"github.com/basalt-os/basalt-shell/internal/decor"
 )
 
 func init() {

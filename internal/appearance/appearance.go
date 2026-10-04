@@ -28,7 +28,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openbasalt/basalt-shell/internal/theme"
+	"github.com/basalt-os/basalt-shell/internal/theme"
 )
 
 // Result lists what was applied and what failed.
