@@ -23,7 +23,8 @@ Requires:       sway
 Requires:       xdg-desktop-portal
 Requires:       xdg-desktop-portal-gtk
 Requires:       polkit
-Requires:       glib2
+# gsettings (application appearance).
+Requires:       /usr/bin/gsettings
 Requires:       (%{name}-selinux = %{version}-%{release} if selinux-policy-%{selinuxtype})
 # Agents' last resort (screen capture, virtual keyboard) and the headless
 # session's VNC view.
@@ -83,7 +84,8 @@ Basalt agent family (basalt_agent_base, from basalt-agent-selinux).
 %autosetup
 
 %build
-export GOFLAGS="-trimpath -mod=readonly"
+# PIE, like the other Basalt OS Go packages (rpmlint: no static binaries).
+export GOFLAGS="-trimpath -mod=readonly -buildmode=pie"
 make build VERSION=%{version}
 make selinux
 
