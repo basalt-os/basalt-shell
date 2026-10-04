@@ -224,6 +224,21 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Sun Oct 04 2026 Basalt OS developers - 0.4.0-1
+- Voice: push to talk (basalt-voiced: whisper.cpp with Silero VAD and
+  Piper, no network, nothing kept); off while the screen is locked.
+- Read-only skills: find files, read and summarize e-mail and web pages,
+  in confined workers with per-job network sessions and consent grants
+  that expire; content is data (guard against prompt injection).
+- Acting skills, always previewed and confirmed in the shell: dictation
+  into the focused text field (input method, no synthetic keys), reply
+  to an e-mail (draft edited, sent only after Send), move and rename
+  files inside a granted folder (no delete, no replace, undo).
+- Records of acting steps go to basalt-ledger with their exact preview.
+- SELinux 0.4.0: the voice and skill domains run only their own tools
+  (no shell, no setuid helper); new domains for sending and moving.
+- Speech recognition is told the names of contacts and mail senders.
+
 * Sun Oct 04 2026 Basalt OS developers - 0.3.1-1
 - basalt-desktop: the desktop edition's session, login screen (greetd)
   and default apps.

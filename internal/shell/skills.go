@@ -112,6 +112,14 @@ func planGrant(ctx context.Context, p *planner, a map[string]any) (step, error) 
 			_, _ = p.c.Audit.Append("apply", "ui", "grant: "+g.Kind+" "+g.Label+" until "+g.Expires.Format(time.RFC3339),
 				map[string]any{"grant": g})
 		}
+		if kind == skills.GrantMailbox {
+			// The senders' names, for the speech recognition.
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+				defer cancel()
+				_ = e.RefreshSenders(ctx)
+			}()
+		}
 		p.c.Broadcast("grants", e.Store.Active(""))
 		return gs, nil
 	}}, nil
@@ -152,7 +160,7 @@ func (c *Core) skillAsk(ctx context.Context, text string) (AskResult, bool) {
 		return AskResult{}, false
 	}
 	res := AskResult{Kind: "skill", Request: text, Backend: "skill", Skill: &a}
-	if a.Error != "" && a.NeedGrant == nil && a.Grant == nil && a.Open == "" {
+	if a.Error != "" && a.NeedGrant == nil && a.Grant == nil && a.Open == "" && a.Act == nil {
 		res.Kind, res.Error = "error", a.Error
 		return res, true
 	}
@@ -165,6 +173,8 @@ func (c *Core) skillAsk(ctx context.Context, text string) (AskResult, bool) {
 		calls = []Call{{Action: "grant.add", Args: map[string]any{"kind": a.Grant.Kind, "targets": anySlice(a.Grant.Targets), "duration": a.Grant.Duration}}}
 	case a.Open != "":
 		calls = []Call{{Action: "file.open", Args: map[string]any{"path": a.Open}}}
+	case a.Act != nil:
+		calls = []Call{{Action: a.Act.Action, Args: a.Act.Args}}
 	}
 	if calls != nil {
 		pr, err := c.Propose(ctx, Meta{Origin: "commandbar", Actor: "commandbar", Request: text, Explain: a.Text, Backend: "skill"}, calls)
@@ -190,12 +200,19 @@ func anySlice(s []string) []any {
 
 // VoiceState is what the UI shows while the person talks.
 type VoiceState struct {
-	State   string           `json:"state"` // idle, listening, transcribing, thinking, speaking, error
+	State   string           `json:"state"` // idle, listening, transcribing, thinking, speaking, dictation, error
 	Text    string           `json:"text,omitempty"`
 	Error   string           `json:"error,omitempty"`
 	Since   time.Time        `json:"since"`
 	Timing  map[string]int64 `json:"timing,omitempty"`
 	Enabled bool             `json:"enabled"`
+	// Mode is where the words go: "dictation" (into Target's text field)
+	// or "assistant"; Note says why a focused field gets no dictation.
+	Mode   string `json:"mode,omitempty"`
+	Target string `json:"target,omitempty"`
+	Note   string `json:"note,omitempty"`
+	// Proposal is the dictation waiting for Insert or Discard.
+	Proposal string `json:"proposal,omitempty"`
 }
 
 func (c *Core) setVoice(st VoiceState) {
@@ -221,19 +238,46 @@ func (c *Core) VoiceStatus() VoiceState {
 
 // VoicePress opens the microphone (the person pressed the key or the
 // panel button). Only the shell UI may call it.
-func (c *Core) VoicePress(ctx context.Context) error {
+func (c *Core) VoicePress(ctx context.Context, commandBar bool) error {
 	if c.Voice == nil {
 		return errors.New(i18n.G("The voice service is not running."))
 	}
+	if c.ScreenLocked != nil && c.ScreenLocked() {
+		_, _ = c.Audit.Append("refuse", "ui", "microphone refused: the screen is locked", nil)
+		err := errors.New(i18n.G("The screen is locked. Unlock it to talk."))
+		c.setVoice(VoiceState{State: "error", Error: err.Error()})
+		return err
+	}
+	// A dictation still waiting for Insert is dropped by a new press.
+	for _, pr := range c.Pending() {
+		if pr.Origin == "voice" {
+			_, _ = c.Decide(ctx, pr.ID, false, "ui")
+		}
+	}
+	rt := c.routeVoice()
+	if commandBar {
+		// The command bar is open: the words are a request to the assistant.
+		rt = voiceRoute{Mode: "assistant"}
+	}
 	c.mu.Lock()
 	c.voicePress = time.Now()
+	c.voiceRoute = rt
 	c.mu.Unlock()
 	if _, err := c.Voice.Do(ctx, voice.Request{Op: "listen"}); err != nil {
 		c.setVoice(VoiceState{State: "error", Error: err.Error()})
 		return err
 	}
-	c.setVoice(VoiceState{State: "listening"})
-	_, _ = c.Audit.Append("voice", "ui", "microphone opened (push to talk)", nil)
+	c.setVoice(VoiceState{State: "listening", Mode: rt.Mode, Target: rt.Target, Note: rt.Note})
+	if c.Skills != nil {
+		// Sender names for the next utterances (at most every ten minutes,
+		// only while a mailbox is granted).
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+			_ = c.Skills.RefreshSenders(ctx)
+		}()
+	}
+	_, _ = c.Audit.Append("voice", "ui", "microphone opened (push to talk, "+rt.Mode+")", map[string]any{"mode": rt.Mode, "target": rt.Target})
 	return nil
 }
 
@@ -254,7 +298,10 @@ func (c *Core) voiceTurn(release time.Time) {
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 	timing := map[string]int64{}
-	rep, err := c.Voice.Do(ctx, voice.Request{Op: "stop"})
+	c.mu.Lock()
+	rt := c.voiceRoute
+	c.mu.Unlock()
+	rep, err := c.Voice.Do(ctx, voice.Request{Op: "stop", Prompt: c.speechPrompt()})
 	_, _ = c.Audit.Append("voice", "ui", "microphone closed", nil)
 	if err != nil || rep.Transcript == nil {
 		msg := i18n.G("Speech to text failed.")
@@ -273,11 +320,38 @@ func (c *Core) voiceTurn(release time.Time) {
 		_, _ = c.Audit.Append("voice", "voice", "no speech", map[string]any{"timing": timing, "level": tr.Level})
 		return
 	}
-	c.setVoice(VoiceState{State: "thinking", Text: tr.Text, Timing: timing})
+	request := tr.Text
+	if rt.Mode == "dictation" {
+		if rest, ok := AssistantPrefix(tr.Text); ok && rest != "" {
+			// "Assistant, ...": a request, although a field has focus.
+			request = rest
+			rt.Mode = "assistant"
+		}
+	}
+	if rt.Mode == "dictation" {
+		pr, err := c.dictate(ctx, rt, tr.Text)
+		timing["release_to_preview"] = time.Since(release).Milliseconds()
+		if err != nil {
+			c.setVoice(VoiceState{State: "error", Error: err.Error(), Mode: rt.Mode, Target: rt.Target, Timing: timing})
+			return
+		}
+		_, _ = c.Audit.Append("voice", "voice", "dictation shown for confirmation", map[string]any{"timing": timing, "stt_model": tr.Model,
+			"target": rt.Target, "chars": len([]rune(tr.Text))})
+		c.setVoice(VoiceState{State: "dictation", Text: tr.Text, Mode: rt.Mode, Target: rt.Target, Proposal: pr.ID, Timing: timing})
+		go func() {
+			// The card goes back to idle when the dictation is decided.
+			_, _ = c.Wait(context.Background(), pr.ID)
+			if st := c.VoiceStatus(); st.Proposal == pr.ID {
+				c.setVoice(VoiceState{State: "idle", Text: tr.Text, Mode: rt.Mode, Target: rt.Target})
+			}
+		}()
+		return
+	}
+	c.setVoice(VoiceState{State: "thinking", Text: request, Mode: rt.Mode, Target: rt.Target, Note: rt.Note, Timing: timing})
 	t := time.Now()
-	res := c.Ask(ctx, tr.Text)
+	res := c.Ask(ctx, request)
 	timing["answer"] = time.Since(t).Milliseconds()
-	c.Broadcast("voice-result", map[string]any{"request": tr.Text, "result": res})
+	c.Broadcast("voice-result", map[string]any{"request": request, "result": res})
 	speech := spokenAnswer(res)
 	timing["release_to_answer"] = time.Since(release).Milliseconds()
 	var sp *voice.Spoken
@@ -300,6 +374,19 @@ func (c *Core) voiceTurn(release time.Time) {
 	_, _ = c.Audit.Append("voice", "voice", tr.Text, map[string]any{"timing": timing, "stt_model": tr.Model, "kind": res.Kind,
 		"spoken": speech, "level": tr.Level, "tts": sp})
 	c.setVoice(VoiceState{State: "idle", Text: tr.Text, Timing: timing})
+}
+
+// speechPrompt is the extra speech-recognition prompt of this utterance:
+// the names the person may say (contacts, senders of the granted mailbox).
+func (c *Core) speechPrompt() string {
+	if c.Skills == nil {
+		return ""
+	}
+	names := c.Skills.SpeechNames(24)
+	if len(names) == 0 {
+		return ""
+	}
+	return "Names: " + strings.Join(names, ", ") + "."
 }
 
 // spokenAnswer is the short text read aloud for a result.

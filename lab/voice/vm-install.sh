@@ -21,7 +21,10 @@ fi
 rm -rf /root/voice-selinux && mkdir /root/voice-selinux && cp $st/selinux/* /root/voice-selinux/
 make -s -C /root/voice-selinux -f /usr/share/selinux/devel/Makefile basalt_shell.pp >/root/voice-selinux/build.log 2>&1 || { tail -30 /root/voice-selinux/build.log; exit 1; }
 semodule -i /root/voice-selinux/basalt_shell.pp
-restorecon -F /usr/bin/basalt-shell /usr/bin/basalt-shelld /usr/bin/basalt-voiced /usr/libexec/basalt-shell/* 
+restorecon -F /usr/bin/basalt-shell /usr/bin/basalt-shelld /usr/bin/basalt-voiced /usr/libexec/basalt-shell/*
+# The programs the voice and skill domains may run have types of their own (0.4.0).
+restorecon -F /usr/bin/pw-cat /usr/bin/pdftotext /usr/bin/pdfinfo /usr/lib64/basalt-voice/whisper-cli 2>/dev/null || true
+restorecon -RF /usr/libexec/basalt-voice /usr/lib64/chromium-browser 2>/dev/null || true
 restorecon -RF /home/basalt/.local/share /run/user/1000 2>/dev/null || true
 cp $st/lab/demo-tools/* /usr/local/bin/ 2>/dev/null || true
 echo "installed: $(basalt-shelld version) $(basalt-voiced version)"

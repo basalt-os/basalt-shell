@@ -35,7 +35,15 @@ type ActionDef struct {
 	// Agent marks actions only an agent connection may propose (control
 	// sessions, screenshots); the command bar never produces them.
 	Agent bool `json:"agent,omitempty"`
-	plan  func(ctx context.Context, p *planner, args map[string]any) (step, error)
+	// Person marks actions planned only from the person's own words (the
+	// command bar or push to talk): sending mail, typing dictated text,
+	// moving files. Agent connections cannot propose them.
+	Person bool `json:"person,omitempty"`
+	// Editable lists the parameters the person may change on the
+	// confirmation itself (the text of an e-mail draft); the action is
+	// planned again with the edited values before it runs.
+	Editable []string `json:"editable,omitempty"`
+	plan     func(ctx context.Context, p *planner, args map[string]any) (step, error)
 }
 
 // step is one planned action: a human summary and, for actions that are
@@ -43,7 +51,14 @@ type ActionDef struct {
 // the planner's working settings instead; the proposal commits them once.
 type step struct {
 	Summary string
+	// Preview is what the person must see before confirming, exactly as
+	// it will be done (an e-mail's recipient, subject and text; the list
+	// of file moves). Shown by the shell UI, recorded in the activity log.
+	Preview map[string]any
 	run     func(ctx context.Context) (any, error)
+	// end runs when the proposal ends without being applied (declined,
+	// expired, failed): undo what the preview put on screen.
+	end func(status string)
 }
 
 // planner carries what planning needs and the working theme settings,

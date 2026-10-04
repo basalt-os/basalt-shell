@@ -13,6 +13,7 @@ import (
 	"log"
 	"math"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -25,9 +26,11 @@ import (
 	"github.com/basalt-os/basalt-shell/internal/decor"
 	"github.com/basalt-os/basalt-shell/internal/hw"
 	"github.com/basalt-os/basalt-shell/internal/intent"
+	"github.com/basalt-os/basalt-shell/internal/ledger"
 	"github.com/basalt-os/basalt-shell/internal/skills"
 	"github.com/basalt-os/basalt-shell/internal/theme"
 	"github.com/basalt-os/basalt-shell/internal/voice"
+	"github.com/basalt-os/basalt-shell/internal/wlime"
 	"github.com/basalt-os/basalt-shell/internal/wlvirt"
 )
 
@@ -65,10 +68,17 @@ type Proposal struct {
 	Explain   string         `json:"explain,omitempty"`   // how the request was understood
 	Backend   string         `json:"backend,omitempty"`   // rules or model
 	Assistant map[string]any `json:"assistant,omitempty"` // a system assistant proposal, when this wraps one
+	// Previews are the exact content of acting steps (see step.Preview).
+	Previews []map[string]any `json:"previews,omitempty"`
+	// Editable are the parameters the person may change when confirming.
+	Editable []string `json:"editable,omitempty"`
+	Edited   bool     `json:"edited,omitempty"`
 
 	base theme.Settings
 	next *theme.Settings
 	runs []func(context.Context) (any, error)
+	ends []func(string)
+	meta Meta
 	done chan struct{}
 }
 
@@ -105,6 +115,11 @@ type Core struct {
 	// Voice is the push-to-talk voice service (basalt-voiced); nil when
 	// not running.
 	Voice *voice.Client
+	// ScreenLocked reports a locked screen (push to talk is refused);
+	// replaced in tests.
+	ScreenLocked func() bool
+	// Ledger receives the security-relevant records (nil: not running).
+	Ledger *ledger.Sink
 
 	mu        sync.Mutex
 	proposals map[string]*Proposal
@@ -122,7 +137,10 @@ type Core struct {
 	// voice is the push-to-talk state shown by the UI.
 	voice            VoiceState
 	voicePress       time.Time
+	voiceRoute       voiceRoute
 	voiceLangNoticed bool
+	// im is the seat's input method (dictation); nil when not held.
+	im *wlime.IM
 	// placed remembers windows the shell maximized or snapped: their
 	// geometry before (to restore) and the placement given.
 	placed map[string]placement
@@ -160,8 +178,11 @@ func New(comp compositor.Adapter, store *theme.Store, log *audit.Log, rep hw.Rep
 	c := &Core{Comp: comp, Themes: store, Audit: log, HW: rep, ConfigDir: configDir,
 		ApplyApps: true, ProposalTTL: 5 * time.Minute,
 		proposals: map[string]*Proposal{}, subs: map[chan Event]struct{}{}, choices: map[string]chan string{},
-		placed: map[string]placement{}}
-	log.OnAppend = func(r audit.Record) { c.Broadcast("activity", r) }
+		placed: map[string]placement{}, ScreenLocked: ScreenLocked}
+	log.OnAppend = func(r audit.Record) {
+		c.Broadcast("activity", r)
+		c.toLedger(r)
+	}
 	return c
 }
 
@@ -412,6 +433,41 @@ func TitleStyle(t theme.Tokens) compositor.TitleStyle {
 	}
 }
 
+// toLedger forwards the records that matter for security to basalt-ledger:
+// proposals and their outcome (with the exact previews of acting steps),
+// edits, refusals, grants and skill sessions. Not the theme slider moves
+// or the spoken words.
+func (c *Core) toLedger(r audit.Record) {
+	if c.Ledger == nil {
+		return
+	}
+	_, isProposal := r.Data["proposal"]
+	switch r.Type {
+	case "request", "decline", "expire", "fail", "refuse", "edit", "done", "skill":
+	case "apply":
+		if !isProposal && !strings.HasPrefix(r.Text, "grant") && !strings.HasPrefix(r.Text, "revoked") {
+			return
+		}
+	default:
+		return
+	}
+	outcome := map[string]string{"decline": "denied", "refuse": "denied", "expire": "denied", "fail": "error"}[r.Type]
+	if outcome == "" {
+		outcome = "ok"
+	}
+	data := map[string]any{"text": r.Text, "actor": r.Actor, "shell_seq": r.Seq, "shell_hash": r.Hash}
+	for _, k := range []string{"proposal", "previews", "calls", "origin", "changed", "error", "result", "domain"} {
+		if v, ok := r.Data[k]; ok {
+			data[k] = v
+		}
+	}
+	session := ""
+	if sess, ok := r.Data["session"].(map[string]any); ok {
+		session, _ = sess["id"].(string)
+	}
+	c.Ledger.Append("shell."+r.Type, outcome, session, data)
+}
+
 func newID() string {
 	b := make([]byte, 4)
 	_, _ = rand.Read(b)
@@ -458,13 +514,28 @@ func (c *Core) plan(ctx context.Context, calls []Call, m Meta) (*Proposal, error
 				return nil, fmt.Errorf("%s: unknown parameter %q", def.Name, k)
 			}
 		}
+		if def.Person && m.Origin != "commandbar" && m.Origin != "voice" {
+			return nil, fmt.Errorf("%s is planned only from the person's own request", def.Name)
+		}
+		if len(def.Editable) > 0 {
+			if len(calls) != 1 {
+				return nil, fmt.Errorf("%s must be alone in its proposal", def.Name)
+			}
+			pr.Editable = def.Editable
+		}
 		st, err := def.plan(ctx, p, call.Args)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", def.Name, err)
 		}
 		pr.Steps = append(pr.Steps, st.Summary)
+		if st.Preview != nil {
+			pr.Previews = append(pr.Previews, st.Preview)
+		}
 		if st.run != nil {
 			pr.runs = append(pr.runs, st.run)
+		}
+		if st.end != nil {
+			pr.ends = append(pr.ends, st.end)
 		}
 	}
 	if p.touched {
@@ -504,7 +575,7 @@ func (c *Core) Propose(ctx context.Context, m Meta, calls []Call) (*Proposal, er
 		return nil, err
 	}
 	pr.ID, pr.Origin, pr.Actor, pr.Request = newID(), origin, actor, request
-	pr.Explain, pr.Backend = m.Explain, m.Backend
+	pr.Explain, pr.Backend, pr.meta = m.Explain, m.Backend, m
 	pr.Created = time.Now().UTC()
 	pr.Expires = pr.Created.Add(c.ProposalTTL)
 	pr.Status = StatusPending
@@ -518,7 +589,7 @@ func (c *Core) Propose(ctx context.Context, m Meta, calls []Call) (*Proposal, er
 		delete(c.proposals, old)
 	}
 	c.mu.Unlock()
-	_, _ = c.Audit.Append("request", actor, pr.summary(), map[string]any{"proposal": pr.ID, "origin": origin, "calls": calls, "diff": pr.Diff, "request": request, "pid": m.PID, "domain": m.Domain})
+	_, _ = c.Audit.Append("request", actor, pr.summary(), map[string]any{"proposal": pr.ID, "origin": origin, "calls": calls, "diff": pr.Diff, "request": request, "pid": m.PID, "domain": m.Domain, "previews": pr.Previews})
 	c.Broadcast("proposal", pr.public())
 	go func() {
 		t := time.NewTimer(time.Until(pr.Expires))
@@ -542,7 +613,7 @@ func (pr *Proposal) summary() string {
 // public returns a copy safe to send.
 func (pr *Proposal) public() Proposal {
 	cp := *pr
-	cp.runs, cp.next, cp.done = nil, nil, nil
+	cp.runs, cp.next, cp.done, cp.ends = nil, nil, nil, nil
 	return cp
 }
 
@@ -557,7 +628,13 @@ func (c *Core) finish(pr *Proposal, status, by, msg string) bool {
 		pr.Error = msg
 	}
 	close(pr.done)
+	ends := pr.ends
 	c.mu.Unlock()
+	if status != StatusApplied {
+		for _, e := range ends {
+			e(status)
+		}
+	}
 	typ := map[string]string{StatusDeclined: "decline", StatusExpired: "expire", StatusStale: "refuse", StatusFailed: "fail", StatusApplied: "apply"}[status]
 	_, _ = c.Audit.Append(typ, by, pr.summary(), map[string]any{"proposal": pr.ID, "origin": pr.Origin, "actor": pr.Actor, "error": msg})
 	c.Broadcast("proposal", pr.public())
@@ -590,11 +667,23 @@ func (c *Core) Pending() []Proposal {
 
 // Decide confirms or declines a proposal; only the shell UI may call it.
 func (c *Core) Decide(ctx context.Context, id string, approve bool, by string) (Proposal, error) {
+	return c.DecideEdited(ctx, id, approve, by, nil)
+}
+
+// DecideEdited is Decide with the person's edits of the editable
+// parameters (the text of an e-mail draft): the action is planned again
+// with them, the new preview is recorded, and that is what runs.
+func (c *Core) DecideEdited(ctx context.Context, id string, approve bool, by string, edits map[string]any) (Proposal, error) {
 	c.mu.Lock()
 	pr, ok := c.proposals[id]
 	c.mu.Unlock()
 	if !ok {
 		return Proposal{}, fmt.Errorf("no proposal %s", id)
+	}
+	if approve && len(edits) > 0 {
+		if err := c.applyEdits(ctx, pr, edits, by); err != nil {
+			return pr.public(), err
+		}
 	}
 	if !approve {
 		if !c.finish(pr, StatusDeclined, by, "") {
@@ -630,7 +719,64 @@ func (c *Core) Decide(ctx context.Context, id string, approve bool, by string) (
 		return pr.public(), err
 	}
 	c.finish(pr, StatusApplied, by, "")
+	if len(pr.Previews) > 0 {
+		// What was done, as it was shown: the activity timeline and the
+		// ledger keep the exact preview of every acting step.
+		_, _ = c.Audit.Append("done", by, pr.summary(), map[string]any{"proposal": pr.ID, "previews": pr.Previews, "result": pr.Result})
+	}
 	return pr.public(), nil
+}
+
+// applyEdits plans the proposal's one call again with the edited values
+// of its editable parameters and replaces the planned step.
+func (c *Core) applyEdits(ctx context.Context, pr *Proposal, edits map[string]any, by string) error {
+	c.mu.Lock()
+	if pr.Status != StatusPending {
+		c.mu.Unlock()
+		return fmt.Errorf("proposal %s is %s", pr.ID, pr.Status)
+	}
+	if len(pr.Calls) != 1 || len(pr.Editable) == 0 {
+		c.mu.Unlock()
+		return errors.New("this proposal cannot be edited")
+	}
+	call := Call{Action: pr.Calls[0].Action, Args: map[string]any{}}
+	for k, v := range pr.Calls[0].Args {
+		call.Args[k] = v
+	}
+	var changed []string
+	for k, v := range edits {
+		ok := false
+		for _, e := range pr.Editable {
+			if e == k {
+				ok = true
+			}
+		}
+		if !ok {
+			c.mu.Unlock()
+			return fmt.Errorf("%s cannot be edited", k)
+		}
+		if fmt.Sprint(call.Args[k]) != fmt.Sprint(v) {
+			changed = append(changed, k)
+		}
+		call.Args[k] = v
+	}
+	m := pr.meta
+	c.mu.Unlock()
+	if len(changed) == 0 {
+		return nil
+	}
+	np, err := c.plan(ctx, []Call{call}, m)
+	if err != nil {
+		_, _ = c.Audit.Append("refuse", by, "edit refused: "+err.Error(), map[string]any{"proposal": pr.ID})
+		return err
+	}
+	c.mu.Lock()
+	// The preview of the original plan is replaced: its end hooks are
+	// the new plan's too (they undo what is on screen).
+	pr.Calls, pr.Steps, pr.Previews, pr.runs, pr.ends, pr.Edited = []Call{call}, np.Steps, np.Previews, np.runs, np.ends, true
+	c.mu.Unlock()
+	_, _ = c.Audit.Append("edit", by, pr.summary(), map[string]any{"proposal": pr.ID, "changed": changed, "previews": pr.Previews})
+	return nil
 }
 
 func normalized(s theme.Settings) theme.Settings {

@@ -37,10 +37,13 @@ install:
 	install -Dm755 $(BUILD)/basalt-shelld $(DESTDIR)$(PREFIX)/bin/basalt-shelld
 	install -Dm755 $(BUILD)/basalt-shell-ui-launch $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-shell-ui-launch
 	install -Dm755 $(BUILD)/basalt-voiced $(DESTDIR)$(PREFIX)/bin/basalt-voiced
-	# The skills worker, twice: two files, two SELinux types (the indexer
-	# may read documents; the other is an agent domain).
+	# The skills worker, four times: four files, four SELinux types (read
+	# content, index documents, send one confirmed e-mail, rename files
+	# inside a grant); each job kind runs only in its own program.
 	install -Dm755 $(BUILD)/basalt-skill $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill
 	install -Dm755 $(BUILD)/basalt-skill $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-index
+	install -Dm755 $(BUILD)/basalt-skill $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-send
+	install -Dm755 $(BUILD)/basalt-skill $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-files
 	install -Dm644 config/systemd/basalt-voice.service $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-voice.service
 	install -Dm644 config/voice/voice.conf $(DESTDIR)$(SYSCONFDIR)/basalt/voice.conf
 	install -Dm755 bin/basalt-shell-ui $(DESTDIR)$(PREFIX)/bin/basalt-shell-ui

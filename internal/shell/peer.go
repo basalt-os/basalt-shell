@@ -56,7 +56,16 @@ func peerInfo(c *net.UnixConn) (Peer, error) {
 	}
 	p.Type = contextType(p.Context)
 	p.Exe, _ = os.Readlink(fmt.Sprintf("/proc/%d/exe", p.PID))
+	p.Exe = exeName(p.Exe)
 	return p, nil
+}
+
+// exeName normalizes the /proc/PID/exe link of a peer. A program that was
+// replaced on disk while it runs (a package update) reads as
+// "/usr/bin/quickshell (deleted)": it is still the same program, and its
+// SELinux domain (checked first) has not changed.
+func exeName(link string) string {
+	return strings.TrimSuffix(link, " (deleted)")
 }
 
 // contextType returns the type field of user:role:type:level.

@@ -68,6 +68,10 @@ bindsym $mod+Shift+Escape exec basalt-shell ctl control.stop
 # opens the microphone on the press and closes it on the release.
 bindsym --no-repeat $mod+v exec $ui voice press
 bindsym --release $mod+v exec $ui voice release
+# Dictation into a focused text field waits on the voice card: Super+Shift+Return
+# types it, Super+Shift+BackSpace drops it (or the card's buttons).
+bindsym $mod+Shift+Return exec $ui voice insert
+bindsym $mod+Shift+BackSpace exec $ui voice discard
 
 # Apps and windows.
 bindsym $mod+Return exec foot

@@ -89,6 +89,12 @@ tls = no
 user = dev
 password_file = ~/.config/basalt-shell/mail-lab.pass
 mailbox = INBOX
+# Replies (always confirmed) go to the lab SMTP sink (Mailpit).
+address = dev@lab.test
+name = Dev Lab
+smtp_host = mail.example.com
+smtp_port = 587
+smtp_tls = none
 
 [site news]
 url = http://news.lab.test/
@@ -122,3 +128,6 @@ chown -R $user:$user $home/.config/systemd
 runuser -u $user -- env XDG_RUNTIME_DIR=/run/user/1000 systemctl --user daemon-reload
 runuser -u $user -- env XDG_RUNTIME_DIR=/run/user/1000 systemctl --user enable --now lab-mic.service >/dev/null 2>&1 || true
 echo "lab ready: $(ls /srv/lab-mail/dev/Maildir/cur | wc -l) messages, $(find $home/Documents $home/Downloads $home/Desktop -type f | wc -l) files"
+# The acting skills' lab (SMTP sink, documentation names, demo mailbox).
+bash $st/vm-lab-acting.sh
+

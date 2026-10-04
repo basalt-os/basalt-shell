@@ -24,6 +24,9 @@ PanelWindow {
     readonly property var assist: result && result.assistant ? result.assistant : null
     readonly property var skill: result && result.skill ? result.skill : null
     readonly property bool isGrant: proposal !== null && proposal.calls && proposal.calls.length > 0 && proposal.calls[0].action === "grant.add"
+    readonly property string actName: proposal !== null && proposal.calls && proposal.calls.length > 0 ? proposal.calls[0].action : ""
+    readonly property bool isMail: actName === "mail.send"
+    readonly property bool isMove: actName === "files.move"
     property string retry: ""        // run again after a grant is applied
     property var voiceData: null     // a spoken request's answer, shown when the bar opens
 
@@ -65,11 +68,13 @@ PanelWindow {
     function decide(approve) {
         if (!proposal) return;
         busy = true;
-        Bus.decide(proposal.id, approve, (ok, res) => {
+        const done = (ok, res) => {
             busy = false;
             statusOk = ok && (res.status === "applied" || res.status === "declined");
-            status = ok ? (res.status === "applied" ? "Applied." : (res.status === "declined" ? "Ignored. Nothing changed." : res.status + (res.error ? ": " + res.error : "")))
-                        : "Failed: " + res;
+            const applied = win.isMail ? qsTr("Sent.") : (win.isMove ? qsTr("Done. Say \"undo\" to put the files back.") : qsTr("Applied."));
+            const declined = win.isMail ? qsTr("Not sent. The draft was discarded.") : qsTr("Ignored. Nothing changed.");
+            status = ok ? (res.status === "applied" ? applied : (res.status === "declined" ? declined : res.status + (res.error ? ": " + res.error : "")))
+                        : qsTr("Failed: %1").arg(res);
             result = null;
             if (ok && res.status === "applied" && win.retry !== "") {
                 // A permission the request needed: run the request again.
@@ -79,8 +84,10 @@ PanelWindow {
                 return;
             }
             win.retry = "";
-            if (ok && res.status === "applied") closeTimer.restart();
-        });
+            if (ok && res.status === "applied" && !win.isMail && !win.isMove) closeTimer.restart();
+        };
+        if (approve && isMail) Bus.decideEdited(proposal.id, actionPreview.edits(), done);
+        else Bus.decide(proposal.id, approve, done);
     }
     function assistantDecide(apply) {
         if (!assist) return;
@@ -179,13 +186,13 @@ PanelWindow {
                     spacing: Theme.s3
                     Row {
                         spacing: Theme.s2
-                        Txt { text: win.isGrant ? qsTr("Permission") : qsTr("Proposal"); role: "large"; font.weight: Font.DemiBold }
+                        Txt { text: win.isGrant ? qsTr("Permission") : (win.isMail ? qsTr("Reply") : (win.isMove ? qsTr("Files") : qsTr("Proposal"))); role: "large"; font.weight: Font.DemiBold }
                         Rectangle {
                             radius: height / 2; height: Theme.fontSize * 1.8; width: tag.implicitWidth + Theme.s3
                             color: Theme.accentSoft
                             anchors.verticalCenter: parent.verticalCenter
                             Txt { id: tag; anchors.centerIn: parent; role: "small"; color: Theme.accent
-                                  text: win.proposal ? (win.proposal.backend === "skill" ? (win.isGrant ? qsTr("read only, expires by itself") : qsTr("from your request")) : (win.proposal.backend === "model" ? qsTr("understood by the local model") : qsTr("understood by the fixed phrases"))) : "" }
+                                  text: win.proposal ? (win.proposal.backend === "skill" ? (win.isGrant ? qsTr("read only, expires by itself") : (win.isMail ? qsTr("not sent until you press Send") : qsTr("from your request"))) : (win.proposal.backend === "model" ? qsTr("understood by the local model") : qsTr("understood by the fixed phrases"))) : "" }
                         }
                     }
                     Txt {
@@ -195,7 +202,14 @@ PanelWindow {
                         width: parent.width
                         wrapMode: Text.Wrap
                     }
-                    ProposalView { width: parent.width; proposal: win.proposal }
+                    ProposalView { visible: !win.isMail; width: parent.width; proposal: win.proposal }
+                    ActionPreview {
+                        id: actionPreview
+                        visible: win.isMail || win.isMove
+                        width: parent.width
+                        proposal: win.proposal
+                        warnings: win.skill && win.skill.warnings ? win.skill.warnings : []
+                    }
                     Txt {
                         visible: win.result && win.result.unknown && win.result.unknown.length > 0
                         text: win.result && win.result.unknown ? "Not understood: " + win.result.unknown.join(", ") : ""
@@ -203,8 +217,8 @@ PanelWindow {
                     }
                     Row {
                         spacing: Theme.s2
-                        Btn { text: win.isGrant ? qsTr("Allow") : qsTr("Apply"); icon: "check"; variant: "primary"; focusable: true; onClicked: win.decide(true) }
-                        Btn { text: win.isGrant ? qsTr("Don't allow") : qsTr("Ignore"); variant: "outline"; focusable: true; onClicked: win.decide(false) }
+                        Btn { text: win.isGrant ? qsTr("Allow") : (win.isMail ? qsTr("Send") : (win.isMove ? qsTr("Confirm") : qsTr("Apply"))); icon: "check"; variant: "primary"; focusable: true; e2e: "proposal-confirm"; onClicked: win.decide(true) }
+                        Btn { text: win.isGrant ? qsTr("Don't allow") : (win.isMail ? qsTr("Discard") : qsTr("Ignore")); variant: "outline"; focusable: true; e2e: "proposal-decline"; onClicked: win.decide(false) }
                     }
                 }
 

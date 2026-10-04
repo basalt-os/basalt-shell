@@ -145,8 +145,15 @@ func (c *conn) read(r *os.File) {
 	}
 }
 
-// Program finds the Chromium executable.
+// Program finds the Chromium executable: the program itself, never a
+// launcher script (the skill domain may not run a shell; Fedora's
+// /usr/bin/chromium-browser is a shell script).
 func Program() string {
+	for _, p := range []string{"/usr/lib64/chromium-browser/chromium-browser", "/usr/lib/chromium/chromium", "/usr/lib/chromium-browser/chromium-browser"} {
+		if st, err := os.Stat(p); err == nil && st.Mode().IsRegular() && st.Mode()&0o111 != 0 {
+			return p
+		}
+	}
 	for _, p := range []string{"chromium-browser", "chromium", "headless_shell"} {
 		if x, err := exec.LookPath(p); err == nil {
 			return x

@@ -7,7 +7,8 @@ import Quickshell.Wayland
 // declines. The daemon refuses confirmations from anyone but this UI.
 PanelWindow {
     id: win
-    readonly property var queue: Bus.pending.filter(p => p.origin !== "commandbar")
+    // The command bar and the voice card show the person's own requests.
+    readonly property var queue: Bus.pending.filter(p => p.origin !== "commandbar" && p.origin !== "voice")
     readonly property var current: queue.length > 0 ? queue[0] : null
     property var shown: null
     visible: current !== null || sheet.opacity > 0

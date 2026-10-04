@@ -58,6 +58,9 @@ type Answer struct {
 	Plan      map[string]any   `json:"plan,omitempty"`
 	Session   *Session         `json:"session,omitempty"`
 	Removed   []string         `json:"removed,omitempty"` // what the output filter took out of the model's text
+	// Act is the typed action an acting skill prepared (the shell proposes
+	// it; only the person confirms it).
+	Act *Act `json:"act,omitempty"`
 }
 
 // Engine runs the skills.
@@ -73,6 +76,7 @@ type Engine struct {
 	Audit func(typ, text string, data map[string]any)
 
 	mu       sync.Mutex
+	senders  *senderCache
 	last     []Item // the last file results, for "open result N"
 	indexAt  time.Time
 	indexFor string
@@ -119,6 +123,16 @@ func (e *Engine) Handle(ctx context.Context, text string) (Answer, bool) {
 		e.open(r.N, &a)
 	case SkillGrant:
 		e.grantRequest(r, &a)
+	case SkillReply:
+		e.reply(ctx, text, r, &a)
+	case SkillMove:
+		e.moveFiles(ctx, r, &a)
+	case SkillRename:
+		e.renameFile(ctx, r, &a)
+	case SkillUndo:
+		e.undo(&a)
+	case SkillUnsupported:
+		e.unsupported(r, &a)
 	case SkillRevoke:
 		n := e.Store.Revoke("")
 		a.Text = i18n.N("Ended %d permission. The assistant can no longer read your files, mail or sites until you allow it again.", "Ended %d permissions. The assistant can no longer read your files, mail or sites until you allow it again.", n, n)
@@ -142,6 +156,9 @@ func (e *Engine) Handle(ctx context.Context, text string) (Answer, bool) {
 	}
 	if a.NeedGrant != nil {
 		data["need_grant"] = a.NeedGrant
+	}
+	if a.Act != nil {
+		data["act"] = a.Act.Action
 	}
 	e.audit("skill", text, data)
 	return a, true

@@ -17,6 +17,41 @@ type Account struct {
 	User     string `json:"user"`
 	PassFile string `json:"-"`
 	Mailbox  string `json:"mailbox"`
+	// Sending (the reply skill, always confirmed): the person's address
+	// and name, and the submission server. The SMTP login defaults to the
+	// IMAP one. SMTPTLS is starttls (default), tls (implicit) or none
+	// (lab servers on reserved names only).
+	Address      string `json:"address,omitempty"`
+	DisplayName  string `json:"display_name,omitempty"`
+	SMTPHost     string `json:"smtp_host,omitempty"`
+	SMTPPort     int    `json:"smtp_port,omitempty"`
+	SMTPTLS      string `json:"smtp_tls,omitempty"`
+	SMTPUser     string `json:"-"`
+	SMTPPassFile string `json:"-"`
+}
+
+// CanSend reports whether replies can be sent from this account.
+func (a Account) CanSend() bool { return a.Address != "" && a.SMTPHost != "" }
+
+// SMTPPassword reads the submission password (the IMAP one by default).
+func (a Account) SMTPPassword() (string, error) {
+	if a.SMTPPassFile == "" {
+		return a.Password()
+	}
+	b := a
+	b.PassFile = a.SMTPPassFile
+	return b.Password()
+}
+
+// SubmissionPort is the SMTP port (587, or 465 with implicit TLS).
+func (a Account) SubmissionPort() int {
+	if a.SMTPPort != 0 {
+		return a.SMTPPort
+	}
+	if a.SMTPTLS == "tls" {
+		return 465
+	}
+	return 587
 }
 
 // Site is a web site the person named (a bookmark): a name to say and
@@ -49,6 +84,9 @@ type Config struct {
 	Sites    []Site
 	Folders  []string // default folders offered in a grant, relative to home
 	Rerank   bool     // let the model pick the best file among the top hits
+	// Contacts are names the person says often ([contacts] names = Ana
+	// Souza, Priya Nair): the speech recognition is told their spelling.
+	Contacts []string
 }
 
 // LoadConfig reads the config file; a missing file gives the defaults.
@@ -112,6 +150,20 @@ func LoadConfig(path, home string) Config {
 				acc.PassFile = expand(v, home)
 			case "mailbox":
 				acc.Mailbox = v
+			case "address":
+				acc.Address = strings.ToLower(v)
+			case "name", "display_name":
+				acc.DisplayName = v
+			case "smtp_host":
+				acc.SMTPHost = v
+			case "smtp_port":
+				acc.SMTPPort, _ = strconv.Atoi(v)
+			case "smtp_tls":
+				acc.SMTPTLS = v
+			case "smtp_user":
+				acc.SMTPUser = v
+			case "smtp_password_file":
+				acc.SMTPPassFile = expand(v, home)
 			}
 		case site != nil:
 			switch k {
@@ -128,6 +180,12 @@ func LoadConfig(path, home string) Config {
 			c.Folders = strings.Fields(v)
 		case sec == "files" && k == "rerank":
 			c.Rerank = v == "yes" || v == "true"
+		case sec == "contacts" && k == "names":
+			for _, n := range strings.Split(v, ",") {
+				if n = strings.TrimSpace(n); n != "" {
+					c.Contacts = append(c.Contacts, n)
+				}
+			}
 		}
 	}
 	flush()
@@ -165,12 +223,19 @@ func (a Account) Password() (string, error) {
 	return strings.TrimSpace(string(b)), err
 }
 
-// privateName reports names reserved for private use (RFC 6761/8375 and
-// common lab suffixes): allowlist entries for them may resolve to private
-// addresses ("private" in the allowlist).
+// privateName reports names reserved for private use or documentation
+// (RFC 6761, RFC 2606, RFC 8375 and common lab suffixes): allowlist
+// entries for them may resolve to private addresses ("private" in the
+// allowlist). No public service can use these names.
 func privateName(h string) bool {
-	for _, s := range []string{".test", ".internal", ".lan", ".home.arpa", ".local", ".localdomain", ".lab"} {
+	h = strings.ToLower(strings.TrimSuffix(h, "."))
+	for _, s := range []string{".test", ".internal", ".lan", ".home.arpa", ".local", ".localdomain", ".lab", ".example", ".invalid"} {
 		if strings.HasSuffix(h, s) {
+			return true
+		}
+	}
+	for _, d := range []string{"example.com", "example.net", "example.org"} {
+		if h == d || strings.HasSuffix(h, "."+d) {
 			return true
 		}
 	}

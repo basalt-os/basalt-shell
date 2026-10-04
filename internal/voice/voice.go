@@ -24,6 +24,9 @@ type Request struct {
 	ID   int64  `json:"id"`
 	Op   string `json:"op"` // listen, stop, cancel, speak, hush, status
 	Text string `json:"text,omitempty"`
+	// Prompt (stop) adds words to the speech-to-text prompt: the names
+	// the person is likely to say (granted contacts and mail senders).
+	Prompt string `json:"prompt,omitempty"`
 }
 
 // Transcript is the result of stop.

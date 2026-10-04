@@ -63,9 +63,16 @@ Singleton {
     function execute(calls, cb) { call("execute", { calls: calls }, cb); }
     function act(action, args, cb) { execute([{ action: action, args: args || {} }], cb); }
     function decide(id, approve, cb) { call("decide", { id: id, approve: approve }, cb); }
+    // Confirm with the person's edits of the editable fields (an e-mail draft's text).
+    function decideEdited(id, edits, cb) { call("decide", { id: id, approve: true, edits: edits }, cb); }
+    // The dictation shown on the voice card: type it, or drop it.
+    function dictationDecide(approve) {
+        const id = bus.voice ? bus.voice.proposal : "";
+        if (id) call("decide", { id: id, approve: approve });
+    }
     function ask(text, cb) { call("ask", { text: text }, cb); }
     // Push to talk: only this UI may open the microphone.
-    function voicePress() { call("voice.press", {}, (ok, res) => { if (!ok) bus.voice = { state: "error", error: res, enabled: bus.voice.enabled }; }); }
+    function voicePress() { call("voice.press", { commandbar: Ui.commandBar }, (ok, res) => { if (!ok) bus.voice = { state: "error", error: res, enabled: bus.voice.enabled }; }); }
     function voiceRelease() { call("voice.release", {}); }
     function voiceCancel() { call("voice.cancel", {}); }
     function revokeGrant(id) { call("grant.revoke", { id: id || "" }); }

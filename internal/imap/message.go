@@ -28,6 +28,12 @@ type Message struct {
 	Hidden      string       `json:"hidden,omitempty"` // hidden HTML text, never given to the model
 	Attachments []string     `json:"attachments,omitempty"`
 	Report      guard.Report `json:"report"`
+	// For replies: the message's id and thread, and a Reply-To address
+	// when the message asks for replies elsewhere (content: never used
+	// as a recipient by itself).
+	MessageID  string `json:"message_id,omitempty"`
+	References string `json:"references,omitempty"`
+	ReplyTo    string `json:"reply_to,omitempty"`
 }
 
 var wordDecoder = &mime.WordDecoder{CharsetReader: charsetReader}
@@ -87,6 +93,11 @@ func Parse(raw []byte) Message {
 		m.FromName = decodeHeader(h.Get("From"))
 	}
 	m.To = decodeHeader(h.Get("To"))
+	m.MessageID = strings.TrimSpace(h.Get("Message-Id"))
+	m.References = strings.TrimSpace(h.Get("References"))
+	if rt := h.Get("Reply-To"); rt != "" {
+		_, m.ReplyTo = ParseAddress(rt)
+	}
 	if d, err := h.Date(); err == nil {
 		m.Date = d.UTC()
 	}
@@ -194,4 +205,14 @@ func (s *stripNL) Read(p []byte) (int, error) {
 		}
 	}
 	return j, err
+}
+
+// ParseAddress returns the display name and the lower-case address of a
+// header value ("Ana Souza <ana@example.org>").
+func ParseAddress(v string) (string, string) {
+	a, err := (&mail.AddressParser{WordDecoder: wordDecoder}).Parse(v)
+	if err != nil {
+		return decodeHeader(v), ""
+	}
+	return a.Name, strings.ToLower(a.Address)
 }

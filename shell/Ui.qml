@@ -115,6 +115,9 @@ Singleton {
             else if (op === "release") Bus.voiceRelease();
             else if (op === "cancel") Bus.voiceCancel();
             else if (op === "toggle") { if (Bus.voice.state === "listening") Bus.voiceRelease(); else Bus.voicePress(); }
+            // Dictation waiting on the card: Super+Return types it, Super+BackSpace drops it.
+            else if (op === "insert") Bus.dictationDecide(true);
+            else if (op === "discard") Bus.dictationDecide(false);
         }
     }
 }

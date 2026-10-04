@@ -5,7 +5,8 @@
 // basalt-resolver makes default-deny, with an allowlist made of the
 // person's grants), and with the Basalt policy in its own SELinux domain.
 //
-// Installed twice, with two SELinux types:
+// Installed four times, with four SELinux types; each job kind runs only
+// in its own program:
 //
 //	/usr/libexec/basalt-shell/basalt-skill-index   builds the file index: may read the
 //	                                               person's documents (never keys,
@@ -13,6 +14,10 @@
 //	/usr/libexec/basalt-shell/basalt-skill         searches the index, reads a mailbox
 //	                                               (IMAP, read only), reads a web page
 //	                                               (headless Chromium): an agent domain
+//	/usr/libexec/basalt-shell/basalt-skill-send    sends one e-mail the person confirmed
+//	                                               (SMTP only): an agent domain
+//	/usr/libexec/basalt-shell/basalt-skill-files   renames files inside a granted folder
+//	                                               (no read, no delete, no network)
 //
 // Protocol: it prints {"ready":true,"pid":N}, waits for one job (a JSON
 // line on stdin; the shell registers the session's network policy in
@@ -35,6 +40,7 @@ import (
 	"github.com/basalt-os/basalt-shell/internal/browser"
 	"github.com/basalt-os/basalt-shell/internal/docs"
 	"github.com/basalt-os/basalt-shell/internal/guard"
+	"github.com/basalt-os/basalt-shell/internal/harden"
 	"github.com/basalt-os/basalt-shell/internal/imap"
 )
 
@@ -47,6 +53,8 @@ type Job struct {
 	Query docs.Query `json:"query,omitempty"`
 	Mail  *MailJob   `json:"mail,omitempty"`
 	Web   *WebJob    `json:"web,omitempty"`
+	Send  *SendJob   `json:"send,omitempty"`
+	Move  *MoveJob   `json:"move,omitempty"`
 }
 
 // MailJob reads messages from one mailbox.
@@ -75,18 +83,23 @@ type WebJob struct {
 
 // Result goes back to the shell.
 type Result struct {
-	OK       bool            `json:"ok"`
-	Error    string          `json:"error,omitempty"`
-	Kind     string          `json:"kind"`
-	MS       int64           `json:"ms"`
-	Index    *IndexStats     `json:"index,omitempty"`
-	Hits     []docs.Hit      `json:"hits,omitempty"`
-	Messages []imap.Message  `json:"messages,omitempty"`
-	Total    int             `json:"total,omitempty"`
-	Page     *browser.Page   `json:"page,omitempty"`
-	Sent     []string        `json:"imap_commands,omitempty"`
-	Domain   string          `json:"domain,omitempty"`
-	Extra    json.RawMessage `json:"extra,omitempty"`
+	OK        bool            `json:"ok"`
+	Error     string          `json:"error,omitempty"`
+	Kind      string          `json:"kind"`
+	MS        int64           `json:"ms"`
+	Index     *IndexStats     `json:"index,omitempty"`
+	Hits      []docs.Hit      `json:"hits,omitempty"`
+	Messages  []imap.Message  `json:"messages,omitempty"`
+	Total     int             `json:"total,omitempty"`
+	Page      *browser.Page   `json:"page,omitempty"`
+	Sent      []string        `json:"imap_commands,omitempty"`
+	Senders   []Sender        `json:"senders,omitempty"`
+	SMTP      []string        `json:"smtp_commands,omitempty"`
+	SMTPReply string          `json:"smtp_reply,omitempty"`
+	Moves     []moveResult    `json:"moves,omitempty"`
+	Created   []string        `json:"created,omitempty"`
+	Domain    string          `json:"domain,omitempty"`
+	Extra     json.RawMessage `json:"extra,omitempty"`
 }
 
 // IndexStats summarizes a build.
@@ -101,6 +114,10 @@ type IndexStats struct {
 func main() {
 	self := filepath.Base(os.Args[0])
 	out := json.NewEncoder(os.Stdout)
+	if err := harden.NoNewPrivs(); err != nil {
+		_ = out.Encode(Result{Error: "no_new_privs: " + err.Error()})
+		os.Exit(1)
+	}
 	_ = out.Encode(map[string]any{"ready": true, "pid": os.Getpid()})
 	in := bufio.NewReaderSize(os.Stdin, 1<<20)
 	line, err := in.ReadBytes('\n')
@@ -127,15 +144,29 @@ func main() {
 // SELinux policy).
 var anyKind = os.Getenv("BASALT_SKILL_ANY") == "1"
 
+// programOf is the one program (and SELinux domain) each kind of job runs in.
+var programOf = map[string]string{"index": "basalt-skill-index", "send": "basalt-skill-send", "move": "basalt-skill-files",
+	"search": "basalt-skill", "mail": "basalt-skill", "senders": "basalt-skill", "web": "basalt-skill"}
+
 func run(ctx context.Context, self string, job Job) Result {
-	indexer := self == "basalt-skill-index"
-	if job.Kind == "index" && !indexer && !anyKind {
-		return Result{Error: "index jobs run in basalt-skill-index"}
+	want, known := programOf[job.Kind]
+	if !known {
+		return Result{Error: "unknown job " + strconv.Quote(job.Kind)}
 	}
-	if job.Kind != "index" && indexer && !anyKind {
-		return Result{Error: "basalt-skill-index only builds the index"}
+	if self != want && !anyKind {
+		return Result{Error: job.Kind + " jobs run in " + want}
 	}
 	switch job.Kind {
+	case "send":
+		if job.Send == nil {
+			return Result{Error: "send: missing"}
+		}
+		return send(*job.Send)
+	case "move":
+		if job.Move == nil {
+			return Result{Error: "move: missing"}
+		}
+		return move(*job.Move)
 	case "index":
 		if job.Home == "" || job.Index == "" || len(job.Roots) == 0 {
 			return Result{Error: "index: home, roots and index are required"}
@@ -165,6 +196,11 @@ func run(ctx context.Context, self string, job Job) Result {
 			return Result{Error: "mail: missing"}
 		}
 		return mail(ctx, *job.Mail)
+	case "senders":
+		if job.Mail == nil {
+			return Result{Error: "senders: missing"}
+		}
+		return senders(ctx, *job.Mail)
 	case "web":
 		if job.Web == nil {
 			return Result{Error: "web: missing"}
@@ -258,4 +294,55 @@ func mail(ctx context.Context, j MailJob) Result {
 		return Result{Error: errors.New("timed out").Error()}
 	}
 	return Result{OK: true, Messages: msgs, Total: total, Sent: c.Sent}
+}
+
+// Sender is a name the person may say (from a From header).
+type Sender struct {
+	Name    string `json:"name"`
+	Addr    string `json:"addr"`
+	Flagged bool   `json:"flagged,omitempty"` // the name tries to instruct the assistant
+}
+
+// senders reads the From headers of the mailbox's recent messages (no
+// bodies), for the names the speech recognition should know.
+func senders(ctx context.Context, j MailJob) Result {
+	if j.Port == 0 {
+		j.Port = 993
+		if !j.TLS {
+			j.Port = 143
+		}
+	}
+	if j.Mailbox == "" {
+		j.Mailbox = "INBOX"
+	}
+	c, err := imap.Dial(net.JoinHostPort(j.Host, strconv.Itoa(j.Port)), j.TLS, 15*time.Second)
+	if err != nil {
+		return Result{Error: "cannot reach the mail server: " + err.Error()}
+	}
+	defer c.Close()
+	if err := c.Login(j.User, j.Pass); err != nil {
+		return Result{Error: "login failed", Sent: c.Sent}
+	}
+	if _, err := c.Examine(j.Mailbox); err != nil {
+		return Result{Error: err.Error(), Sent: c.Sent}
+	}
+	uids, err := c.Search(imap.Criteria{Since: j.Since})
+	if err != nil {
+		return Result{Error: err.Error(), Sent: c.Sent}
+	}
+	if len(uids) > 300 {
+		uids = uids[len(uids)-300:]
+	}
+	fs, err := c.FetchFrom(uids)
+	if err != nil {
+		return Result{Error: err.Error(), Sent: c.Sent}
+	}
+	var out []Sender
+	for _, f := range fs {
+		out = append(out, Sender{Name: f.Name, Addr: f.Addr, Flagged: guard.Scan(f.Name).Suspicious()})
+	}
+	if ctx.Err() != nil {
+		return Result{Error: "timed out"}
+	}
+	return Result{OK: true, Senders: out, Sent: c.Sent}
 }

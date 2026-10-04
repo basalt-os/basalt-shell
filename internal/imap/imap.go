@@ -327,3 +327,52 @@ func (ic *Conn) Flags(uids []int) (map[int][]string, error) {
 	}
 	return out, nil
 }
+
+// From is one sender read by FetchFrom.
+type From struct {
+	UID  int    `json:"uid"`
+	Name string `json:"name"`
+	Addr string `json:"addr"`
+}
+
+// FetchFrom reads only the From header of messages (BODY.PEEK, nothing
+// marked), for the names the person may say.
+func (ic *Conn) FetchFrom(uids []int) ([]From, error) {
+	if len(uids) == 0 {
+		return nil, nil
+	}
+	var set []string
+	for _, u := range uids {
+		set = append(set, strconv.Itoa(u))
+	}
+	res, err := ic.cmd("UID FETCH", strings.Join(set, ",")+" (UID BODY.PEEK[HEADER.FIELDS (FROM)])")
+	if err != nil {
+		return nil, err
+	}
+	var out []From
+	for _, l := range res.Lines {
+		i := strings.Index(l, "\x00LIT\x00")
+		if i < 0 {
+			continue
+		}
+		head := l[:i]
+		rest := l[i+5:]
+		j := strings.Index(rest, "\x00END\x00")
+		if j < 0 {
+			continue
+		}
+		f := From{}
+		if m := reUID.FindStringSubmatch(head + rest[j+5:]); m != nil {
+			f.UID, _ = strconv.Atoi(m[1])
+		}
+		hdr := strings.TrimSpace(rest[:j])
+		if v, ok := strings.CutPrefix(hdr, "From:"); ok {
+			hdr = v
+		} else if v, ok := strings.CutPrefix(hdr, "FROM:"); ok {
+			hdr = v
+		}
+		f.Name, f.Addr = ParseAddress(strings.TrimSpace(hdr))
+		out = append(out, f)
+	}
+	return out, nil
+}

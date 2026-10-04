@@ -408,13 +408,14 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 			return nil, err
 		}
 		var a struct {
-			ID      string `json:"id"`
-			Approve bool   `json:"approve"`
+			ID      string         `json:"id"`
+			Approve bool           `json:"approve"`
+			Edits   map[string]any `json:"edits"`
 		}
 		if err := decode(req.Args, &a); err != nil {
 			return nil, err
 		}
-		return c.Decide(ctx, a.ID, a.Approve, "ui")
+		return c.DecideEdited(ctx, a.ID, a.Approve, "ui", a.Edits)
 	case "ask":
 		if err := ss.requireUI(); err != nil {
 			return nil, err
@@ -580,7 +581,11 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 			_, _ = c.Audit.Append("refuse", ss.actor(), "microphone refused: not the shell UI", map[string]any{"pid": ss.pid, "context": ss.peer.Context})
 			return nil, err
 		}
-		return nil, c.VoicePress(ctx)
+		var a struct {
+			CommandBar bool `json:"commandbar"`
+		}
+		_ = decode(req.Args, &a)
+		return nil, c.VoicePress(ctx, a.CommandBar)
 	case "voice.release":
 		if err := ss.requireUI(); err != nil {
 			return nil, err

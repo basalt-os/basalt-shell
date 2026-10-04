@@ -12,12 +12,14 @@ trap 'rm -rf "$stage"' EXIT
 cd "$here"
 CGO_ENABLED=0 make -s build GOFLAGS="-trimpath"
 CGO_ENABLED=0 go build -trimpath -o build/labweb ./lab/voice/labweb
+CGO_ENABLED=0 go build -trimpath -o build/probe ./lab/voice/tests/probe
 make -s install DESTDIR="$stage/root" PREFIX=/usr SYSCONFDIR=/etc LIBEXECDIR=/usr/libexec POLKITDIR=/usr/share/polkit-1 >/dev/null
 mkdir -p "$stage/root/usr/local/libexec/lab" "$stage/selinux" "$stage/lab"
 cp build/labweb "$stage/root/usr/local/libexec/lab/"
 cp selinux/* "$stage/selinux/"
 cp -r lab/voice/. "$stage/lab/"
 rm -rf "$stage/lab/labweb"
+cp build/probe "$stage/lab/tests/probe/probe"
 # Never overwrite the VM's voice settings once they exist.
 mv "$stage/root/etc/basalt/voice.conf" "$stage/voice.conf.default"
 ssh "$LAB_HOST" 'rm -rf ~/basalt-voice/stage && mkdir -p ~/basalt-voice/stage'

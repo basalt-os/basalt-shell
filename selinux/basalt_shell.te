@@ -1,4 +1,4 @@
-policy_module(basalt_shell, 0.3.0)
+policy_module(basalt_shell, 0.4.0)
 
 ########################################
 #
@@ -138,11 +138,21 @@ userdom_user_tmp_file(basalt_voice_runtime_t)
 type basalt_skill_t;
 type basalt_skill_exec_t;
 application_domain(basalt_skill_t, basalt_skill_exec_t)
-basalt_agent_domain_type(basalt_skill_t)
 
 type basalt_skill_index_t;
 type basalt_skill_index_exec_t;
 application_domain(basalt_skill_index_t, basalt_skill_index_exec_t)
+
+# basalt-skill-send: sends one confirmed e-mail (SMTP) and nothing else.
+type basalt_skill_send_t;
+type basalt_skill_send_exec_t;
+application_domain(basalt_skill_send_t, basalt_skill_send_exec_t)
+
+# basalt-skill-files: renames and moves files inside a granted folder
+# after the person confirmed the exact list. It never reads a file.
+type basalt_skill_files_t;
+type basalt_skill_files_exec_t;
+application_domain(basalt_skill_files_t, basalt_skill_files_exec_t)
 
 # ~/.local/share/basalt-skills: the file index (text of the granted
 # documents). Written by the indexer, read by the worker.
@@ -155,6 +165,8 @@ optional_policy(`
 	unconfined_run_to(basalt_voice_t, basalt_voice_exec_t)
 	unconfined_run_to(basalt_skill_t, basalt_skill_exec_t)
 	unconfined_run_to(basalt_skill_index_t, basalt_skill_index_exec_t)
+	unconfined_run_to(basalt_skill_send_t, basalt_skill_send_exec_t)
+	unconfined_run_to(basalt_skill_files_t, basalt_skill_files_exec_t)
 	gen_require(`
 		type unconfined_t;
 	')
@@ -166,6 +178,121 @@ optional_policy(`
 # executes them in place).
 domtrans_pattern(basalt_shell_t, basalt_skill_exec_t, basalt_skill_t)
 domtrans_pattern(basalt_shell_t, basalt_skill_index_exec_t, basalt_skill_index_t)
+domtrans_pattern(basalt_shell_t, basalt_skill_send_exec_t, basalt_skill_send_t)
+domtrans_pattern(basalt_shell_t, basalt_skill_files_exec_t, basalt_skill_files_t)
+
+########################################
+#
+# Programs the voice and skill domains may run (0.4.0). These domains
+# never get bin_t or shell_exec_t: bin_t also holds setuid helpers
+# (pkexec, newgrp) and interpreters (python3, perl), and on Fedora
+# corecmd_exec_bin also grants every base_ro_file_type (shell_exec_t,
+# etc_t, usr_t). Instead the few programs they need get types of their
+# own, which every other domain may still run as before.
+#
+#   basalt_voice_tool_exec_t  whisper-cli, Piper, pw-cat (pw-record, pw-play)
+#   basalt_pdf_tool_exec_t    pdftotext, pdfinfo
+#   basalt_browser_exec_t     Chromium and its crash handler
+#
+
+type basalt_voice_tool_exec_t;
+corecmd_executable_file(basalt_voice_tool_exec_t)
+type basalt_pdf_tool_exec_t;
+corecmd_executable_file(basalt_pdf_tool_exec_t)
+type basalt_browser_exec_t;
+corecmd_executable_file(basalt_browser_exec_t)
+
+attribute basalt_skill_family;
+typeattribute basalt_voice_t basalt_skill_family;
+typeattribute basalt_skill_t basalt_skill_family;
+typeattribute basalt_skill_index_t basalt_skill_family;
+typeattribute basalt_skill_send_t basalt_skill_family;
+typeattribute basalt_skill_files_t basalt_skill_family;
+
+# Everyone else keeps running these programs as when they were bin_t.
+can_exec({ domain -basalt_voice_t -basalt_skill_t -basalt_skill_index_t -basalt_skill_send_t -basalt_skill_files_t }, { basalt_voice_tool_exec_t basalt_pdf_tool_exec_t basalt_browser_exec_t })
+
+# The agent family's baseline for the two skill domains that read or send
+# content (basalt_agent_domain: the family's neverallow rules apply), as
+# basalt_agent_domain_type gives it, except that nothing they write can be
+# run: the interface lets coding agents run what they build in /tmp,
+# which a skill never needs.
+gen_require(`
+	type basalt_agent_tmp_t, basalt_agent_tmpfs_t, passwd_file_t;
+')
+typeattribute basalt_skill_t basalt_agent_domain;
+typeattribute basalt_skill_send_t basalt_agent_domain;
+allow { basalt_skill_t basalt_skill_send_t } self:process { fork sigchld sigkill sigstop signull signal getsched setsched getpgid setpgid getcap getattr setrlimit getsession };
+allow { basalt_skill_t basalt_skill_send_t } self:fifo_file rw_fifo_file_perms;
+allow { basalt_skill_t basalt_skill_send_t } self:unix_stream_socket { create_stream_socket_perms connectto };
+allow { basalt_skill_t basalt_skill_send_t } self:unix_dgram_socket { create_socket_perms sendto };
+allow { basalt_skill_t basalt_skill_send_t } self:sem create_sem_perms;
+allow { basalt_skill_t basalt_skill_send_t } self:shm create_shm_perms;
+kernel_read_system_state(basalt_skill_t)
+kernel_read_system_state(basalt_skill_send_t)
+kernel_read_kernel_sysctls(basalt_skill_t)
+kernel_read_kernel_sysctls(basalt_skill_send_t)
+dev_read_sysfs(basalt_skill_t)
+dev_read_sysfs(basalt_skill_send_t)
+dev_read_urand(basalt_skill_t)
+dev_read_urand(basalt_skill_send_t)
+dev_read_rand(basalt_skill_t)
+dev_read_rand(basalt_skill_send_t)
+dev_rw_null(basalt_skill_t)
+dev_rw_null(basalt_skill_send_t)
+dev_rw_zero(basalt_skill_t)
+dev_rw_zero(basalt_skill_send_t)
+fs_getattr_xattr_fs(basalt_skill_t)
+fs_getattr_xattr_fs(basalt_skill_send_t)
+fs_getattr_tmpfs(basalt_skill_t)
+fs_getattr_tmpfs(basalt_skill_send_t)
+fs_search_cgroup_dirs(basalt_skill_t)
+fs_search_cgroup_dirs(basalt_skill_send_t)
+fs_read_cgroup_files(basalt_skill_t)
+fs_read_cgroup_files(basalt_skill_send_t)
+files_read_etc_files(basalt_skill_t)
+files_read_etc_files(basalt_skill_send_t)
+files_read_etc_runtime_files(basalt_skill_t)
+files_read_etc_runtime_files(basalt_skill_send_t)
+files_read_usr_files(basalt_skill_t)
+files_read_usr_files(basalt_skill_send_t)
+files_read_usr_symlinks(basalt_skill_t)
+files_read_usr_symlinks(basalt_skill_send_t)
+files_search_var(basalt_skill_t)
+files_search_var(basalt_skill_send_t)
+files_search_var_lib(basalt_skill_t)
+files_search_var_lib(basalt_skill_send_t)
+libs_use_ld_so(basalt_skill_t)
+libs_use_ld_so(basalt_skill_send_t)
+libs_use_shared_libs(basalt_skill_t)
+libs_use_shared_libs(basalt_skill_send_t)
+miscfiles_read_localization(basalt_skill_t)
+miscfiles_read_localization(basalt_skill_send_t)
+miscfiles_read_generic_certs(basalt_skill_t)
+miscfiles_read_generic_certs(basalt_skill_send_t)
+allow { basalt_skill_t basalt_skill_send_t } passwd_file_t:file read_file_perms;
+manage_dirs_pattern(basalt_skill_t, basalt_agent_tmp_t, basalt_agent_tmp_t)
+manage_dirs_pattern(basalt_skill_send_t, basalt_agent_tmp_t, basalt_agent_tmp_t)
+manage_files_pattern(basalt_skill_t, basalt_agent_tmp_t, basalt_agent_tmp_t)
+manage_files_pattern(basalt_skill_send_t, basalt_agent_tmp_t, basalt_agent_tmp_t)
+manage_lnk_files_pattern(basalt_skill_t, basalt_agent_tmp_t, basalt_agent_tmp_t)
+manage_lnk_files_pattern(basalt_skill_send_t, basalt_agent_tmp_t, basalt_agent_tmp_t)
+manage_sock_files_pattern(basalt_skill_t, basalt_agent_tmp_t, basalt_agent_tmp_t)
+manage_sock_files_pattern(basalt_skill_send_t, basalt_agent_tmp_t, basalt_agent_tmp_t)
+manage_fifo_files_pattern(basalt_skill_t, basalt_agent_tmp_t, basalt_agent_tmp_t)
+manage_fifo_files_pattern(basalt_skill_send_t, basalt_agent_tmp_t, basalt_agent_tmp_t)
+allow { basalt_skill_t basalt_skill_send_t } basalt_agent_tmp_t:file map;
+files_tmp_filetrans(basalt_skill_t, basalt_agent_tmp_t, { dir file lnk_file sock_file fifo_file })
+files_tmp_filetrans(basalt_skill_send_t, basalt_agent_tmp_t, { dir file lnk_file sock_file fifo_file })
+files_search_tmp(basalt_skill_t)
+files_search_tmp(basalt_skill_send_t)
+manage_dirs_pattern(basalt_skill_t, basalt_agent_tmpfs_t, basalt_agent_tmpfs_t)
+manage_dirs_pattern(basalt_skill_send_t, basalt_agent_tmpfs_t, basalt_agent_tmpfs_t)
+manage_files_pattern(basalt_skill_t, basalt_agent_tmpfs_t, basalt_agent_tmpfs_t)
+manage_files_pattern(basalt_skill_send_t, basalt_agent_tmpfs_t, basalt_agent_tmpfs_t)
+allow { basalt_skill_t basalt_skill_send_t } basalt_agent_tmpfs_t:file map;
+fs_tmpfs_filetrans(basalt_skill_t, basalt_agent_tmpfs_t, { dir file })
+fs_tmpfs_filetrans(basalt_skill_send_t, basalt_agent_tmpfs_t, { dir file })
 
 # ---- basalt_voice_t
 
@@ -174,6 +301,9 @@ allow basalt_voice_t self:fifo_file rw_fifo_file_perms;
 allow basalt_voice_t self:unix_stream_socket { create_stream_socket_perms connectto };
 allow basalt_voice_t self:unix_dgram_socket create_socket_perms;
 allow basalt_voice_t basalt_voice_exec_t:file { map read execute getattr };
+# Its speech programs only (whisper-cli, Piper, pw-record and pw-play):
+# never bin_t, a shell or a setuid helper (see "Programs" above).
+can_exec(basalt_voice_t, basalt_voice_tool_exec_t)
 kernel_read_system_state(basalt_voice_t)
 kernel_read_kernel_sysctls(basalt_voice_t)
 # The Go runtime reads its cgroup CPU limit.
@@ -186,12 +316,11 @@ files_read_usr_files(basalt_voice_t)
 # Models downloaded by basalt-voice-fetch (/var/lib/basalt-voice/models).
 files_search_var_lib(basalt_voice_t)
 files_read_var_lib_files(basalt_voice_t)
-files_exec_usr_files(basalt_voice_t)
 libs_use_ld_so(basalt_voice_t)
 libs_use_shared_libs(basalt_voice_t)
-libs_exec_lib_files(basalt_voice_t)
 miscfiles_read_localization(basalt_voice_t)
-corecmd_exec_bin(basalt_voice_t)
+corecmd_search_bin(basalt_voice_t)
+corecmd_read_bin_symlinks(basalt_voice_t)
 fs_getattr_xattr_fs(basalt_voice_t)
 # Its runtime directory: the socket for the daemon, the utterance being
 # transcribed and the sentence being spoken (memory, removed at once).
@@ -254,7 +383,11 @@ neverallow basalt_voice_t self:{ tcp_socket udp_socket rawip_socket } create;
 # ---- basalt_skill_t
 
 allow basalt_skill_t basalt_skill_exec_t:file { map read execute getattr };
-basalt_agent_exec_tools(basalt_skill_t)
+# Chromium only (it runs itself again for its child processes): no
+# shell, no bin_t, no setuid helper (see "Programs" above).
+can_exec(basalt_skill_t, basalt_browser_exec_t)
+corecmd_search_bin(basalt_skill_t)
+corecmd_read_bin_symlinks(basalt_skill_t)
 # Chromium's JavaScript engine.
 basalt_agent_allow_jit(basalt_skill_t)
 miscfiles_read_fonts(basalt_skill_t)
@@ -315,8 +448,10 @@ libs_use_ld_so(basalt_skill_index_t)
 libs_use_shared_libs(basalt_skill_index_t)
 miscfiles_read_localization(basalt_skill_index_t)
 miscfiles_read_fonts(basalt_skill_index_t)
-# pdftotext and pdfinfo (poppler).
-corecmd_exec_bin(basalt_skill_index_t)
+# pdftotext and pdfinfo (poppler), nothing else.
+can_exec(basalt_skill_index_t, basalt_pdf_tool_exec_t)
+corecmd_search_bin(basalt_skill_index_t)
+corecmd_read_bin_symlinks(basalt_skill_index_t)
 # The person's documents: home content, read only.
 # Only plain home content (user_home_t: Documents, Downloads, Desktop...).
 # Not the userdom_*_user_home_content interfaces: their attribute also
@@ -341,4 +476,66 @@ dontaudit basalt_skill_index_t { ssh_home_t gpg_secret_t home_cert_t }:dir { get
 # Never: credentials, the network, writing the person's files.
 neverallow basalt_skill_index_t { ssh_home_t gpg_secret_t home_cert_t }:file { open read };
 neverallow basalt_skill_index_t self:{ tcp_socket udp_socket rawip_socket } create;
-neverallow { basalt_skill_t basalt_skill_index_t basalt_voice_t } basalt_shell_ui_t:process { transition dyntransition ptrace };
+
+# ---- basalt_skill_send_t
+
+allow basalt_skill_send_t basalt_skill_send_exec_t:file { map read execute getattr };
+# SMTP to the session's one host (the kernel filter of the session allows
+# only the account's submission host and port), and DNS to the session's
+# resolver. Nothing else: no index, no mailbox, no web ports.
+allow basalt_skill_send_t self:tcp_socket create_stream_socket_perms;
+allow basalt_skill_send_t self:udp_socket create_socket_perms;
+corenet_tcp_connect_smtp_port(basalt_skill_send_t)
+corenet_tcp_connect_dns_port(basalt_skill_send_t)
+dontaudit basalt_skill_send_t net_conf_t:file { getattr open read };
+dontaudit basalt_skill_send_t net_conf_t:lnk_file read;
+dontaudit basalt_skill_send_t { init_var_run_t systemd_resolved_var_run_t udev_var_run_t system_dbusd_var_run_t }:dir { search watch };
+dontaudit basalt_skill_send_t self:udp_socket name_bind;
+
+# ---- basalt_skill_files_t
+
+allow basalt_skill_files_t self:process { fork sigchld signal signull getsched };
+allow basalt_skill_files_t self:fifo_file rw_fifo_file_perms;
+allow basalt_skill_files_t basalt_skill_files_exec_t:file { map read execute getattr };
+kernel_read_system_state(basalt_skill_files_t)
+fs_search_cgroup_dirs(basalt_skill_files_t)
+fs_read_cgroup_files(basalt_skill_files_t)
+dev_read_urand(basalt_skill_files_t)
+files_read_etc_files(basalt_skill_files_t)
+miscfiles_read_localization(basalt_skill_files_t)
+# Plain home content only (user_home_t): list folders, create folders,
+# rename and move files and folders. Never open a file: no read, no
+# write, no unlink. Keys, configuration and browser data have other types.
+userdom_search_user_home_dirs(basalt_skill_files_t)
+allow basalt_skill_files_t user_home_dir_t:dir { getattr search open read };
+allow basalt_skill_files_t user_home_t:dir { getattr search open read add_name remove_name write create reparent rename setattr rmdir };
+allow basalt_skill_files_t user_home_t:file { getattr rename };
+allow basalt_skill_files_t user_home_t:lnk_file getattr;
+dontaudit basalt_skill_files_t { ssh_home_t gpg_secret_t home_cert_t }:dir { getattr search read };
+
+########################################
+#
+# Invariants of the voice and skill domains.
+#
+
+gen_require(`
+	type bin_t, shell_exec_t, sudo_exec_t, su_exec_t, chkpwd_exec_t, passwd_exec_t, chfn_exec_t;
+	type groupadd_exec_t, mount_exec_t, fusermount_exec_t, bootloader_exec_t, pam_timestamp_exec_t;
+	type usr_t, etc_t, lib_t, ld_so_t, textrel_shlib_t, user_home_t, tmpfs_t;
+	type basalt_agent_tmp_t, basalt_agent_tmpfs_t;
+')
+neverallow basalt_skill_family basalt_shell_ui_t:process { transition dyntransition ptrace };
+# No shell, no general program, no setuid helper (sudo, su, pkexec and
+# newgrp are bin_t, passwd, chfn, chsh, gpasswd, mount, fusermount), no
+# interpreter: only the programs labeled for them above.
+neverallow basalt_skill_family { bin_t shell_exec_t sudo_exec_t su_exec_t chkpwd_exec_t passwd_exec_t chfn_exec_t groupadd_exec_t mount_exec_t fusermount_exec_t bootloader_exec_t pam_timestamp_exec_t usr_t etc_t }:file { execute execute_no_trans entrypoint };
+# Libraries and the dynamic loader are mapped, never run as programs
+# (ld.so FILE would run any readable program).
+neverallow basalt_skill_family { lib_t ld_so_t textrel_shlib_t }:file { execute_no_trans entrypoint };
+# Nothing they write can be run: home files, temporary files, memory files.
+neverallow basalt_skill_family { user_home_t user_tmp_t tmpfs_t basalt_agent_tmp_t basalt_agent_tmpfs_t basalt_voice_runtime_t basalt_skill_data_t }:file { execute execute_no_trans };
+# The mover never reads or writes a file's content and never deletes.
+neverallow basalt_skill_files_t user_home_t:file { open unlink };
+neverallow basalt_skill_files_t self:{ tcp_socket udp_socket rawip_socket } create;
+# The sender has no mailbox, web or index access.
+neverallow basalt_skill_send_t basalt_skill_data_t:file { open read };

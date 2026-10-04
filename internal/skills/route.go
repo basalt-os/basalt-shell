@@ -17,6 +17,13 @@ const (
 	SkillOpen   = "open"   // open a result of the last file search
 	SkillGrant  = "grant"  // the person grants a scope
 	SkillRevoke = "revoke" // the person ends grants
+	// Acting skills: always a typed action, previewed and confirmed.
+	SkillReply  = "reply"  // draft a reply to a message, sent after confirmation
+	SkillMove   = "move"   // move files inside a granted folder
+	SkillRename = "rename" // rename a file inside a granted folder
+	SkillUndo   = "undo"   // put the last moved or renamed files back
+	// Requests for actions the assistant does not do (answered, never acted on).
+	SkillUnsupported = "unsupported"
 )
 
 // Route is how a request was understood by the fixed rules.
@@ -28,6 +35,12 @@ type Route struct {
 	Duration time.Duration
 	Host     string // web: a host or URL written in the request
 	URL      string
+	// Acting skills: what to act on (the request's words before "to",
+	// "saying", ":") and the rest (the reply's text, the destination).
+	Select string
+	Rest   string
+	// Unsupported: which action was asked for.
+	Asked string
 }
 
 var (
@@ -70,6 +83,9 @@ func Classify(text string) Route {
 	}
 	if has(t, "revoke", "forget my permissions", "stop access", "remove access", "end access", "cancel access", "revogar") {
 		return Route{Skill: SkillRevoke}
+	}
+	if r, ok := classifyAct(text); ok {
+		return r
 	}
 	if has(t, "allow", "grant", "give access", "permitir", "autorizar", "let the assistant") && !has(t, "allowance") {
 		r.Skill = SkillGrant
@@ -233,4 +249,46 @@ func ContentWords(text string) []string {
 		out = append(out, w)
 	}
 	return out
+}
+
+var (
+	reReply  = regexp.MustCompile(`(?i)^\s*(?:please\s+|can you\s+|could you\s+)?(?:reply|respond|answer|write back|responda|responder)\b\s*(?:to\s+)?(.*)$`)
+	reMove   = regexp.MustCompile(`(?i)^\s*(?:please\s+)?(?:move|put|file)\s+(.+?)\s+(?:to|into|in)\s+(?:the\s+|a\s+|my\s+)?(?:folder\s+(?:called\s+|named\s+)?)?(.+?)(?:\s+folder)?\s*[.!]?\s*$`)
+	reRename = regexp.MustCompile(`(?i)^\s*(?:please\s+)?rename\s+(.+?)\s+(?:to|as)\s+(.+?)\s*[.!]?\s*$`)
+	reUndo   = regexp.MustCompile(`(?i)^\s*(?:please\s+)?(?:undo|put (?:them|it|the files?) back|revert|desfazer|desfa[cç]a)\b`)
+	reSend   = regexp.MustCompile(`(?i)^\s*(?:please\s+)?(?:send|forward)\b`)
+	reDelete = regexp.MustCompile(`(?i)^\s*(?:please\s+)?(?:delete|remove|erase|trash|wipe)\b`)
+	// Where the reply's text starts: "reply to Ana: ...", "... saying ...".
+	reReplySep = regexp.MustCompile(`(?i)\s*(?::|\s+saying\s+|\s+and say\s+|,\s*say\s+|\s+and tell (?:her|him|them)\s+|\s+tell (?:her|him|them)\s+|\s+to say\s+|\s+with\s+)`)
+)
+
+// classifyAct recognizes the acting requests. They are recognized only
+// at the start of the person's words: the content the skills read never
+// goes through here.
+func classifyAct(text string) (Route, bool) {
+	t := strings.TrimSpace(text)
+	switch {
+	case reUndo.MatchString(t):
+		return Route{Skill: SkillUndo}, true
+	case reReply.MatchString(t):
+		m := reReply.FindStringSubmatch(t)
+		r := Route{Skill: SkillReply}
+		if loc := reReplySep.FindStringIndex(m[1]); loc != nil {
+			r.Select, r.Rest = strings.TrimSpace(m[1][:loc[0]]), strings.TrimSpace(m[1][loc[1]:])
+		} else {
+			r.Select = strings.TrimSpace(m[1])
+		}
+		return r, true
+	case reRename.MatchString(t):
+		m := reRename.FindStringSubmatch(t)
+		return Route{Skill: SkillRename, Select: m[1], Rest: strings.Trim(m[2], "\"'"), Targets: nil}, true
+	case reMove.MatchString(t):
+		m := reMove.FindStringSubmatch(t)
+		return Route{Skill: SkillMove, Select: m[1], Rest: strings.Trim(m[2], "\"'")}, true
+	case reSend.MatchString(t):
+		return Route{Skill: SkillUnsupported, Asked: "send"}, true
+	case reDelete.MatchString(t) && !has(strings.ToLower(t), "permission", "permissions", "access"):
+		return Route{Skill: SkillUnsupported, Asked: "delete"}, true
+	}
+	return Route{}, false
 }

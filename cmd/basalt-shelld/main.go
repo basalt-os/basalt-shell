@@ -28,6 +28,7 @@ import (
 	_ "github.com/basalt-os/basalt-shell/internal/compositor/sway"
 	"github.com/basalt-os/basalt-shell/internal/hw"
 	"github.com/basalt-os/basalt-shell/internal/intent"
+	"github.com/basalt-os/basalt-shell/internal/ledger"
 	"github.com/basalt-os/basalt-shell/internal/paths"
 	"github.com/basalt-os/basalt-shell/internal/shell"
 	"github.com/basalt-os/basalt-shell/internal/skills"
@@ -101,6 +102,10 @@ func run(ctx context.Context) error {
 	if os.Getenv("BASALT_SHELL_VOICE") != "0" {
 		core.Voice = &voice.Client{Path: voice.DefaultSocket()}
 	}
+	// The audit trail the shell cannot rewrite (ADR 0010), when installed.
+	if os.Getenv("BASALT_SHELL_LEDGER") != "0" {
+		core.Ledger = ledger.New(os.Getenv("BASALT_LEDGER_SOCKET"))
+	}
 	ui := shell.DetectUICheck(os.Getenv("BASALT_SHELL_UI_CHECK"))
 	if os.Getenv("BASALT_SHELL_INSECURE_UI") == "1" {
 		ui = shell.DetectUICheck(shell.UICheckInsecure)
@@ -113,6 +118,10 @@ func run(ctx context.Context) error {
 	core.ApplyTheme(ctx)
 	go core.Watch(ctx)
 	go core.WatchVoice(ctx)
+	if core.Voice != nil && os.Getenv("BASALT_SHELL_DICTATION") != "0" && os.Getenv("WAYLAND_DISPLAY") != "" {
+		// Dictation: the shell is the session's input method.
+		go core.WatchInputMethod(ctx)
+	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go exitWithCompositor(ctx, cancel, comp)

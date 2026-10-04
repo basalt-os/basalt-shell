@@ -23,8 +23,10 @@ import (
 // so every connection it makes is default-deny in the kernel except to
 // the names of the session's allowlist (the person's grants).
 type Runner struct {
-	// Worker and Indexer are the two installed programs (two SELinux types).
-	Worker, Indexer string
+	// Worker, Indexer, Sender and Mover are the installed programs (one
+	// binary, four SELinux types: read content, index documents, send one
+	// confirmed e-mail, rename files inside a grant).
+	Worker, Indexer, Sender, Mover string
 	// ResolverSocket is basalt-resolver's control socket.
 	ResolverSocket string
 	// RequireResolver refuses network jobs (mail, web) when the resolver
@@ -40,9 +42,11 @@ type Runner struct {
 // DefaultRunner uses the installed programs.
 func DefaultRunner() *Runner {
 	r := &Runner{Worker: "/usr/libexec/basalt-shell/basalt-skill", Indexer: "/usr/libexec/basalt-shell/basalt-skill-index",
+		Sender: "/usr/libexec/basalt-shell/basalt-skill-send", Mover: "/usr/libexec/basalt-shell/basalt-skill-files",
 		ResolverSocket: "/run/basalt-resolver/control.sock", RequireResolver: true, Timeout: 120 * time.Second}
 	if p := os.Getenv("BASALT_SKILL_BIN"); p != "" {
-		r.Worker, r.Indexer = p, filepath.Join(filepath.Dir(p), "basalt-skill-index")
+		d := filepath.Dir(p)
+		r.Worker, r.Indexer, r.Sender, r.Mover = p, filepath.Join(d, "basalt-skill-index"), filepath.Join(d, "basalt-skill-send"), filepath.Join(d, "basalt-skill-files")
 	}
 	if os.Getenv("BASALT_SKILL_NO_RESOLVER") == "1" {
 		r.RequireResolver = false
@@ -125,8 +129,13 @@ func (r *Runner) Run(ctx context.Context, job any, kind string, allow []string, 
 	hexid := hex.EncodeToString(b)
 	sess := Session{ID: "sk-" + hexid, Allow: allow}
 	prog := r.Worker
-	if kind == "index" {
+	switch kind {
+	case "index":
 		prog = r.Indexer
+	case "send":
+		prog = r.Sender
+	case "move":
+		prog = r.Mover
 	}
 	useResolver := r.resolverUp() && !r.NoScope
 	if network && !useResolver && r.RequireResolver {

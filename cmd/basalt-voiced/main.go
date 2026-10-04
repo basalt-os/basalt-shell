@@ -46,8 +46,10 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"unicode"
 	"unsafe"
 
+	"github.com/basalt-os/basalt-shell/internal/harden"
 	"github.com/basalt-os/basalt-shell/internal/voice"
 )
 
@@ -63,6 +65,7 @@ type config struct {
 	prompt                     string
 	runDir                     string
 	rate                       int
+	pwRecord, pwPlay           string
 }
 
 func env(k, def string) string {
@@ -82,6 +85,10 @@ func load() config {
 		peer:     env("BASALT_VOICE_PEER", "auto"),
 		prompt:   env("BASALT_VOICE_PROMPT", "Find the PDF. Summarize my email, my inbox, the web page. Open result 2. Documents, Downloads, Desktop."),
 		rate:     16000,
+		// Absolute paths: the voice domain may run these programs and
+		// no other (no PATH search through the person's folders).
+		pwRecord: env("BASALT_VOICE_PW_RECORD", "/usr/bin/pw-record"),
+		pwPlay:   env("BASALT_VOICE_PW_PLAY", "/usr/bin/pw-play"),
 	}
 	c.threads, _ = strconv.Atoi(env("BASALT_VOICE_THREADS", "4"))
 	hold, _ := strconv.Atoi(env("BASALT_VOICE_MAX_HOLD", "30"))
@@ -120,6 +127,10 @@ func main() {
 	if len(os.Args) > 1 && os.Args[1] == "version" {
 		fmt.Println("basalt-voiced", version)
 		return
+	}
+	// The unit sets NoNewPrivileges too; this covers a start by hand.
+	if err := harden.NoNewPrivs(); err != nil {
+		log.Fatalf("no_new_privs: %v", err)
 	}
 	cfg := load()
 	if len(os.Args) > 2 && os.Args[1] == "transcribe" {
@@ -276,7 +287,7 @@ func (s *service) handle(ctx context.Context, req voice.Request) voice.Reply {
 		}
 		return voice.Reply{OK: true}
 	case "stop":
-		t, err := s.stopListening(ctx)
+		t, err := s.stopListening(ctx, extraPrompt(req.Prompt))
 		if err != nil {
 			return voice.Reply{Error: err.Error(), Transcript: t}
 		}
@@ -314,7 +325,7 @@ func (s *service) listen() error {
 	}
 	// A raw 16 kHz mono stream from the default source, named so the
 	// panel's privacy indicator says who records.
-	cmd := exec.Command("pw-record", "--raw", "--rate", strconv.Itoa(s.cfg.rate), "--channels", "1", "--format", "s16",
+	cmd := exec.Command(s.cfg.pwRecord, "--raw", "--rate", strconv.Itoa(s.cfg.rate), "--channels", "1", "--format", "s16",
 		"--media-category", "Capture", "--media-role", "Communication",
 		"-P", `{ application.name = "Basalt voice" media.name = "Push to talk" node.description = "Basalt push to talk" }`, "-")
 	out, err := cmd.StdoutPipe()
@@ -388,7 +399,7 @@ func (s *service) setState(st string) {
 	s.mu.Unlock()
 }
 
-func (s *service) stopListening(ctx context.Context) (*voice.Transcript, error) {
+func (s *service) stopListening(ctx context.Context, extra string) (*voice.Transcript, error) {
 	buf, held, capMS := s.closeMic()
 	if buf == nil {
 		return nil, errors.New("not listening")
@@ -402,7 +413,7 @@ func (s *service) stopListening(ctx context.Context) (*voice.Transcript, error) 
 	if len(pcm) < s.cfg.rate*2*3/10 { // under 0.3 s
 		return t, nil
 	}
-	tr, err := s.transcribe(ctx, pcm)
+	tr, err := s.transcribeWith(ctx, pcm, extra)
 	if tr != nil {
 		tr.AudioMS, tr.CaptureMS, tr.Level = t.AudioMS, t.CaptureMS, t.Level
 	}
@@ -444,6 +455,26 @@ var reNoise = regexp.MustCompile(`\[[^\]]*\]|\([^)]*\)`)
 
 // transcribe runs whisper.cpp with Silero VAD on one utterance.
 func (s *service) transcribe(ctx context.Context, pcm []byte) (*voice.Transcript, error) {
+	return s.transcribeWith(ctx, pcm, os.Getenv("BASALT_VOICE_TEST_NAMES"))
+}
+
+// extraPrompt keeps the shell's extra prompt words short and plain: names
+// (letters, spaces, apostrophes, hyphens, commas, periods), at most 300
+// bytes. They only bias the recognition toward those spellings.
+func extraPrompt(p string) string {
+	var b strings.Builder
+	for _, r := range p {
+		if b.Len() >= 300 {
+			break
+		}
+		if unicode.IsLetter(r) || r == ' ' || r == '\'' || r == '-' || r == ',' || r == '.' || r == ':' {
+			b.WriteRune(r)
+		}
+	}
+	return strings.TrimSpace(b.String())
+}
+
+func (s *service) transcribeWith(ctx context.Context, pcm []byte, extra string) (*voice.Transcript, error) {
 	start := time.Now()
 	f, err := os.CreateTemp(s.cfg.runDir, "utt-*.wav")
 	if err != nil {
@@ -465,8 +496,8 @@ func (s *service) transcribe(ctx context.Context, pcm []byte) (*voice.Transcript
 	}
 	// A short prompt with the words of the desktop's requests: Whisper
 	// heard "PDF" as "PD of" in the lab without it.
-	if s.cfg.prompt != "" {
-		args = append(args, "--prompt", s.cfg.prompt)
+	if prompt := strings.TrimSpace(s.cfg.prompt + " " + extra); prompt != "" {
+		args = append(args, "--prompt", prompt)
 	}
 	// The encoder normally works on a 30 s window whatever the length of
 	// the utterance; a window fitted to the recording (plus a margin)
@@ -610,7 +641,7 @@ func (s *service) speak(ctx context.Context, text string) (*voice.Spoken, error)
 				os.Remove(f)
 				continue
 			}
-			p := exec.Command("pw-play", "--media-role", "Assistant", "-P", `{ application.name = "Basalt voice" }`, f)
+			p := exec.Command(s.cfg.pwPlay, "--media-role", "Assistant", "-P", `{ application.name = "Basalt voice" }`, f)
 			p.Stderr = io.Discard
 			if err := p.Start(); err != nil {
 				s.mu.Unlock()
