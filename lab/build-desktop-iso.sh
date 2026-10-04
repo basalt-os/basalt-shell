@@ -18,9 +18,9 @@
 # development key (one key per media repository); the installed system and
 # the live system point at https://obpkg.org (basalt, basalt-tools) with the
 # release key that basalt-release ships. Never publish this repository or ISO
-# as a release: the shell is not public yet.
+# as a release: it carries a development key.
 set -euo pipefail
-top=${LAB_TOP:-$HOME/basalt-desk2/img}
+top=${LAB_TOP:-$HOME/basalt-live-build}
 os=$top/os-src
 shell=$top/shell-src
 lab=$top/lab
