@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/openbasalt/basalt-shell/internal/apps"
 	"github.com/openbasalt/basalt-shell/internal/compositor"
@@ -161,6 +162,8 @@ func oneOf(v string, opts ...string) bool {
 	return false
 }
 
+var windowStates = []string{"normal", "minimized", "maximized", "left", "right"}
+
 var layouts = []string{"grid", "columns", "rows", "cascade", "center", "tile", "float"}
 var surfaces = []string{"launcher", "commandbar", "quicksettings", "activity", "notifications", "settings"}
 var pages = []string{"appearance", "tokens", "motion", "panel", "windows", "apps", "ai", "about"}
@@ -256,6 +259,15 @@ var Actions = []*ActionDef{
 				return nil, p.c.Comp.SetFloating(ctx, w.ID, on)
 			}}, nil
 		},
+	},
+	{
+		Name: "window.set_state", Title: "Minimize, maximize, snap or restore a window",
+		Description: "Minimize a window (hidden; the panel's window list brings it back), maximize it to the usable area, snap it to the left or right half, or restore it (normal: back from minimized, or to its size before maximize or snap).",
+		Params: []Param{
+			{Name: "window", Type: "string", Required: true, Description: "window id, app id, title fragment or \"focused\""},
+			{Name: "state", Type: "string", Required: true, Enum: windowStates, Description: "normal, minimized, maximized, left or right"},
+		},
+		plan: planSetState,
 	},
 	{
 		Name: "window.to_workspace", Title: "Send a window to a workspace",
@@ -649,4 +661,139 @@ func planArrange(ctx context.Context, p *planner, a map[string]any) (step, error
 		}
 		return map[string]any{"windows": n}, nil
 	}}, nil
+}
+
+// planSetState plans window.set_state. Minimizing needs a compositor that
+// can hide windows (sway: the scratchpad); maximize and snap are floating
+// placements on the usable area of the window's output, remembered so
+// that "normal" puts the window back.
+func planSetState(ctx context.Context, p *planner, a map[string]any) (step, error) {
+	w, err := p.window(a["window"])
+	if err != nil {
+		return step{}, err
+	}
+	state := argStr(a, "state")
+	if !oneOf(state, windowStates...) {
+		return step{}, fmt.Errorf("state must be one of %s", strings.Join(windowStates, ", "))
+	}
+	min, canMin := p.c.Comp.(compositor.Minimizer)
+	canMin = canMin && p.c.Comp.Caps().Minimize
+	switch state {
+	case "minimized":
+		if !canMin {
+			return step{}, fmt.Errorf("%s cannot minimize windows", p.c.Comp.Name())
+		}
+		if w.State == "minimized" {
+			return step{}, fmt.Errorf("%s is already minimized", label(w))
+		}
+		return step{Summary: "Minimize " + label(w), run: func(ctx context.Context) (any, error) {
+			return nil, min.Minimize(ctx, w.ID)
+		}}, nil
+	case "normal":
+		if w.State == "minimized" {
+			if !canMin {
+				return step{}, fmt.Errorf("%s cannot restore minimized windows", p.c.Comp.Name())
+			}
+			return step{Summary: "Restore " + label(w), run: func(ctx context.Context) (any, error) {
+				return nil, min.Unminimize(ctx, w.ID)
+			}}, nil
+		}
+		p.c.mu.Lock()
+		pl, ok := p.c.placed[w.ID]
+		p.c.mu.Unlock()
+		if !ok {
+			return step{Summary: "Focus " + label(w) + " (already in its normal state)", run: func(ctx context.Context) (any, error) {
+				return nil, p.c.Comp.Focus(ctx, w.ID)
+			}}, nil
+		}
+		return step{Summary: "Restore the size of " + label(w), run: func(ctx context.Context) (any, error) {
+			p.c.mu.Lock()
+			delete(p.c.placed, w.ID)
+			p.c.mu.Unlock()
+			if err := p.c.Comp.MoveResize(ctx, w.ID, pl.Before); err != nil {
+				return nil, err
+			}
+			return nil, p.c.Comp.Focus(ctx, w.ID)
+		}}, nil
+	}
+	// maximized, left, right: a floating placement on the usable area.
+	if !p.c.Comp.Caps().MoveResize {
+		return step{}, fmt.Errorf("%s cannot place windows", p.c.Comp.Name())
+	}
+	area, err := p.windowArea(w)
+	if err != nil {
+		return step{}, err
+	}
+	gap := 0
+	if tok, err := p.c.Themes.Resolve(p.settings, p.c.HW.Weak); err == nil {
+		gap = int(tok.Num("window.gaps"))
+	}
+	r := area
+	switch state {
+	case "left":
+		r.W = (area.W - gap) / 2
+	case "right":
+		r.W = (area.W - gap) / 2
+		r.X = area.X + area.W - r.W
+	}
+	verb := map[string]string{"maximized": "Maximize ", "left": "Snap to the left half: ", "right": "Snap to the right half: "}[state]
+	return step{Summary: verb + label(w), run: func(ctx context.Context) (any, error) {
+		p.c.mu.Lock()
+		before := w.Rect
+		if old, ok := p.c.placed[w.ID]; ok {
+			before = old.Before // keep the size from before the first placement
+		}
+		p.c.placed[w.ID] = placement{State: state, Before: before, At: r, Since: time.Now()}
+		p.c.mu.Unlock()
+		if w.State == "minimized" {
+			if canMin {
+				if err := min.Unminimize(ctx, w.ID); err != nil {
+					return nil, err
+				}
+			}
+		}
+		if err := p.c.Comp.MoveResize(ctx, w.ID, r); err != nil {
+			return nil, err
+		}
+		return nil, p.c.Comp.Focus(ctx, w.ID)
+	}}, nil
+}
+
+// windowArea is the usable area (output minus panels, inset by the
+// gaps) where a window is: its workspace's area when the compositor
+// reports one, else its output minus the panel.
+func (p *planner) windowArea(w compositor.Window) (compositor.Rect, error) {
+	tok, err := p.c.Themes.Resolve(p.settings, p.c.HW.Weak)
+	if err != nil {
+		return compositor.Rect{}, err
+	}
+	gap := int(tok.Num("window.gaps"))
+	var ws compositor.Workspace
+	for _, s := range p.spaces {
+		if s.ID == w.Workspace || (w.Workspace == "" && s.Focused) {
+			ws = s
+		}
+	}
+	if ws.Rect.W > 0 && ws.Rect.H > 0 {
+		r := ws.Rect
+		return compositor.Rect{X: r.X + gap, Y: r.Y + gap, W: r.W - 2*gap, H: r.H - 2*gap}, nil
+	}
+	cx, cy := w.Rect.X+w.Rect.W/2, w.Rect.Y+w.Rect.H/2
+	var out compositor.Output
+	for _, o := range p.outputs {
+		if cx >= o.Rect.X && cx < o.Rect.X+o.Rect.W && cy >= o.Rect.Y && cy < o.Rect.Y+o.Rect.H {
+			out = o
+		}
+	}
+	if out.Rect.W == 0 {
+		for _, o := range p.outputs {
+			if o.Focused || out.Rect.W == 0 {
+				out = o
+			}
+		}
+	}
+	if out.Rect.W == 0 {
+		return compositor.Rect{}, errors.New("no output to place the window on")
+	}
+	return p.usable(out, tok), nil
 }

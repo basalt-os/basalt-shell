@@ -25,6 +25,7 @@ ShellRoot {
     ChooserSheet {}
     Settings {}
     PolkitDialog {}
+    WindowMenu {}
     AgentFrame {}
 
     // Make sure the singletons start with the shell.

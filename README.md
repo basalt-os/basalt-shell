@@ -70,7 +70,9 @@ Pick one.
 
 Keys: Super+Space launcher, Super+A command bar, Super+S quick settings,
 Super+N notifications, Super+Comma settings, Super+Return terminal,
-Super+T float or tile, Super+Q close, Super+1..5 workspaces,
+Super+T float or tile, Super+Q close, Super+Up maximize, Super+Left and
+Super+Right snap, Super+Down restore, Super+H minimize (the panel's window
+list brings it back), Super+Alt+Space window menu, Super+1..5 workspaces,
 Super+Shift+Escape stop an agent's control session.
 
 Things to type in the command bar: "make it darker with rounder corners",
@@ -88,7 +90,7 @@ installed: "why nginx", "disk", "snapshots".
 Read tools: `desktop_state`, `toplevels_list`, `theme_get`, `apps_list`,
 `activity_recent`, `proposal_status`, `agent_control_status`. Write tools:
 `window_focus`, `window_close`, `window_move`, `window_set_floating`,
-`window_to_workspace`, `windows_arrange`, `workspace_switch`,
+`window_set_state`, `window_to_workspace`, `windows_arrange`, `workspace_switch`,
 `app_launch`, `theme_set_tokens`, `theme_switch`, `theme_reset`,
 `motion_set`, `notification_show`, `settings_open`, `shell_open`. A write
 tool returns after the person confirms or declines.

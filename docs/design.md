@@ -112,7 +112,7 @@ proposals, whatever they claim to be.
 
 ## Typed actions
 
-The closed set (15 kinds, plus 2 that only agents may propose: below).
+The closed set (16 kinds, plus 2 that only agents may propose: below).
 Each has a JSON-schema of parameters, strict validation, a human summary,
 and runs only through the daemon:
 
@@ -121,6 +121,7 @@ and runs only through the daemon:
 | `window.focus`, `window.close` | window (id, app id, title fragment or "focused") |
 | `window.move` | window, x, y, width, height (floats the window) |
 | `window.set_floating` | window, floating |
+| `window.set_state` | window, state: normal, minimized, maximized, left, right (the shell remembers the size to restore) |
 | `window.to_workspace` | window, workspace |
 | `windows.arrange` | layout: grid, columns, rows, cascade, center, tile, float; workspace |
 | `workspace.switch` | workspace |
@@ -304,6 +305,62 @@ type Adapter interface {
 family). Applications are launched in their own systemd scope
 (`app-basalt-<id>-<random>.scope`), not through the compositor, when a
 user manager runs.
+
+## Window decorations and window states
+
+Who draws the title bar (package `internal/decor`): an app that can draw
+a proper one with buttons does (client-side decorations): GTK 4 /
+libadwaita, GTK 3 headerbars, Firefox, Chromium and Electron ask for it
+themselves; Qt asks for server-side decorations whenever the compositor
+offers them, so the daemon switches a new Qt window to client-side when
+the Adwaita decoration plugin of its Qt version is installed
+(`qt6-qtwayland-adwaita-decoration`, `qadwaitadecorations-qt5`; found
+through /proc/PID/maps and the plugin directories under
+/proc/PID/root, so Flatpak runtimes count too). The session sets
+`QT_WAYLAND_DECORATION=adwaita`.
+
+- sway draws a title bar for every other window (X11, terminals, plain
+  GTK 3), themed from the tokens: font (`font.family` SemiBold, one point
+  under `font.size`), centered title, padding from `spacing.unit`, the
+  focused title on `color.surfaceAlt` with `color.text`, inactive ones on
+  `color.surface` with `color.textMuted`, a frame of `window.border`
+  pixels in `color.border` (a little stronger when focused). Re-applied
+  on every theme change, by the person or a model; a window that draws
+  its own decorations never gets a `border` command (that would switch
+  it back to server-side).
+- niri has no title bars: every app is asked for client-side
+  decorations (no `prefer-no-csd`); X11 apps get the frame
+  xwayland-satellite draws; foot's own title bar follows the theme
+  (`~/.config/foot/basalt-theme.ini`, included by a foot.ini the daemon
+  creates only when there is none). The focus ring is the accent.
+- GTK's button layout (`org.gnome.desktop.wm.preferences button-layout`)
+  shows only buttons the compositor honors: sway 1.11 advertises only
+  fullscreen and ignores maximize and minimize requests, so
+  `appmenu:close`; niri maximizes (to edges), so `appmenu:maximize,close`.
+  GTK 4 and Qt's Adwaita plugin hide unsupported buttons on their own.
+
+Window states (`window.set_state`), the same everywhere: maximize and
+snap to a half are floating placements on the usable area (the shell
+keeps the size before and reports `state` until the window is moved);
+minimize uses sway's scratchpad, and on niri (no minimized state) parks
+the window on a workspace named "minimized" at the end of the output,
+hidden from the workspace list. The panel's window list shows the
+windows of the visible workspace and the minimized ones: click focuses,
+minimizes the focused one or restores a minimized one; middle click
+closes; right click opens the window menu (minimize, maximize, snap,
+float or tile, move to workspace 1 to 5, close), also on a right click
+on a sway title bar and with Super+Alt+Space. Keys: Super+Up maximize or
+restore, Super+Left / Super+Right snap, Super+Down restore or minimize,
+Super+H minimize; focus moves with Super+Alt+arrows. The command bar
+understands "minimize firefox", "maximize", "snap terminal to the left",
+"restore text editor".
+
+Mouse: drag a title bar or headerbar to move, Super+drag anywhere,
+Super+right-drag to resize. sway: compositor title bars and frames
+resize from their 2 px edge; client-decorated windows cannot be resized
+from their edges (sway does not route the pointer outside a window's
+geometry) and a double click on a headerbar does nothing. niri: edges
+resize client-decorated windows and a double click maximizes.
 
 Floating by default: sway `for_window [app_id=".*"] floating enable` (and
 for X11 classes); niri `window-rule { open-floating true }`. Tiling stays

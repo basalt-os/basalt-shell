@@ -26,6 +26,16 @@ PanelWindow {
 
     readonly property var spaces: (Bus.desktop.workspaces || []).filter(w => !w.output || w.output === bar.screen.name)
     readonly property var focusedWindow: (Bus.desktop.windows || []).find(w => w.focused)
+    // The window list: windows of this screen's visible workspace, then
+    // the minimized ones (any screen), in a stable order.
+    readonly property var tasks: {
+        const shown = (Bus.desktop.workspaces || []).filter(w => w.visible && (!w.output || w.output === bar.screen.name)).map(w => w.id);
+        const all = Bus.desktop.windows || [];
+        const byId = (a, b) => Number(a.id) - Number(b.id);
+        const here = all.filter(w => w.state !== "minimized" && shown.indexOf(w.workspace) >= 0).sort(byId);
+        const hidden = all.filter(w => w.state === "minimized").sort(byId);
+        return here.concat(hidden);
+    }
 
     Rectangle {
         id: pill
@@ -90,11 +100,85 @@ PanelWindow {
                 }
             }
 
-            Txt {
-                Layout.maximumWidth: bar.width * 0.22
-                text: bar.focusedWindow ? (bar.focusedWindow.title || bar.focusedWindow.app_id) : ""
-                color: Theme.textMuted
-                role: "small"
+            // Window list (taskbar): the windows of the workspace shown on
+            // this screen, then the minimized ones. Click: focus, or
+            // minimize the focused one, or restore a minimized one; middle
+            // click closes; right click opens the window menu.
+            Row {
+                id: taskbar
+                spacing: Theme.s1
+                readonly property real maxWidth: bar.width * 0.42
+                readonly property real itemWidth: bar.tasks.length > 0
+                    ? Math.max(Theme.panelHeight * 1.2, Math.min(Theme.fontSize * 15, (maxWidth - spacing * (bar.tasks.length - 1)) / bar.tasks.length))
+                    : 0
+                Repeater {
+                    model: bar.tasks
+                    delegate: Rectangle {
+                        id: task
+                        required property var modelData
+                        readonly property bool min: modelData.state === "minimized"
+                        readonly property var entry: DesktopEntries.heuristicLookup(modelData.app_id || "")
+                        height: Theme.panelHeight - Theme.s3
+                        width: taskbar.itemWidth
+                        radius: Theme.radiusSm
+                        color: modelData.focused ? Theme.accentSoft : (taskMa.containsMouse ? Theme.hover : "transparent")
+                        Behavior on color { ColorAnimation { duration: Theme.fast } }
+                        // Focus underline.
+                        Rectangle {
+                            visible: task.modelData.focused
+                            anchors.bottom: parent.bottom
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: parent.width * 0.4
+                            height: 2
+                            radius: 1
+                            color: Theme.accent
+                        }
+                        Row {
+                            anchors.fill: parent
+                            anchors.leftMargin: Theme.s2
+                            anchors.rightMargin: Theme.s2
+                            spacing: Theme.s2
+                            IconImage {
+                                anchors.verticalCenter: parent.verticalCenter
+                                implicitSize: Theme.fontSize * 1.5
+                                source: Quickshell.iconPath(task.entry ? task.entry.icon : "", "application-x-executable")
+                                opacity: task.min ? 0.55 : 1
+                            }
+                            Txt {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width - Theme.fontSize * 1.5 - parent.spacing
+                                visible: width > Theme.fontSize * 2
+                                text: task.modelData.title || (task.entry ? task.entry.name : task.modelData.app_id)
+                                role: "small"
+                                color: task.min ? Theme.textMuted : Theme.text
+                                font.italic: task.min
+                            }
+                        }
+                        MouseArea {
+                            id: taskMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: mouse => {
+                                const w = task.modelData;
+                                if (mouse.button === Qt.MiddleButton) {
+                                    Bus.act("window.close", { window: w.id });
+                                } else if (mouse.button === Qt.RightButton) {
+                                    const p = task.mapToItem(bar.contentItem, 0, bar.top ? task.height + Theme.s2 : -Theme.s2);
+                                    const o = (Bus.desktop.outputs || []).find(o => o.name === bar.screen.name);
+                                    Ui.openWindowMenu(w.id, (o ? o.rect.x : 0) + p.x, (o ? o.rect.y : 0) + (bar.top ? p.y : bar.screen.height - 320));
+                                } else if (task.min) {
+                                    Bus.act("window.set_state", { window: w.id, state: "normal" });
+                                } else if (w.focused) {
+                                    Bus.act("window.set_state", { window: w.id, state: "minimized" });
+                                } else {
+                                    Bus.act("window.focus", { window: w.id });
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 

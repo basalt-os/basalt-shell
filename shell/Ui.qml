@@ -17,6 +17,8 @@ Singleton {
     property bool settings: false
     property string settingsPage: "appearance"
     property string commandText: ""
+    // The window menu: { win: window id, x, y: global position } or null.
+    property var windowMenu: null
 
     // Modal surfaces (authentication, confirmation, choice). While one is
     // up, the others give up keyboard focus: compositors differ in which
@@ -29,7 +31,46 @@ Singleton {
     readonly property bool modal: polkitActive || confirmActive || chooserActive
 
     function closeAll() {
+        launcher = false; commandBar = false; quickSettings = false; drawer = false; windowMenu = null;
+    }
+
+    function windowById(id) {
+        return (Bus.desktop.windows || []).find(w => w.id === id) || null;
+    }
+    function focusedWindow() {
+        return (Bus.desktop.windows || []).find(w => w.focused) || null;
+    }
+    // Window states from keys, the panel and the window menu. Toggles
+    // look at the state the daemon reports (maximized, left, right,
+    // minimized) so a second press puts the window back.
+    function windowOp(op, id) {
+        const w = id ? windowById(id) : focusedWindow();
+        if (!w) return;
+        const st = w.state || "";
+        const set = s => Bus.act("window.set_state", { window: w.id, state: s });
+        switch (op) {
+        case "minimize": set("minimized"); break;
+        case "maximize": set(st === "maximized" ? "normal" : "maximized"); break;
+        case "left": set(st === "left" ? "normal" : "left"); break;
+        case "right": set(st === "right" ? "normal" : "right"); break;
+        // Super+Down: a maximized or snapped window goes back to its size,
+        // a normal one is minimized (as on GNOME and Windows).
+        case "restore": set(st === "" ? "minimized" : "normal"); break;
+        case "normal": set("normal"); break;
+        case "close": Bus.act("window.close", { window: w.id }); break;
+        case "float": Bus.act("window.set_floating", { window: w.id, floating: !w.floating }); break;
+        case "menu": {
+            // Under the window's title bar (sway's mouse bindings and keys
+            // do not say where the pointer is).
+            const r = w.rect || { x: 0, y: 0, width: 0, height: 0 };
+            openWindowMenu(w.id, r.x + Theme.s2, r.y + Theme.s6 + Theme.s2);
+            break;
+        }
+        }
+    }
+    function openWindowMenu(id, x, y) {
         launcher = false; commandBar = false; quickSettings = false; drawer = false;
+        windowMenu = { win: id, x: Math.round(x), y: Math.round(y) };
     }
     function open(surface, page) {
         closeAll();
@@ -66,5 +107,7 @@ Singleton {
         function ask(text: string): void { ui.commandText = text; ui.open("commandbar", ""); }
         function settingsPage(page: string): void { ui.open("settings", page); }
         function dismissPopups(): void { Notifs.popups = []; }
+        // minimize, maximize, left, right, restore, close, float, menu
+        function window(op: string): void { ui.windowOp(op, ""); }
     }
 }

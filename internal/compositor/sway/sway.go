@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/openbasalt/basalt-shell/internal/compositor"
+	"github.com/openbasalt/basalt-shell/internal/decor"
 )
 
 func init() {
@@ -34,10 +35,24 @@ type Adapter struct {
 	c       *conn
 	version string
 	fx      *bool // SwayFX detected (nil: not probed yet)
+
+	// Windows known to draw their own decorations. sway reports border
+	// "csd" only while such a window floats; tiled, it shows the border
+	// it would return to, so the adapter remembers them (to never force
+	// a server-side border on them when the style changes).
+	csd map[int64]bool
+	// border is the frame width of the last applied style.
+	border int
+	// WantCSD decides whether a new window should be asked to draw its
+	// own decorations (default: decor.WantClientSide).
+	WantCSD func(pid int) (bool, string)
 }
 
 // New returns an adapter for the socket at path.
-func New(path string) *Adapter { return &Adapter{path: path} }
+func New(path string) *Adapter {
+	return &Adapter{path: path, csd: map[int64]bool{}, border: -1,
+		WantCSD: func(pid int) (bool, string) { return decor.WantClientSide("/", pid) }}
+}
 
 func (a *Adapter) get() (*conn, error) {
 	a.mu.Lock()
@@ -137,6 +152,9 @@ func (a *Adapter) Caps() compositor.Caps {
 		WorkspaceByName: true,
 		Pointer:         true,
 		ToplevelCapture: a.hasForeignIDs(),
+		Minimize:        true,
+		ClientMaximize:  false,
+		TitleBars:       true,
 	}
 }
 
@@ -172,7 +190,9 @@ type node struct {
 	PID              int             `json:"pid"`
 	Focused          bool            `json:"focused"`
 	Shell            string          `json:"shell"`
+	Border           string          `json:"border"`
 	Rect             rect            `json:"rect"`
+	DecoRect         rect            `json:"deco_rect"`
 	Window           *int64          `json:"window"`
 	WindowProperties *winProps       `json:"window_properties"`
 	Nodes            []node          `json:"nodes"`
@@ -210,25 +230,37 @@ func (a *Adapter) Windows(context.Context) ([]compositor.Window, error) {
 		return nil, err
 	}
 	var out []compositor.Window
+	hidden := false
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	var walk func(n *node, ws string, floating bool)
 	walk = func(n *node, ws string, floating bool) {
 		if n.Type == "workspace" {
-			if n.Name == "__i3_scratch" {
-				return
-			}
+			// Minimized windows live in sway's scratchpad.
+			hidden = n.Name == "__i3_scratch"
 			ws = strconv.FormatInt(n.ID, 10)
+			if hidden {
+				ws = ""
+			}
 		}
 		if isWindow(n) {
+			if n.Border == "csd" {
+				a.csd[n.ID] = true
+			}
 			w := compositor.Window{
-				ID:        strconv.FormatInt(n.ID, 10),
-				Title:     n.Name,
-				PID:       n.PID,
-				Workspace: ws,
-				Focused:   n.Focused,
-				Floating:  floating || n.Type == "floating_con",
-				XWayland:  n.Shell == "xwayland",
-				Rect:      n.Rect.toRect(),
-				ForeignID: n.ForeignID,
+				ID:         strconv.FormatInt(n.ID, 10),
+				Title:      n.Name,
+				PID:        n.PID,
+				Workspace:  ws,
+				Focused:    n.Focused,
+				Floating:   floating || n.Type == "floating_con",
+				XWayland:   n.Shell == "xwayland",
+				Rect:       outer(n),
+				ForeignID:  n.ForeignID,
+				Decoration: decoration(n.Border, a.csd[n.ID]),
+			}
+			if hidden {
+				w.State = "minimized"
 			}
 			if n.AppID != nil {
 				w.AppID = *n.AppID
@@ -248,6 +280,27 @@ func (a *Adapter) Windows(context.Context) ([]compositor.Window, error) {
 	return out, nil
 }
 
+// outer is a window's whole frame: sway reports the title bar apart
+// (deco_rect) from the rest; MoveResize places the whole frame.
+func outer(n *node) compositor.Rect {
+	r := n.Rect.toRect()
+	if h := n.DecoRect.Height; h > 0 && n.Border == "normal" {
+		r.Y -= h
+		r.H += h
+	}
+	return r
+}
+
+func decoration(border string, csd bool) string {
+	switch {
+	case border == "csd" || csd:
+		return "client"
+	case border == "normal":
+		return "server"
+	}
+	return "none"
+}
+
 // Workspaces lists workspaces with window counts.
 func (a *Adapter) Workspaces(ctx context.Context) ([]compositor.Workspace, error) {
 	var raw []struct {
@@ -257,6 +310,7 @@ func (a *Adapter) Workspaces(ctx context.Context) ([]compositor.Workspace, error
 		Output  string `json:"output"`
 		Focused bool   `json:"focused"`
 		Visible bool   `json:"visible"`
+		Rect    rect   `json:"rect"`
 	}
 	if err := a.do(msgGetWorkspaces, nil, &raw); err != nil {
 		return nil, err
@@ -271,6 +325,7 @@ func (a *Adapter) Workspaces(ctx context.Context) ([]compositor.Workspace, error
 		out = append(out, compositor.Workspace{
 			ID: strconv.FormatInt(w.ID, 10), Index: w.Num, Name: w.Name, Output: w.Output,
 			Focused: w.Focused, Visible: w.Visible, Windows: count[strconv.FormatInt(w.ID, 10)],
+			Rect: w.Rect.toRect(),
 		})
 	}
 	return out, nil
@@ -391,31 +446,64 @@ func (a *Adapter) Spawn(_ context.Context, argv []string) error {
 	return a.run("exec " + strings.Join(parts, " "))
 }
 
-// ApplyStyle sets borders, gaps and colors; on SwayFX also corners,
-// shadows, blur and dimming. Each command runs alone so that one
+// ApplyStyle sets title bars, borders, gaps and colors; on SwayFX also
+// corners, shadows, blur and dimming. Each command runs alone so that one
 // unsupported option does not block the others; the first error is
 // returned after all were tried.
-func (a *Adapter) ApplyStyle(_ context.Context, s compositor.Style) error {
+//
+// Windows that draw their own decorations keep them: their border is
+// never set here (a "border" command on such a window would switch it
+// to server-side decorations).
+func (a *Adapter) ApplyStyle(ctx context.Context, s compositor.Style) error {
 	var cmds []string
-	if s.FocusColor != "" {
-		fc, ic, uc := s.FocusColor, s.InactiveColor, s.UrgentColor
-		if ic == "" {
-			ic = fc
-		}
-		if uc == "" {
-			uc = fc
-		}
+	t := s.Title
+	if t.FocusedBg == "" {
+		// No title colors: the frame in the focus color, as before.
+		t.FocusedBg, t.InactiveBg, t.UrgentBg = s.FocusColor, s.InactiveColor, s.UrgentColor
+		t.FocusedText, t.InactiveTxt, t.UrgentText = "#ffffff", "#ffffff", "#ffffff"
+	}
+	frameF, frameI := s.FocusColor, s.InactiveColor
+	if frameF == "" {
+		frameF = t.FocusedBg
+	}
+	if frameI == "" {
+		frameI = t.InactiveBg
+	}
+	if t.InactiveBg == "" {
+		t.InactiveBg, t.InactiveTxt = t.FocusedBg, t.FocusedText
+	}
+	if t.UrgentBg == "" {
+		t.UrgentBg, t.UrgentText = t.FocusedBg, t.FocusedText
+	}
+	if t.FocusedBg != "" {
+		// client.<class> border background text indicator child_border:
+		// the title bar outline and the frame share one color, so title
+		// and frame read as one window edge.
 		cmds = append(cmds,
-			fmt.Sprintf("client.focused %s %s #ffffff %s %s", fc, fc, fc, fc),
-			fmt.Sprintf("client.focused_inactive %s %s #ffffff %s %s", ic, ic, ic, ic),
-			fmt.Sprintf("client.unfocused %s %s #ffffff %s %s", ic, ic, ic, ic),
-			fmt.Sprintf("client.urgent %s %s #ffffff %s %s", uc, uc, uc, uc),
+			fmt.Sprintf("client.focused %s %s %s %s %s", frameF, t.FocusedBg, t.FocusedText, frameF, frameF),
+			fmt.Sprintf("client.focused_inactive %s %s %s %s %s", frameI, t.InactiveBg, t.InactiveTxt, frameI, frameI),
+			fmt.Sprintf("client.unfocused %s %s %s %s %s", frameI, t.InactiveBg, t.InactiveTxt, frameI, frameI),
+			fmt.Sprintf("client.urgent %s %s %s %s %s", t.UrgentBg, t.UrgentBg, t.UrgentText, t.UrgentBg, t.UrgentBg),
 		)
 	}
+	if t.Font != "" {
+		size := t.Size
+		if size <= 0 {
+			size = 10
+		}
+		cmds = append(cmds, fmt.Sprintf("font pango:%s %s", fontWord(t.Font), strconv.FormatFloat(size, 'f', -1, 64)))
+	}
+	if t.Align == "left" || t.Align == "center" || t.Align == "right" {
+		cmds = append(cmds, "title_align "+t.Align)
+	}
+	if t.PadX > 0 || t.PadY > 0 {
+		cmds = append(cmds, fmt.Sprintf("titlebar_padding %d %d", max(t.PadX, 1), max(t.PadY, 1)))
+	}
+	bw := s.BorderWidth
 	cmds = append(cmds,
-		fmt.Sprintf("default_border pixel %d", s.BorderWidth),
-		fmt.Sprintf("default_floating_border pixel %d", s.BorderWidth),
-		fmt.Sprintf("[all] border pixel %d", s.BorderWidth),
+		fmt.Sprintf("titlebar_border_thickness %d", min(bw, 1)),
+		fmt.Sprintf("default_border normal %d", bw),
+		fmt.Sprintf("default_floating_border normal %d", bw),
 		fmt.Sprintf("gaps inner all set %d", s.Gaps),
 	)
 	if s.CursorTheme != "" {
@@ -447,12 +535,75 @@ func (a *Adapter) ApplyStyle(_ context.Context, s compositor.Style) error {
 	}
 	var first error
 	for _, c := range cmds {
-		// "[all] ..." with no windows yet is not an error.
-		if err := a.run(c); err != nil && first == nil && !strings.Contains(err.Error(), "No matching node") {
+		if err := a.run(c); err != nil && first == nil {
 			first = err
 		}
 	}
+	// Existing windows with a compositor frame follow the new width.
+	a.mu.Lock()
+	changed := a.border != bw
+	a.border = bw
+	a.mu.Unlock()
+	if changed {
+		wins, _ := a.Windows(ctx)
+		for _, w := range wins {
+			if w.Decoration != "server" && w.Decoration != "none" {
+				continue
+			}
+			if err := a.run(fmt.Sprintf("[con_id=%s] border normal %d", w.ID, bw)); err != nil && first == nil {
+				first = err
+			}
+		}
+	}
 	return first
+}
+
+// fontWord keeps a font family usable in a Pango description inside a
+// sway command (no separators or quotes).
+func fontWord(f string) string {
+	return strings.Map(func(r rune) rune {
+		if strings.ContainsRune(",;\"'\\\n", r) {
+			return -1
+		}
+		return r
+	}, f)
+}
+
+// Minimize hides a window in sway's scratchpad.
+func (a *Adapter) Minimize(_ context.Context, id string) error {
+	c, err := conID(id)
+	if err != nil {
+		return err
+	}
+	return a.run(c + "move scratchpad")
+}
+
+// Unminimize shows a minimized window on the current workspace (at its
+// old position when it fits) and focuses it.
+func (a *Adapter) Unminimize(_ context.Context, id string) error {
+	c, err := conID(id)
+	if err != nil {
+		return err
+	}
+	return a.run(c + "scratchpad show")
+}
+
+// decorate applies the decoration rule to a new window: a toolkit that
+// draws good client-side decorations but asks for server-side ones (Qt
+// with the Adwaita plugin) is switched to client-side.
+func (a *Adapter) decorate(id int64, pid int, shell string) {
+	if shell != "xdg_shell" || a.WantCSD == nil {
+		return
+	}
+	ok, _ := a.WantCSD(pid)
+	if !ok {
+		return
+	}
+	if err := a.run(fmt.Sprintf("[con_id=%d] border csd", id)); err == nil {
+		a.mu.Lock()
+		a.csd[id] = true
+		a.mu.Unlock()
+	}
 }
 
 // hasForeignIDs reports whether this sway puts foreign-toplevel
@@ -546,9 +697,12 @@ func (a *Adapter) Subscribe(ctx context.Context) (<-chan compositor.Event, error
 	go func() {
 		defer close(ch)
 		for {
-			typ, _, err := c.read()
+			typ, body, err := c.read()
 			if err != nil {
 				return
+			}
+			if typ&^0x80000000 == 3 {
+				a.windowEvent(body)
 			}
 			var kind string
 			switch typ &^ 0x80000000 {
@@ -568,4 +722,26 @@ func (a *Adapter) Subscribe(ctx context.Context) (<-chan compositor.Event, error
 		}
 	}()
 	return ch, nil
+}
+
+// windowEvent handles the window events the adapter acts on itself: the
+// decoration rule for new windows and forgetting closed ones.
+func (a *Adapter) windowEvent(body []byte) {
+	var ev struct {
+		Change    string `json:"change"`
+		Container node   `json:"container"`
+	}
+	if json.Unmarshal(body, &ev) != nil {
+		return
+	}
+	switch ev.Change {
+	case "new":
+		n := ev.Container
+		// Off the event reader: the decision reads /proc and runs a command.
+		go a.decorate(n.ID, n.PID, n.Shell)
+	case "close":
+		a.mu.Lock()
+		delete(a.csd, ev.Container.ID)
+		a.mu.Unlock()
+	}
 }

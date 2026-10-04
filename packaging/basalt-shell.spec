@@ -41,6 +41,9 @@ Recommends:     xwayland-satellite
 Recommends:     xdg-desktop-portal-wlr
 Recommends:     xdg-desktop-portal-gnome
 Recommends:     adw-gtk3-theme
+# Qt title bars matching GTK 4 and libadwaita (client-side decorations).
+Recommends:     qt6-qtwayland-adwaita-decoration
+Recommends:     qadwaitadecorations-qt5
 Recommends:     rsms-inter-fonts
 Recommends:     jetbrains-mono-fonts
 Recommends:     swayidle

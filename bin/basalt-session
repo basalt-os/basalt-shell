@@ -24,12 +24,17 @@ which=${1:-${BASALT_COMPOSITOR:-sway}}
 # Toolkit integration: Wayland first, X11 apps through XWayland (sway) or
 # xwayland-satellite (niri); Qt 5 and Qt 6 follow qt5ct / qt6ct (palettes
 # written by the daemon; Qt takes the first theme of the list it has,
-# checked with Qt 5.15 and Qt 6.10),
+# checked with Qt 5.15 and Qt 6.10; title bars below),
 # GTK and libadwaita follow gsettings and the portal.
 export XDG_SESSION_TYPE=wayland
 export QT_QPA_PLATFORM="wayland;xcb"
 export QT_QPA_PLATFORMTHEME="qt6ct:qt5ct"
-export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+# Qt windows draw the Adwaita title bar (Qt 6: qt6-qtwayland-adwaita-
+# decoration, Qt 5: qadwaitadecorations-qt5) when the compositor asks for
+# client-side decorations; the shell asks only when the plugin is there,
+# so without it they keep the compositor's title bar.
+unset QT_WAYLAND_DISABLE_WINDOWDECORATION
+export QT_WAYLAND_DECORATION=adwaita
 export MOZ_ENABLE_WAYLAND=1
 export ELECTRON_OZONE_PLATFORM_HINT=auto
 export SDL_VIDEODRIVER="wayland,x11"

@@ -138,8 +138,19 @@ func (a *Adapter) Caps() compositor.Caps {
 		ConfigReload:    true,
 		Events:          true,
 		WorkspaceByName: true,
+		Minimize:        true,
+		// niri maximizes on a headerbar's maximize button and double
+		// click (maximize to edges); it has no minimize of its own, the
+		// shell's minimize parks windows on a named workspace.
+		ClientMaximize: true,
 	}
 }
+
+// minimizedName is the workspace where minimized windows wait: niri has
+// no minimized state, so the shell parks them on a named workspace at the
+// end of the output (named when first needed, unnamed when empty again)
+// and leaves it out of the workspace list.
+const minimizedName = "minimized"
 
 type window struct {
 	ID          uint64  `json:"id"`
@@ -203,7 +214,11 @@ func (a *Adapter) Windows(ctx context.Context) ([]compositor.Window, error) {
 	outs, _ := a.Outputs(ctx)
 	wss, _ := a.rawWorkspaces()
 	wsOut := map[uint64]compositor.Rect{}
+	parked := map[uint64]bool{}
 	for _, ws := range wss {
+		if str(ws.Name) == minimizedName {
+			parked[ws.ID] = true
+		}
 		for _, o := range outs {
 			if o.Name == str(ws.Output) {
 				wsOut[ws.ID] = o.Rect
@@ -224,6 +239,9 @@ func (a *Adapter) Windows(ctx context.Context) ([]compositor.Window, error) {
 		}
 		if w.WorkspaceID != nil {
 			cw.Workspace = strconv.FormatUint(*w.WorkspaceID, 10)
+			if parked[*w.WorkspaceID] {
+				cw.Workspace, cw.State = "", "minimized"
+			}
 		}
 		if w.Layout != nil {
 			cw.Rect.W, cw.Rect.H = w.Layout.WindowSize[0], w.Layout.WindowSize[1]
@@ -253,8 +271,18 @@ func (a *Adapter) Workspaces(ctx context.Context) ([]compositor.Workspace, error
 		count[w.Workspace]++
 	}
 	out := make([]compositor.Workspace, 0, len(raw))
+	parkedOn := map[string]bool{}
 	for _, w := range raw {
+		if str(w.Name) == minimizedName {
+			// Workspaces after the parking one keep their number as people
+			// count them (the parking workspace is not shown).
+			parkedOn[str(w.Output)] = true
+			continue
+		}
 		id := strconv.FormatUint(w.ID, 10)
+		if parkedOn[str(w.Output)] {
+			w.Idx--
+		}
 		name := str(w.Name)
 		if name == "" {
 			name = strconv.Itoa(w.Idx)
@@ -372,9 +400,128 @@ func (a *Adapter) MoveResize(ctx context.Context, id string, r compositor.Rect) 
 			}
 		}
 	}
-	return a.action("MoveFloatingWindow", map[string]any{
-		"id": n, "x": map[string]any{"SetFixed": x}, "y": map[string]any{"SetFixed": y},
-	})
+	move := func(x, y float64) error {
+		return a.action("MoveFloatingWindow", map[string]any{
+			"id": n, "x": map[string]any{"SetFixed": x}, "y": map[string]any{"SetFixed": y},
+		})
+	}
+	if err := move(x, y); err != nil {
+		return err
+	}
+	// niri places floating windows relative to the working area (the
+	// output minus panels) but reports them relative to the output: read
+	// the position back and correct by the difference once.
+	if wins, err := a.Windows(ctx); err == nil {
+		for _, w := range wins {
+			if w.ID == id && (w.Rect.X != r.X || w.Rect.Y != r.Y) && w.Rect.W > 0 {
+				dx, dy := float64(w.Rect.X-r.X), float64(w.Rect.Y-r.Y)
+				if dx != 0 || dy != 0 {
+					return move(x-dx, y-dy)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// Minimize parks a window on the "minimized" workspace of its output.
+func (a *Adapter) Minimize(ctx context.Context, id string) error {
+	n, err := parseID(id)
+	if err != nil {
+		return err
+	}
+	wins, err := a.Windows(ctx)
+	if err != nil {
+		return err
+	}
+	wss, err := a.rawWorkspaces()
+	if err != nil {
+		return err
+	}
+	var output string
+	for _, w := range wins {
+		if w.ID == id {
+			for _, ws := range wss {
+				if strconv.FormatUint(ws.ID, 10) == w.Workspace {
+					output = str(ws.Output)
+				}
+			}
+		}
+	}
+	have := false
+	var last *workspace
+	used := map[uint64]bool{}
+	for _, w := range wins {
+		if u, err := strconv.ParseUint(w.Workspace, 10, 64); err == nil {
+			used[u] = true
+		}
+	}
+	for i := range wss {
+		ws := &wss[i]
+		if str(ws.Name) == minimizedName {
+			have = true
+		}
+		if str(ws.Output) == output && !used[ws.ID] && ws.Name == nil && (last == nil || ws.Idx > last.Idx) {
+			last = ws
+		}
+	}
+	if !have {
+		if last == nil {
+			return errors.New("niri: no empty workspace to park the window on")
+		}
+		// niri keeps an empty workspace at the end of every output; naming
+		// it keeps it, and niri adds a new empty one after it.
+		if err := a.action("SetWorkspaceName", map[string]any{"name": minimizedName, "workspace": map[string]any{"Id": last.ID}}); err != nil {
+			return err
+		}
+	}
+	return a.action("MoveWindowToWorkspace", map[string]any{"window_id": n, "reference": map[string]any{"Name": minimizedName}, "focus": false})
+}
+
+// Unminimize brings a parked window to the focused workspace and focuses
+// it; the parking workspace loses its name once it is empty.
+func (a *Adapter) Unminimize(ctx context.Context, id string) error {
+	n, err := parseID(id)
+	if err != nil {
+		return err
+	}
+	wss, err := a.rawWorkspaces()
+	if err != nil {
+		return err
+	}
+	var target *workspace
+	for i := range wss {
+		if wss[i].IsFocused && str(wss[i].Name) != minimizedName {
+			target = &wss[i]
+		}
+	}
+	if target == nil {
+		for i := range wss {
+			if wss[i].IsActive && str(wss[i].Name) != minimizedName {
+				target = &wss[i]
+				break
+			}
+		}
+	}
+	if target == nil {
+		return errors.New("niri: no workspace to restore the window on")
+	}
+	if err := a.action("MoveWindowToWorkspace", map[string]any{"window_id": n, "reference": map[string]any{"Id": target.ID}, "focus": true}); err != nil {
+		return err
+	}
+	_ = a.action("FocusWindow", map[string]any{"id": n})
+	if wins, err := a.Windows(ctx); err == nil {
+		left := 0
+		for _, w := range wins {
+			if w.State == "minimized" {
+				left++
+			}
+		}
+		if left == 0 {
+			_ = a.action("UnsetWorkspaceName", map[string]any{"reference": map[string]any{"Name": minimizedName}})
+		}
+	}
+	return nil
 }
 
 func wsRef(ws compositor.Workspace) map[string]any {
@@ -421,7 +568,7 @@ func StyleKDL(s compositor.Style) string {
 	b.WriteString("// Managed by basalt-shell: rewritten on every theme change. Do not edit.\n")
 	fmt.Fprintf(&b, "layout {\n    gaps %d\n", s.Gaps)
 	fmt.Fprintf(&b, "    focus-ring {\n        width %d\n        active-color %s\n        inactive-color %s\n        urgent-color %s\n    }\n",
-		max(1, s.BorderWidth), kdlString(s.FocusColor), kdlString(s.InactiveColor), kdlString(orDefault(s.UrgentColor, s.FocusColor)))
+		max(1, s.BorderWidth), kdlString(orDefault(s.Accent, s.FocusColor)), kdlString(s.InactiveColor), kdlString(orDefault(s.UrgentColor, s.FocusColor)))
 	b.WriteString("    border {\n        off\n    }\n")
 	if s.Shadows {
 		blur := s.ShadowBlur

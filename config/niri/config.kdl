@@ -28,7 +28,13 @@ layout {
     default-column-width { proportion 0.5; }
 }
 
-prefer-no-csd
+// Window decorations: apps draw their own title bar with buttons
+// (client-side decorations; niri has no title bars of its own). GTK,
+// libadwaita, Firefox, Chromium, Electron and Qt (Adwaita plugin) do;
+// niri draws the themed focus ring around every window. X11 apps
+// (xwayland-satellite) have no title bar here: move them with Super+drag.
+// Mouse: drag a title bar to move, its edges to resize, double click to
+// maximize; Super+drag moves, Super+right-drag resizes.
 
 // Floating by default, sized relative to the screen (works at any scale).
 window-rule {
@@ -64,10 +70,19 @@ binds {
     Mod+F { fullscreen-window; }
     Mod+T { toggle-window-floating; }
     Mod+L { spawn "basalt-lock"; }
-    Mod+Left { focus-column-or-monitor-left; }
-    Mod+Right { focus-column-or-monitor-right; }
-    Mod+Up { focus-window-or-workspace-up; }
-    Mod+Down { focus-window-or-workspace-down; }
+    // Window states through the shell (it remembers the size to
+    // restore): maximize, snap to a half, restore or minimize (parked on
+    // a "minimized" workspace, listed in the panel), the window menu.
+    Mod+Up { spawn "basalt-shell-ui" "ipc" "call" "shell" "window" "maximize"; }
+    Mod+Down { spawn "basalt-shell-ui" "ipc" "call" "shell" "window" "restore"; }
+    Mod+Left { spawn "basalt-shell-ui" "ipc" "call" "shell" "window" "left"; }
+    Mod+Right { spawn "basalt-shell-ui" "ipc" "call" "shell" "window" "right"; }
+    Mod+H { spawn "basalt-shell-ui" "ipc" "call" "shell" "window" "minimize"; }
+    Mod+Alt+Space { spawn "basalt-shell-ui" "ipc" "call" "shell" "window" "menu"; }
+    Mod+Alt+Left { focus-column-or-monitor-left; }
+    Mod+Alt+Right { focus-column-or-monitor-right; }
+    Mod+Alt+Up { focus-window-or-workspace-up; }
+    Mod+Alt+Down { focus-window-or-workspace-down; }
     Mod+Shift+Left { move-column-left; }
     Mod+Shift+Right { move-column-right; }
     Alt+Tab { focus-window-down-or-column-right; }

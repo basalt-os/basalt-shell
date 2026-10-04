@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"reflect"
 	"sync"
 	"time"
@@ -21,6 +22,7 @@ import (
 	"github.com/openbasalt/basalt-shell/internal/assistant"
 	"github.com/openbasalt/basalt-shell/internal/audit"
 	"github.com/openbasalt/basalt-shell/internal/compositor"
+	"github.com/openbasalt/basalt-shell/internal/decor"
 	"github.com/openbasalt/basalt-shell/internal/hw"
 	"github.com/openbasalt/basalt-shell/internal/intent"
 	"github.com/openbasalt/basalt-shell/internal/theme"
@@ -109,6 +111,17 @@ type Core struct {
 	virt      *wlvirt.Device
 	uiModal   bool
 	lastInput time.Time
+	// placed remembers windows the shell maximized or snapped: their
+	// geometry before (to restore) and the placement given.
+	placed map[string]placement
+}
+
+// placement is a window the shell maximized or snapped.
+type placement struct {
+	State  string          // maximized, left, right
+	Before compositor.Rect // geometry to restore
+	At     compositor.Rect // geometry given
+	Since  time.Time       // when; a window is given a moment to get there
 }
 
 // Event goes to UI subscribers.
@@ -131,7 +144,8 @@ type Desktop struct {
 func New(comp compositor.Adapter, store *theme.Store, log *audit.Log, rep hw.Report, configDir string) *Core {
 	c := &Core{Comp: comp, Themes: store, Audit: log, HW: rep, ConfigDir: configDir,
 		ApplyApps: true, ProposalTTL: 5 * time.Minute,
-		proposals: map[string]*Proposal{}, subs: map[chan Event]struct{}{}, choices: map[string]chan string{}}
+		proposals: map[string]*Proposal{}, subs: map[chan Event]struct{}{}, choices: map[string]chan string{},
+		placed: map[string]placement{}}
 	log.OnAppend = func(r audit.Record) { c.Broadcast("activity", r) }
 	return c
 }
@@ -184,6 +198,7 @@ func (c *Core) Refresh(ctx context.Context) Desktop {
 	d.Workspaces, _ = c.Comp.Workspaces(ctx)
 	d.Outputs, _ = c.Comp.Outputs(ctx)
 	c.mu.Lock()
+	c.markPlaced(d.Windows)
 	changed := !reflect.DeepEqual(c.desktop, d)
 	c.desktop = d
 	c.mu.Unlock()
@@ -191,6 +206,39 @@ func (c *Core) Refresh(ctx context.Context) Desktop {
 		c.Broadcast("desktop", d)
 	}
 	return d
+}
+
+// markPlaced sets the state of windows the shell maximized or snapped,
+// and forgets those that were closed or moved since (c.mu held).
+func (c *Core) markPlaced(wins []compositor.Window) {
+	seen := map[string]bool{}
+	for i := range wins {
+		w := &wins[i]
+		seen[w.ID] = true
+		p, ok := c.placed[w.ID]
+		if !ok || w.State == "minimized" {
+			continue
+		}
+		switch {
+		case near(w.Rect, p.At) && w.Floating:
+			w.State = p.State
+		case time.Since(p.Since) > 2*time.Second:
+			// Moved or resized since (by the person or the app).
+			delete(c.placed, w.ID)
+		}
+	}
+	for id := range c.placed {
+		if !seen[id] {
+			delete(c.placed, id)
+		}
+	}
+}
+
+// near: two rectangles equal within a few pixels (compositors round
+// sizes to the app's size increments, terminals to cells).
+func near(a, b compositor.Rect) bool {
+	d := func(x, y, tol int) bool { return x-y <= tol && y-x <= tol }
+	return d(a.X, b.X, 4) && d(a.Y, b.Y, 4) && d(a.W, b.W, 40) && d(a.H, b.H, 40)
 }
 
 // Desktop returns the last known desktop state.
@@ -289,7 +337,13 @@ func (c *Core) ApplyTheme(ctx context.Context) {
 		Animations:    t.Str("motion") == "full",
 		CursorTheme:   t.Str("apps.cursorTheme"),
 		CursorSize:    int(t.Num("apps.cursorSize")),
+		Title:         TitleStyle(t),
 	}
+	// The frame: the theme's border color (a little stronger on the
+	// focused window); the accent stays for focus inside apps.
+	style.FocusColor = theme.Mix(t.Str("color.border"), t.Str("color.textMuted"), 0.35)
+	style.InactiveColor = t.Str("color.border")
+	style.Accent = t.Str("color.accent")
 	if err := c.Comp.ApplyStyle(ctx, style); err != nil && !errors.Is(err, compositor.ErrNoCompositor) {
 		log.Printf("compositor style: %v", err)
 	}
@@ -304,7 +358,7 @@ func (c *Core) ApplyTheme(ctx context.Context) {
 			if err1 != nil || err2 != nil {
 				lt, dt = t, t
 			}
-			r := appearance.Apply(ctx, t, lt, dt, c.ConfigDir)
+			r := appearance.Apply(ctx, t, lt, dt, c.ConfigDir, appearance.Options{ButtonLayout: decor.ButtonLayout(c.Comp.Caps().ClientMaximize, c.Comp.Caps().ClientMinimize)})
 			c.mu.Lock()
 			c.lastApps = r
 			c.mu.Unlock()
@@ -312,6 +366,28 @@ func (c *Core) ApplyTheme(ctx context.Context) {
 				log.Printf("appearance: %s", e)
 			}
 		}()
+	}
+}
+
+// TitleStyle is the compositor title bar of a token set: the focused
+// title on the raised surface, inactive ones on the plain surface with
+// muted text, the interface font a little smaller than body text.
+func TitleStyle(t theme.Tokens) compositor.TitleStyle {
+	unit := int(t.Num("spacing.unit"))
+	return compositor.TitleStyle{
+		Font:        t.Str("font.family") + " SemiBold",
+		Size:        math.Max(8, t.Num("font.size")-1),
+		Align:       "center",
+		PadX:        unit * 3,
+		PadY:        unit + unit/2,
+		FocusedBg:   t.Str("color.surfaceAlt"),
+		FocusedText: t.Str("color.text"),
+		InactiveBg:  t.Str("color.surface"),
+		InactiveTxt: t.Str("color.textMuted"),
+		UrgentBg:    t.Str("color.danger"),
+		UrgentText:  "#ffffff",
+		Radius:      int(t.Num("radius.window")),
+		ColorScheme: t.Str("mode"),
 	}
 }
 

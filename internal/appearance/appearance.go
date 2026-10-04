@@ -19,6 +19,7 @@ package appearance
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -36,10 +37,18 @@ type Result struct {
 	Errors  []string `json:"errors,omitempty"`
 }
 
+// Options are the parts of application appearance that depend on the
+// compositor rather than the theme.
+type Options struct {
+	// ButtonLayout is GTK's title bar button layout
+	// (org.gnome.desktop.wm.preferences button-layout); empty leaves it.
+	ButtonLayout string
+}
+
 // Apply pushes the tokens to the application settings: t is the current
 // set, light and dark the same settings resolved in each mode. configDir
 // is $XDG_CONFIG_HOME.
-func Apply(ctx context.Context, t, lightT, darkT theme.Tokens, configDir string) Result {
+func Apply(ctx context.Context, t, lightT, darkT theme.Tokens, configDir string, opt Options) Result {
 	var r Result
 	ok := func(s string) { r.Applied = append(r.Applied, s) }
 	fail := func(s string, err error) { r.Errors = append(r.Errors, s+": "+err.Error()) }
@@ -85,6 +94,19 @@ func Apply(ctx context.Context, t, lightT, darkT theme.Tokens, configDir string)
 			}
 		}
 		ok("gsettings org.gnome.desktop.interface (color-scheme " + scheme + ", accent-color " + accent + ", gtk-theme " + gtk3 + ")")
+		if opt.ButtonLayout != "" {
+			// The title bar buttons of GTK, libadwaita, Firefox and
+			// Chromium/Electron headerbars (read through gsettings and the
+			// settings portal).
+			c, cancel := context.WithTimeout(ctx, 3*time.Second)
+			out, err := exec.CommandContext(c, "gsettings", "set", "org.gnome.desktop.wm.preferences", "button-layout", opt.ButtonLayout).CombinedOutput()
+			cancel()
+			if err != nil {
+				fail("gsettings button-layout", fmt.Errorf("%v: %s", err, strings.TrimSpace(string(out))))
+			} else {
+				ok("gsettings org.gnome.desktop.wm.preferences button-layout " + opt.ButtonLayout)
+			}
+		}
 	} else {
 		fail("gsettings", err)
 	}
@@ -114,7 +136,55 @@ func Apply(ctx context.Context, t, lightT, darkT theme.Tokens, configDir string)
 			ok(q.name + " colors")
 		}
 	}
+	if msg, err := writeFoot(t, configDir); err != nil {
+		fail("foot", err)
+	} else if msg != "" {
+		ok(msg)
+	}
 	return r
+}
+
+// FootINI is foot's title bar (when the compositor asks foot to draw its
+// own decorations, as niri does) in the theme's colors and font. foot
+// takes colors as AARRGGBB.
+func FootINI(t theme.Tokens) string {
+	hex := func(k string) string { return "ff" + strings.TrimPrefix(t.Str(k), "#") }
+	size := t.Num("font.size") - 1
+	return fmt.Sprintf(`# Managed by basalt-shell: rewritten on every theme change. Do not edit.
+[csd]
+preferred=server
+size=%d
+font=%s:weight=semibold:size=%g
+color=%s
+border-width=0
+button-color=%s
+button-minimize-color=%s
+button-maximize-color=%s
+button-close-color=%s
+`, int(t.Num("spacing.unit")*8), t.Str("font.family"), size,
+		hex("color.surfaceAlt"), hex("color.text"), hex("color.surfaceAlt"), hex("color.surfaceAlt"), hex("color.surfaceAlt"))
+}
+
+// writeFoot writes ~/.config/foot/basalt-theme.ini and, when the person
+// has no foot.ini yet, a foot.ini that includes it. An existing foot.ini
+// is never changed (it may include the file itself).
+func writeFoot(t theme.Tokens, configDir string) (string, error) {
+	dir := filepath.Join(configDir, "foot")
+	inc := filepath.Join(dir, "basalt-theme.ini")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(inc, []byte(FootINI(t)), 0o644); err != nil {
+		return "", err
+	}
+	main := filepath.Join(dir, "foot.ini")
+	if _, err := os.Stat(main); errors.Is(err, os.ErrNotExist) {
+		body := "# Created by basalt-shell: your foot settings go below the include.\n[main]\ninclude=" + inc + "\n"
+		if err := os.WriteFile(main, []byte(body), 0o644); err != nil {
+			return "", err
+		}
+	}
+	return inc, nil
 }
 
 const (

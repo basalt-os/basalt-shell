@@ -53,7 +53,7 @@ func (a *Adapter) rec(s string) { a.mu.Lock(); a.Calls = append(a.Calls, s); a.m
 func (a *Adapter) Name() string                   { return "fake" }
 func (a *Adapter) Version(context.Context) string { return "fake 1" }
 func (a *Adapter) Caps() compositor.Caps {
-	return compositor.Caps{Floating: true, MoveResize: true, FloatByDefault: true, LiveCorners: true, LiveBorders: true, Events: true, Pointer: true}
+	return compositor.Caps{Floating: true, MoveResize: true, FloatByDefault: true, LiveCorners: true, LiveBorders: true, Events: true, Pointer: true, Minimize: true, TitleBars: true}
 }
 func (a *Adapter) Windows(context.Context) ([]compositor.Window, error) {
 	a.mu.Lock()
@@ -184,5 +184,40 @@ func (a *Adapter) PointerButton(_ context.Context, button, action string) error 
 // PointerScroll records a scroll.
 func (a *Adapter) PointerScroll(_ context.Context, dx, dy int) error {
 	a.rec(fmt.Sprintf("pointer scroll %d %d", dx, dy))
+	return nil
+}
+
+// Minimize hides a window (no workspace, state minimized).
+func (a *Adapter) Minimize(_ context.Context, id string) error {
+	a.rec("minimize " + id)
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	i, err := a.find(id)
+	if err != nil {
+		return err
+	}
+	a.Wins[i].Workspace, a.Wins[i].State, a.Wins[i].Focused = "", "minimized", false
+	return nil
+}
+
+// Unminimize shows a window on the focused workspace and focuses it.
+func (a *Adapter) Unminimize(_ context.Context, id string) error {
+	a.rec("unminimize " + id)
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	i, err := a.find(id)
+	if err != nil {
+		return err
+	}
+	ws := ""
+	for _, s := range a.Spaces {
+		if s.Focused {
+			ws = s.ID
+		}
+	}
+	for j := range a.Wins {
+		a.Wins[j].Focused = j == i
+	}
+	a.Wins[i].Workspace, a.Wins[i].State = ws, ""
 	return nil
 }

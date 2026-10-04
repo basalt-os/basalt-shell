@@ -357,6 +357,21 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 			return []Call{{Action: "windows.arrange", Args: map[string]any{"layout": l.layout}}}, []string{"arrange: " + l.layout}, true
 		}
 	}
+	if m := regexp.MustCompile(`^snap\s+(.*?)\s*(?:to\s+the\s+)?(left|right)(?:\s+half)?$`).FindStringSubmatch(c); m != nil {
+		return []Call{{Action: "window.set_state", Args: map[string]any{"window": windowRef(m[1]), "state": m[2]}}}, []string{"snap " + orFocused(m[1]) + " " + m[2]}, true
+	}
+	for _, st := range []struct {
+		re    string
+		state string
+	}{
+		{`^(?:minimi[sz]e|minimiza|minimizar|minimize|hide)\s*(.*)$`, "minimized"},
+		{`^(?:maximi[sz]e|maximiza|maximizar)\s*(.*)$`, "maximized"},
+		{`^(?:restore|restaura|restaurar|unminimi[sz]e)\s*(.*)$`, "normal"},
+	} {
+		if m := regexp.MustCompile(st.re).FindStringSubmatch(c); m != nil {
+			return []Call{{Action: "window.set_state", Args: map[string]any{"window": windowRef(m[1]), "state": st.state}}}, []string{st.state + ": " + orFocused(m[1])}, true
+		}
+	}
 	if m := regexp.MustCompile(`^(?:close|fecha|fechar|feche|quit)\s*(.*)$`).FindStringSubmatch(c); m != nil {
 		return []Call{{Action: "window.close", Args: map[string]any{"window": windowRef(m[1])}}}, []string{"close " + orFocused(m[1])}, true
 	}
@@ -396,6 +411,7 @@ func windowRef(s string) string {
 		return "focused"
 	}
 	s = strings.TrimPrefix(s, "the ")
+	s = strings.TrimPrefix(strings.TrimPrefix(s, "o "), "a ")
 	s = strings.TrimSuffix(s, " window")
 	return s
 }

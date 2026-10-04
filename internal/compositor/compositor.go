@@ -35,6 +35,12 @@ type Window struct {
 	// the compositor reports it (sway 1.11+): screen capture of exactly
 	// this window (grim -T), without the windows on top of it.
 	ForeignID string `json:"foreign_id,omitempty"`
+	// State is "" (normal), "minimized" (hidden; the panel's window list
+	// restores it), "maximized", "left" or "right" (snapped halves).
+	State string `json:"state,omitempty"`
+	// Decoration is who draws the title bar: "client" (the app's own
+	// headerbar), "server" (the compositor's themed title bar) or "".
+	Decoration string `json:"decoration,omitempty"`
 }
 
 // Workspace is one workspace. ID is what Switch takes; Index is the
@@ -47,6 +53,8 @@ type Workspace struct {
 	Focused bool   `json:"focused"`
 	Visible bool   `json:"visible"`
 	Windows int    `json:"windows"`
+	// Rect is the usable area (the output minus panels), when known.
+	Rect Rect `json:"rect"`
 }
 
 // Output is a monitor with its usable area.
@@ -71,6 +79,18 @@ type Caps struct {
 	WorkspaceByName bool `json:"workspace_by_name"`
 	Pointer         bool `json:"pointer"`          // absolute pointer moves and clicks (Pointer interface)
 	ToplevelCapture bool `json:"toplevel_capture"` // windows carry a foreign-toplevel identifier
+	Minimize        bool `json:"minimize"`         // windows can be minimized and restored (Minimizer)
+	// ClientMaximize: the compositor honors the maximize and minimize
+	// buttons of client-side decorations (xdg-shell requests). sway does
+	// not (it advertises only fullscreen), so the shell offers those
+	// through the panel, the window menu and keys instead, and asks GTK
+	// to show only the close button.
+	ClientMaximize bool `json:"client_maximize"`
+	// ClientMinimize: the compositor honors the minimize button.
+	ClientMinimize bool `json:"client_minimize"`
+	// TitleBars: the compositor draws title bars for windows that do not
+	// draw their own.
+	TitleBars bool `json:"title_bars"`
 }
 
 // Style is the part of the theme the compositor draws (window borders,
@@ -80,6 +100,7 @@ type Style struct {
 	BorderWidth   int     `json:"border_width"`
 	Gaps          int     `json:"gaps"`
 	FocusColor    string  `json:"focus_color"`    // #RRGGBB
+	Accent        string  `json:"accent"`         // #RRGGBB: niri's focus ring
 	InactiveColor string  `json:"inactive_color"` // #RRGGBB
 	UrgentColor   string  `json:"urgent_color"`
 	Shadows       bool    `json:"shadows"`
@@ -90,6 +111,25 @@ type Style struct {
 	Animations    bool    `json:"animations"`
 	CursorTheme   string  `json:"cursor_theme"`
 	CursorSize    int     `json:"cursor_size"`
+	// Title bars (drawn by the compositor for windows without their own).
+	Title TitleStyle `json:"title"`
+}
+
+// TitleStyle is the compositor's title bar, from the theme tokens.
+type TitleStyle struct {
+	Font        string  `json:"font"`         // family
+	Size        float64 `json:"size"`         // points
+	Align       string  `json:"align"`        // left, center
+	PadX        int     `json:"pad_x"`        // horizontal padding (px)
+	PadY        int     `json:"pad_y"`        // vertical padding (px)
+	FocusedBg   string  `json:"focused_bg"`   // #RRGGBB, also the focused frame
+	FocusedText string  `json:"focused_text"` // #RRGGBB
+	InactiveBg  string  `json:"inactive_bg"`
+	InactiveTxt string  `json:"inactive_text"`
+	UrgentBg    string  `json:"urgent_bg"`
+	UrgentText  string  `json:"urgent_text"`
+	Radius      int     `json:"radius"` // corner radius, where the compositor draws one
+	ColorScheme string  `json:"color_scheme"`
 }
 
 // Event is a change notification. Kind is "windows", "workspaces" or
@@ -130,6 +170,14 @@ type Pointer interface {
 	PointerButton(ctx context.Context, button, action string) error
 	// PointerScroll scrolls by steps (positive dy is down, dx is right).
 	PointerScroll(ctx context.Context, dx, dy int) error
+}
+
+// Minimizer is implemented by backends that can hide a window and bring
+// it back (sway: the scratchpad).
+type Minimizer interface {
+	Minimize(ctx context.Context, id string) error
+	// Unminimize shows the window on the current workspace and focuses it.
+	Unminimize(ctx context.Context, id string) error
 }
 
 // ErrUnsupported is returned for an operation a backend cannot do.
