@@ -1,9 +1,11 @@
 #!/bin/bash
 # Build this worktree and install it in the voice spike VM (from the
 # workstation): Go binaries (static), QML, configs, the SELinux module
-# sources and the lab files, staged and copied through server-home.
+# sources and the lab files, staged and copied through the lab host ($LAB_HOST, an ssh
+# destination that runs the VM, with the lab in ~/basalt-voice).
 #   lab/voice/deploy.sh [--session]   --session also restarts the desktop session
 set -euo pipefail
+LAB_HOST=${LAB_HOST:?set LAB_HOST to the ssh destination of the lab host}
 here=$(cd "$(dirname "$0")/../.." && pwd)
 stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
@@ -18,6 +20,6 @@ cp -r lab/voice/. "$stage/lab/"
 rm -rf "$stage/lab/labweb"
 # Never overwrite the VM's voice settings once they exist.
 mv "$stage/root/etc/basalt/voice.conf" "$stage/voice.conf.default"
-ssh server-home 'rm -rf ~/basalt-voice/stage && mkdir -p ~/basalt-voice/stage'
-rsync -a "$stage/" server-home:basalt-voice/stage/
-ssh server-home 'cd ~/basalt-voice && rsync -a --delete -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -i lab/vm_ed25519 -p 2251" stage/ root@127.0.0.1:/root/voice-stage/ && ./vssh "bash /root/voice-stage/lab/vm-install.sh '"${1:-}"'"'
+ssh "$LAB_HOST" 'rm -rf ~/basalt-voice/stage && mkdir -p ~/basalt-voice/stage'
+rsync -a "$stage/" "$LAB_HOST":basalt-voice/stage/
+ssh "$LAB_HOST" 'cd ~/basalt-voice && rsync -a --delete -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -i lab/vm_ed25519 -p 2251" stage/ root@127.0.0.1:/root/voice-stage/ && ./vssh "bash /root/voice-stage/lab/vm-install.sh '"${1:-}"'"'

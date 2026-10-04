@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build whisper.cpp for the voice spike in containers (server-home):
+# Build whisper.cpp for the voice spike in containers (on the lab host):
 #   build-whisper.sh cpu    Fedora 44, CPU only, every x86-64 variant picked at run
 #                           time (the basalt-llm recipe), into $OUT/whisper-cpu
 #   build-whisper.sh cuda   CUDA 12.6 (Pascal sm_61 and newer), into $OUT/whisper-cuda

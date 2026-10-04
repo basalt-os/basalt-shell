@@ -32,7 +32,7 @@ type Grant struct {
 	ID      string    `json:"id"`
 	Kind    string    `json:"kind"`
 	Target  string    `json:"target"` // folder path, account name, or host
-	Label   string    `json:"label"`  // for people: "Documents", "lab mail (INBOX)", "news.lab.test"
+	Label   string    `json:"label"`  // for people: "Documents", "Work mail (INBOX)", "news.example.org"
 	Created time.Time `json:"created"`
 	Expires time.Time `json:"expires"`
 	By      string    `json:"by"` // who confirmed (ui)

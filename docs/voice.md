@@ -14,7 +14,7 @@ benchmarks are in `lab/voice/`.
   Super+V toggles; the panel button is hold to talk everywhere.
 - The same requests can be typed in the command bar (Super+A): "find the
   PDF the bank sent last month", "what did Ana say in her last email?",
-  "summarize news.lab.test", "open result 2".
+  "summarize news.example.org", "open result 2".
 - The first time a skill needs a folder, a mailbox or a site, the bar
   shows a permission ("Let the assistant read and search the files in
   ~/Documents, ~/Downloads, ~/Desktop for 1 hour"), with Allow and Don't
@@ -63,7 +63,7 @@ benchmarks are in `lab/voice/`.
 4. Network by allowlist, in the kernel. Each worker runs in its own
    systemd scope; the daemon registers the scope's slice with
    basalt-resolver before the worker gets its job, with an allowlist made
-   of the grant (`news.lab.test:80,443`, `imap.lab.test:143`) and
+   of the grant (`news.example.org:80,443`, `imap.example.org:143`) and
    loopback off. Every other name is refused by the resolver and every
    other address dropped by nftables, and both are recorded in
    basalt-ledger. The browser refuses the same requests first (and any

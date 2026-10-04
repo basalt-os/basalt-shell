@@ -31,7 +31,7 @@ type Site struct {
 // Config of the skills (~/.config/basalt-shell/skills.conf, INI):
 //
 //	[mail lab]
-//	host = imap.lab.test
+//	host = imap.example.org
 //	port = 143
 //	tls = no
 //	user = dev
@@ -39,7 +39,7 @@ type Site struct {
 //	mailbox = INBOX
 //
 //	[site news]
-//	url = http://news.lab.test/
+//	url = http://news.example.org/
 //	names = lab news, news site
 //
 //	[files]

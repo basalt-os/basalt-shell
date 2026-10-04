@@ -209,7 +209,7 @@ func (e *Engine) grantRequest(r Route, a *Answer) {
 			}
 		}
 		if host == "" {
-			a.Error = i18n.G("Which site? Say its address, for example news.lab.test.")
+			a.Error = i18n.G("Which site? Say its address, for example news.example.org.")
 			return
 		}
 		g.Targets, g.Labels = []string{host}, []string{host}
@@ -853,7 +853,7 @@ func (e *Engine) web(ctx context.Context, text string, r Route, a *Answer) {
 	default:
 		s, ok := e.siteByWords(text)
 		if !ok {
-			a.Error = i18n.G("Which site? Say its address (for example news.lab.test) or allow a site first.")
+			a.Error = i18n.G("Which site? Say its address (for example news.example.org) or allow a site first.")
 			return
 		}
 		site = s
