@@ -10,10 +10,11 @@
 # and receives lab/ (a development signing key), build/ (RPMs, ISO) and
 # repo/ (the signed repository the ISO carries).
 #
-# The repository on the media is the published https://obpkg.org/basalt
-# (signatures checked against the OpenBasalt release key), with basalt-release
-# from the source tree (its newer release), swayfx and the shell packages,
-# which are not published. Everything on the media is re-signed with the
+# The repository on the media holds the packages built from the source
+# trees (os-src: release, assistant, installer, prompt and the others, plus
+# swayfx; shell-src: the shell packages, not published), completed with the
+# rest of https://obpkg.org/basalt (signatures checked against the
+# OpenBasalt release key). Everything on the media is re-signed with the
 # development key (one key per media repository); the installed system and
 # the live system point at https://obpkg.org (basalt, basalt-tools) with the
 # release key that basalt-release ships. Never publish this repository or ISO
@@ -56,7 +57,7 @@ keys() {
 rpms() {
   env_file
   rm -rf "$build/rpms"
-  "$os/scripts/build-rpms.sh"          # basalt-release (44-7 and newer) among others
+  "$os/scripts/build-rpms.sh"
   "$os/packages/swayfx/build.sh"
   (cd "$shell" && rm -f build/rpm/*.rpm && PODMAN="$podman" BASALT_AGENT_SELINUX="$os/packages/basalt-agent/selinux" scripts/build-rpm.sh "$rel")
 }
@@ -74,11 +75,16 @@ repo() {
     dnf \$r download --destdir /out \$names >/dev/null
     for f in /out/*.rpm; do rpmkeys --checksig \"\$f\" | grep -q 'digests signatures OK' || { echo \"bad signature: \$f\" >&2; exit 1; }; done
     ls /out | wc -l"
-  local rpmdir=$build/rpms/$rel
-  find "$obpkg" -name '*.rpm' ! -name 'basalt-release-*' -exec cp {} "$stage/" \;
-  cp "$rpmdir"/basalt-release-[0-9]*.noarch.rpm "$rpmdir"/basalt-release-server-*.noarch.rpm "$stage/"
-  find "$rpmdir" -name 'swayfx-*.rpm' ! -name '*.src.rpm' ! -name '*-debug*' -exec cp {} "$stage/" \;
+  # Packages built from the source tree win; obpkg.org fills in the rest
+  # (basalt-llm and the data packages, which the tree does not rebuild here).
+  local rpmdir=$build/rpms/$rel f n
+  find "$rpmdir" -maxdepth 1 -name '*.rpm' ! -name '*.src.rpm' ! -name '*-debuginfo-*' ! -name '*-debugsource-*' -exec cp {} "$stage/" \;
   cp "$shell"/build/rpm/*.rpm "$stage/"
+  local have; have=$(for f in "$stage"/*.rpm; do rpm -qp --qf '%{name}\n' "$f" 2>/dev/null; done | sort -u)
+  for f in "$obpkg"/*.rpm; do
+    n=$(rpm -qp --qf '%{name}' "$f" 2>/dev/null)
+    grep -qx "$n" <<<"$have" || cp "$f" "$stage/"
+  done
   log "strip the signatures (the media repository is signed with one key)"
   $podman run --rm --network=host --security-opt label=disable -v "$stage:/s" "$fedora" bash -euc '
     dnf -q -y install rpm-sign >/dev/null 2>&1 || { echo "dnf install rpm-sign failed" >&2; exit 1; }
