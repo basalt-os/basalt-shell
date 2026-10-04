@@ -142,7 +142,7 @@ func TestIPCRolesAndWait(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	sock := filepath.Join(dir, "s.sock")
-	srv := &Server{Core: c, Path: sock, UIExecutables: []string{"no-such-ui"}}
+	srv := &Server{Core: c, Path: sock, UI: UICheck{Mode: UICheckExe, Executables: []string{"no-such-ui"}}}
 	go srv.Listen(ctx)
 	time.Sleep(100 * time.Millisecond)
 	// An agent cannot decide or execute.

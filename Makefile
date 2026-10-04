@@ -10,18 +10,20 @@ GO ?= go
 GOFLAGS ?= -trimpath
 BUILD := build
 
-.PHONY: all build test vet install uninstall clean rpm help
+.PHONY: all build test vet install uninstall clean rpm selinux install-selinux help
 
 all: build
 
 help:
-	@echo "make build | test | install [PREFIX=/usr/local DESTDIR=] | rpm | clean"
+	@echo "make build | test | install [PREFIX=/usr/local DESTDIR=] | selinux | install-selinux | rpm | clean"
 	@echo "scripts/install.sh --user | --system   install with dependencies (see README)"
 	@echo "scripts/try-nested.sh [sway|niri]      run a session in a window of your desktop"
 
 build:
 	mkdir -p $(BUILD)
 	$(GO) build $(GOFLAGS) -ldflags "-X main.version=$(VERSION)" -o $(BUILD)/basalt-shell ./cmd/basalt-shell
+	$(GO) build $(GOFLAGS) -ldflags "-X main.version=$(VERSION)" -o $(BUILD)/basalt-shelld ./cmd/basalt-shelld
+	$(GO) build $(GOFLAGS) -o $(BUILD)/basalt-shell-ui-launch ./cmd/basalt-shell-ui-launch
 
 test:
 	$(GO) vet ./...
@@ -30,6 +32,8 @@ test:
 install:
 	test -x $(BUILD)/basalt-shell || $(MAKE) build
 	install -Dm755 $(BUILD)/basalt-shell $(DESTDIR)$(PREFIX)/bin/basalt-shell
+	install -Dm755 $(BUILD)/basalt-shelld $(DESTDIR)$(PREFIX)/bin/basalt-shelld
+	install -Dm755 $(BUILD)/basalt-shell-ui-launch $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-shell-ui-launch
 	install -Dm755 bin/basalt-shell-ui $(DESTDIR)$(PREFIX)/bin/basalt-shell-ui
 	install -Dm755 bin/basalt-session $(DESTDIR)$(PREFIX)/bin/basalt-session
 	install -Dm755 bin/basalt-lock $(DESTDIR)$(PREFIX)/bin/basalt-lock
@@ -47,17 +51,30 @@ install:
 	install -Dm644 config/portals/sway-portals.conf $(DESTDIR)$(SYSCONFDIR)/xdg/xdg-desktop-portal/sway-portals.conf
 	install -Dm644 config/portals/niri-portals.conf $(DESTDIR)$(SYSCONFDIR)/xdg/xdg-desktop-portal/niri-portals.conf
 	install -Dm644 config/systemd/basalt-session.target $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-session.target
+	install -Dm644 config/systemd/basalt-headless.service $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-headless.service
 	install -Dm755 libexec/assistant-read $(DESTDIR)$(LIBEXECDIR)/basalt-shell/assistant-read
 	install -Dm644 config/polkit/org.openbasalt.shell.policy $(DESTDIR)$(POLKITDIR)/actions/org.openbasalt.shell.policy
 	install -Dm644 config/polkit/50-basalt-shell.rules $(DESTDIR)$(POLKITDIR)/rules.d/50-basalt-shell.rules
 
 uninstall:
 	rm -rf $(DESTDIR)$(PREFIX)/share/basalt-shell $(DESTDIR)$(LIBEXECDIR)/basalt-shell
-	rm -f $(DESTDIR)$(PREFIX)/bin/basalt-shell $(DESTDIR)$(PREFIX)/bin/basalt-shell-ui $(DESTDIR)$(PREFIX)/bin/basalt-session $(DESTDIR)$(PREFIX)/bin/basalt-lock $(DESTDIR)$(PREFIX)/bin/basalt-session-init
+	rm -f $(DESTDIR)$(PREFIX)/bin/basalt-shell $(DESTDIR)$(PREFIX)/bin/basalt-shelld $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-shell-ui-launch $(DESTDIR)$(PREFIX)/bin/basalt-shell-ui $(DESTDIR)$(PREFIX)/bin/basalt-session $(DESTDIR)$(PREFIX)/bin/basalt-lock $(DESTDIR)$(PREFIX)/bin/basalt-session-init
 	rm -f $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-sway.desktop $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-niri.desktop
 	rm -f $(DESTDIR)$(SYSCONFDIR)/xdg/xdg-desktop-portal/sway-portals.conf $(DESTDIR)$(SYSCONFDIR)/xdg/xdg-desktop-portal/niri-portals.conf
-	rm -f $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-session.target
+	rm -f $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-session.target $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-headless.service
 	rm -f $(DESTDIR)$(POLKITDIR)/actions/org.openbasalt.shell.policy $(DESTDIR)$(POLKITDIR)/rules.d/50-basalt-shell.rules
+
+# SELinux module basalt_shell: needs selinux-policy-devel and the agent
+# family's base module interface (basalt-agent-selinux installs
+# basalt_agent_base.if), or scripts/build-selinux.sh in a Fedora container.
+selinux:
+	mkdir -p $(BUILD)/selinux
+	cp selinux/*.te selinux/*.if selinux/*.fc $(BUILD)/selinux/
+	$(MAKE) -C $(BUILD)/selinux -f /usr/share/selinux/devel/Makefile basalt_shell.pp
+
+install-selinux:
+	semodule -i $(BUILD)/selinux/basalt_shell.pp
+	restorecon -F $(PREFIX)/bin/basalt-shell $(PREFIX)/bin/basalt-shelld $(PREFIX)/libexec/basalt-shell/basalt-shell-ui-launch
 
 rpm:
 	scripts/build-rpm.sh

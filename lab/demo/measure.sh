@@ -27,13 +27,13 @@ ui() { basalt-shell-ui ipc call shell "$@" >/dev/null; }
   dur=$(ffprobe -v error -show_entries format=duration -of csv=p=0 /tmp/anim.webm)
   echo "animation capture: $frames frames in ${dur}s (frames arrive only on change; 3 x drawer + launcher open/close)"
   # Idle: 10 s of CPU time.
-  pids="$(pgrep -x $comp | head -1) $(pgrep -x qs | head -1) $(pgrep -f '^basalt-shell daemon' | head -1)"
+  pids="$(pgrep -x $comp | head -1) $(pgrep -x qs | head -1) $(pgrep -x basalt-shelld | head -1)"
   t0=$(for p in $pids; do awk '{print $14+$15}' /proc/$p/stat; done | paste -sd' ')
   sleep 10
   t1=$(for p in $pids; do awk '{print $14+$15}' /proc/$p/stat; done | paste -sd' ')
   hz=$(getconf CLK_TCK)
   parr=($pids); a=($t0); b=($t1); i=0
-  for name in "$comp" "quickshell" "basalt-shell daemon"; do
+  for name in "$comp" "quickshell" "basalt-shelld"; do
     p=${parr[$i]}
     rss=$(awk '/VmRSS/ {print $2}' /proc/$p/status)
     cpu=$(awk -v d=$(( ${b[$i]} - ${a[$i]} )) -v hz=$hz 'BEGIN { printf "%.1f", d / hz / 10 * 100 }')

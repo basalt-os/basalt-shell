@@ -2,9 +2,17 @@
 # Session start-up helpers run by the compositor config. In a nested
 # session (BASALT_NESTED=1, a window inside another desktop) nothing is
 # exported to the systemd user manager and no idle lock runs, so the host
-# session is left alone.
+# session is left alone. A headless session (basalt-session headless)
+# exports nothing either (it may run next to a desktop session of the same
+# user), has no idle lock (it would stop agents) and can serve its screen
+# over VNC (wayvnc) for the person who confirms.
 set -u
-if [ "${BASALT_NESTED:-0}" != 1 ]; then
+if [ "${BASALT_HEADLESS:-0}" = 1 ]; then
+  if [ -n "${BASALT_HEADLESS_VNC:-}" ] && command -v wayvnc >/dev/null; then
+    addr=${BASALT_HEADLESS_VNC%:*}; port=${BASALT_HEADLESS_VNC##*:}
+    wayvnc --output=HEADLESS-1 "$addr" "$port" &
+  fi
+elif [ "${BASALT_NESTED:-0}" != 1 ]; then
   # Applications are started by the systemd user manager (in their own
   # scope), so it needs the session's toolkit environment too.
   vars="WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP

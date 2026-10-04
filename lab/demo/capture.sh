@@ -61,9 +61,9 @@ scene_reset() {
   rm -f ~/.config/basalt-shell/settings.json
   rm -rf ~/.local/share/gnome-text-editor
   # Restart daemon and UI on a clean theme and activity log.
-  pkill -f 'basalt-shell daemon'; pkill -x qs; sleep 1
+  pkill -x basalt-shelld; pkill -x qs; sleep 1
   rm -f ~/.local/state/basalt-shell/audit.jsonl
-  spawn basalt-shell daemon; sleep 1.5; spawn basalt-shell-ui; sleep 4
+  spawn basalt-shelld; sleep 1.5; spawn basalt-shell-ui; sleep 4
 }
 
 scene_panel() {

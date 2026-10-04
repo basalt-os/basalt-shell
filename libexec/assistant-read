@@ -3,8 +3,12 @@
 # assistant. Runs as root through pkexec (polkit action
 # org.openbasalt.shell.assistant-read) and accepts only read commands:
 # status, why UNIT, fix selinux, disk, snapshots, pending, show ID, audit N,
-# and ask TEXT (the assistant's translator, which itself never runs a
-# change). Anything else is refused.
+# ask TEXT (the assistant's translator, which itself never runs a
+# change) and translate (the desktop command bar's request to the same
+# local model: a chat completions body on stdin, forwarded to the model's
+# Unix socket, which only the assistant and administrators may open; the
+# model has no power, its answer is validated by the shell). Anything
+# else is refused.
 set -eu
 PATH=/usr/sbin:/usr/bin
 word='^[A-Za-z0-9@._:-]{1,100}$'
@@ -33,5 +37,26 @@ case "$cmd" in
   ask)
     [ $# -eq 1 ] && [ ${#1} -le 500 ] || { echo "refused" >&2; exit 3; }
     exec basalt ask --dry-run "$1" ;;
+  translate)
+    [ $# -eq 0 ] || { echo "refused" >&2; exit 3; }
+    conf=/etc/basalt/assistant.conf
+    sec=""; enabled=no; ep=""
+    while IFS= read -r line; do
+      line=${line%%#*}; line=$(printf '%s' "$line" | tr -d '[:space:]')
+      case "$line" in
+        \[*\]) sec=$line ;;
+        enabled=*) [ "$sec" = "[translator]" ] && enabled=${line#enabled=} ;;
+        endpoint=*) [ "$sec" = "[translator]" ] && ep=${line#endpoint=} ;;
+      esac
+    done < "$conf"
+    [ "$enabled" = yes ] || [ "$enabled" = true ] || { echo "the translator is off in $conf" >&2; exit 4; }
+    ep=${ep:-unix:/run/basalt-llm/llm.sock}
+    case "$ep" in unix:/*) ;; *) echo "refused: only the local model's Unix socket" >&2; exit 3 ;; esac
+    sock=${ep#unix:}
+    [ -S "$sock" ] || { echo "the local model is not running ($sock)" >&2; exit 4; }
+    body=$(head -c 65537)
+    [ ${#body} -le 65536 ] || { echo "refused: request too large" >&2; exit 3; }
+    printf '%s' "$body" | exec curl -sS --fail-with-body --max-time 60 --unix-socket "$sock" \
+      -H 'Content-Type: application/json' --data-binary @- http://localhost/v1/chat/completions ;;
   *) echo "refused: $cmd is not a read command" >&2; exit 3 ;;
 esac

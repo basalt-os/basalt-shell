@@ -1,0 +1,109 @@
+policy_module(basalt_shell, 0.1.0)
+
+########################################
+#
+# Basalt desktop shell (basalt-shell).
+#
+#   basalt_shell_t      the daemon, basalt-shelld: owns desktop state and
+#                       every change; checks the SELinux context of each
+#                       peer on its socket (SO_PEERSEC).
+#   basalt_shell_ui_t   the shell UI (Quickshell), entered only through
+#                       basalt-shell-ui-launch. The one domain the daemon
+#                       lets confirm (basalt_agent_confirmer).
+#   basalt_agent_mcp_t  the shell's MCP server and command line
+#                       (basalt-shell): an agent domain. It may read and
+#                       request through the daemon's socket, nothing else
+#                       of the desktop: no Wayland, X11, D-Bus or PipeWire
+#                       socket (so no input injection or screen reading of
+#                       its own), no home files, no network.
+#
+# The daemon and the UI are unconfined_domain for now (they are the
+# trusted desktop; a confined UI domain is later work): their types are
+# their identity, entered only through their own programs, and no agent
+# domain may enter them.
+#
+# basalt_agent_mcp_t belongs to the Basalt agent family: the shared base
+# module basalt_agent_base (shipped by basalt-agent-selinux, from
+# basalt-os-image packages/basalt-agent) gives the attribute, the baseline
+# and the family's neverallow rules. This module adds the shell's part of
+# "agents request, the person confirms": the request socket
+# (basalt_shell_request) and the confirming domain (basalt_shell_ui_t),
+# which no agent domain may become, trace or reach.
+#
+
+require {
+	attribute basalt_agent_domain;
+}
+
+type basalt_shell_t;
+type basalt_shell_exec_t;
+application_domain(basalt_shell_t, basalt_shell_exec_t)
+
+type basalt_shell_ui_t;
+type basalt_shell_ui_exec_t;
+application_domain(basalt_shell_ui_t, basalt_shell_ui_exec_t)
+
+type basalt_agent_mcp_t;
+type basalt_agent_mcp_exec_t;
+application_domain(basalt_agent_mcp_t, basalt_agent_mcp_exec_t)
+basalt_agent_domain_type(basalt_agent_mcp_t)
+
+# $XDG_RUNTIME_DIR/basalt-shell (and -headless): the daemon's socket.
+type basalt_shell_runtime_t;
+userdom_user_tmp_file(basalt_shell_runtime_t)
+
+optional_policy(`
+	unconfined_domain(basalt_shell_t)
+	unconfined_domain(basalt_shell_ui_t)
+	# The session (unconfined_t) starts the daemon, the UI and clients
+	# in their domains.
+	unconfined_run_to(basalt_shell_t, basalt_shell_exec_t)
+	unconfined_run_to(basalt_shell_ui_t, basalt_shell_ui_exec_t)
+	unconfined_run_to(basalt_agent_mcp_t, basalt_agent_mcp_exec_t)
+')
+
+# The daemon creates its socket directory with its own type.
+userdom_user_tmp_filetrans(basalt_shell_t, basalt_shell_runtime_t, dir, "basalt-shell")
+userdom_user_tmp_filetrans(basalt_shell_t, basalt_shell_runtime_t, dir, "basalt-shell-headless")
+# The UI started by the daemon's session tools or a key binding runs
+# basalt-shell (the client) in the agent domain too: the UI domain never
+# leaks into a command line.
+domtrans_pattern(basalt_shell_ui_t, basalt_agent_mcp_exec_t, basalt_agent_mcp_t)
+domtrans_pattern(basalt_shell_t, basalt_agent_mcp_exec_t, basalt_agent_mcp_t)
+
+########################################
+#
+# basalt_agent_mcp_t: the MCP server and command line.
+#
+
+# Its own program (Go, statically linked).
+allow basalt_agent_mcp_t basalt_agent_mcp_exec_t:file { map read execute getattr };
+# Request: the daemon's socket, nothing else of the desktop.
+basalt_shell_request(basalt_agent_mcp_t)
+# stdio from the program that started it (an MCP client, a terminal).
+basalt_agent_use_terminals(basalt_agent_mcp_t)
+optional_policy(`
+	gen_require(`
+		type unconfined_t;
+	')
+	allow basalt_agent_mcp_t unconfined_t:fd use;
+	allow basalt_agent_mcp_t unconfined_t:fifo_file rw_inherited_fifo_file_perms;
+	allow basalt_agent_mcp_t unconfined_t:unix_stream_socket { getattr read write };
+	allow basalt_agent_mcp_t unconfined_t:process sigchld;
+')
+# It writes nothing on disk: results go to stdout (a screenshot from the
+# command line is written by the caller's redirection, MCP clients get the
+# PNG inline).
+dontaudit basalt_agent_mcp_t self:capability { dac_override dac_read_search };
+
+########################################
+#
+# Invariants: no agent domain may become, trace or talk to the shell UI
+# (the only domain the daemon lets confirm), or touch the daemon beyond
+# its request socket.
+#
+
+neverallow basalt_agent_domain basalt_shell_ui_t:process { transition dyntransition ptrace };
+neverallow basalt_agent_domain basalt_shell_ui_t:unix_stream_socket connectto;
+neverallow basalt_agent_domain basalt_shell_ui_exec_t:file { entrypoint execute };
+neverallow basalt_agent_domain { basalt_shell_t basalt_shell_ui_t }:process { transition dyntransition ptrace };

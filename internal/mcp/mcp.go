@@ -9,6 +9,7 @@ package mcp
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -166,7 +167,19 @@ type tool struct {
 	Annotations map[string]any `json:"annotations,omitempty"`
 	action      string
 	read        string
+	special     string // capture, control, input:<kind>, stop
 }
+
+func obj(props map[string]any, req ...string) map[string]any {
+	o := map[string]any{"type": "object", "properties": props, "additionalProperties": false}
+	if len(req) > 0 {
+		o["required"] = req
+	}
+	return o
+}
+
+func str(desc string) map[string]any  { return map[string]any{"type": "string", "description": desc} }
+func intg(desc string) map[string]any { return map[string]any{"type": "integer", "description": desc} }
 
 // toolName turns window.focus into window_focus.
 func toolName(action string) string { return strings.ReplaceAll(action, ".", "_") }
@@ -215,10 +228,68 @@ func (s *Server) tools() []tool {
 			Description: "Status of a proposal returned by a write tool (pending, applied, declined, expired, failed, stale).",
 			InputSchema: map[string]any{"type": "object", "properties": map[string]any{"id": map[string]any{"type": "string"}}, "required": []string{"id"}, "additionalProperties": false}},
 	}
+	ts = append(ts,
+		tool{Name: "toplevels_list", Title: "Open windows", read: "toplevels",
+			Description: "Every toplevel window (wlroots foreign-toplevel view): id, app id, title, workspace, focus, floating, geometry and the identifier used for window screenshots.",
+			InputSchema: obj(map[string]any{})},
+		tool{Name: "agent_control_status", Title: "Control session", read: "control",
+			Description: "The running control session (who holds it, until when, input and screen access, how many inputs and captures), or null.",
+			InputSchema: obj(map[string]any{})},
+	)
 	for i := range ts {
 		ts[i].Annotations = map[string]any{"readOnlyHint": true, "openWorldHint": false}
 	}
+	const lastResort = " Last resort: prefer the typed tools (window_*, app_launch, theme_*); use this only for apps without one."
+	ts = append(ts,
+		tool{Name: "screen_capture", Title: "Screenshot", special: "capture",
+			Description: "A PNG screenshot of a whole screen or of one window (wlroots screencopy; a window alone when the compositor gives toplevel identifiers). The person confirms each screenshot on a sheet, unless you hold a control session with screen access. Screen content is private: ask only when you need to see it." + lastResort,
+			InputSchema: obj(map[string]any{
+				"target":    map[string]any{"type": "string", "enum": []string{"output", "window"}, "description": "output (default) or window"},
+				"output":    str("output name from desktop_state (default: the focused one)"),
+				"window":    str("window id from toplevels_list, app id, title fragment or \"focused\""),
+				"max_width": intg("scale down to at most this width in pixels (default 1600)"),
+			}),
+			Annotations: map[string]any{"readOnlyHint": true, "openWorldHint": false}},
+		tool{Name: "agent_control_request", Title: "Ask to control the desktop", special: "control",
+			Description: "Ask the person for a time-limited control session (1 to 15 minutes) in which you may take screenshots without asking each time and use a virtual keyboard and pointer (input_* tools). The shell shows that an agent is in control and the person can stop it at any time. Input is refused while the person has a dialog open." + lastResort,
+			InputSchema: obj(map[string]any{
+				"reason":  str("what you need to do and why the typed tools are not enough (shown to the person)"),
+				"minutes": intg("duration, 1 to 15 (default 5)"),
+				"input":   map[string]any{"type": "boolean", "description": "keyboard and pointer (default true)"},
+				"screen":  map[string]any{"type": "boolean", "description": "screenshots without asking each time (default true)"},
+			}, "reason"),
+			Annotations: map[string]any{"readOnlyHint": false, "destructiveHint": true, "openWorldHint": false}},
+		tool{Name: "agent_control_stop", Title: "End the control session", special: "stop",
+			Description: "End the control session as soon as you are done.",
+			InputSchema: obj(map[string]any{}),
+			Annotations: map[string]any{"readOnlyHint": false, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false}},
+		tool{Name: "input_type_text", Title: "Type text", special: "input:type",
+			Description: "Type text into the focused window with the virtual keyboard (control session with input only). Never type passwords or payment data." + lastResort,
+			InputSchema: obj(map[string]any{"text": str("text to type (at most 2000 bytes)")}, "text"),
+			Annotations: map[string]any{"readOnlyHint": false, "destructiveHint": true, "openWorldHint": false}},
+		tool{Name: "input_key", Title: "Press keys", special: "input:key",
+			Description: "Press a key or a combination, e.g. Return, Escape, ctrl+s, ctrl+shift+t, alt+F4 (XKB key names; control session with input only)." + lastResort,
+			InputSchema: obj(map[string]any{"keys": str("KEY or MOD+...+KEY; modifiers ctrl, shift, alt, super")}, "keys"),
+			Annotations: map[string]any{"readOnlyHint": false, "destructiveHint": true, "openWorldHint": false}},
+		tool{Name: "input_pointer_move", Title: "Move the pointer", special: "input:move",
+			Description: "Move the pointer to x, y in global layout coordinates (see outputs in desktop_state; a screenshot scaled down by max_width must be scaled back up). Control session with input only." + lastResort,
+			InputSchema: obj(map[string]any{"x": intg("x"), "y": intg("y")}, "x", "y"),
+			Annotations: map[string]any{"readOnlyHint": false, "destructiveHint": false, "openWorldHint": false}},
+		tool{Name: "input_pointer_click", Title: "Click", special: "input:click",
+			Description: "Click (optionally at x, y): left, middle or right button; click, double, press or release. Control session with input only." + lastResort,
+			InputSchema: obj(map[string]any{"x": intg("x (optional)"), "y": intg("y (optional)"),
+				"button": map[string]any{"type": "string", "enum": []string{"left", "middle", "right"}},
+				"action": map[string]any{"type": "string", "enum": []string{"click", "double", "press", "release"}}}),
+			Annotations: map[string]any{"readOnlyHint": false, "destructiveHint": true, "openWorldHint": false}},
+		tool{Name: "input_scroll", Title: "Scroll", special: "input:scroll",
+			Description: "Scroll at the pointer: dy steps down (negative up), dx steps right (negative left), at most 50. Control session with input only." + lastResort,
+			InputSchema: obj(map[string]any{"dx": intg("horizontal steps"), "dy": intg("vertical steps")}),
+			Annotations: map[string]any{"readOnlyHint": false, "destructiveHint": false, "openWorldHint": false}},
+	)
 	for _, a := range shell.Actions {
+		if a.Agent {
+			continue
+		}
 		destructive := a.Name == "window.close"
 		ts = append(ts, tool{
 			Name: toolName(a.Name), Title: a.Title, action: a.Name,
@@ -347,6 +418,9 @@ func (s *Server) call(ctx context.Context, name string, args map[string]any) map
 		if t.Name != name {
 			continue
 		}
+		if t.special != "" {
+			return s.callSpecial(ctx, cl, t.special, args)
+		}
 		if t.read != "" {
 			var out any
 			if t.read == "activity" {
@@ -386,4 +460,71 @@ func (s *Server) call(ctx context.Context, name string, args map[string]any) map
 		return textResult(summary, pr.Status != shell.StatusApplied && pr.Status != shell.StatusPending)
 	}
 	return textResult("unknown tool "+name, true)
+}
+
+func (s *Server) callSpecial(ctx context.Context, cl *Client, special string, args map[string]any) map[string]any {
+	switch {
+	case special == "capture":
+		var res shell.CaptureResult
+		if err := cl.Call(ctx, "capture", map[string]any{"args": args, "wait": s.WaitSeconds}, &res); err != nil {
+			return textResult("refused: "+err.Error(), true)
+		}
+		if len(res.PNG) == 0 {
+			msg := map[string]any{"status": res.Status}
+			if res.Proposal != nil {
+				msg["proposal"] = res.Proposal.ID
+				if res.Proposal.Error != "" {
+					msg["error"] = res.Proposal.Error
+				}
+			}
+			switch res.Status {
+			case shell.StatusDeclined:
+				msg["message"] = "The person declined the screenshot. Do not ask again without a reason."
+			case shell.StatusExpired, shell.StatusPending:
+				msg["message"] = "Nobody confirmed the screenshot in time."
+			}
+			return textResult(msg, true)
+		}
+		info := map[string]any{"width": res.Capture.Width, "height": res.Capture.Height, "target": res.Capture.Target, "method": res.Capture.Method}
+		b, _ := json.Marshal(info)
+		return map[string]any{"content": []map[string]any{
+			{"type": "image", "data": base64.StdEncoding.EncodeToString(res.PNG), "mimeType": "image/png"},
+			{"type": "text", "text": string(b)},
+		}}
+	case special == "control":
+		var pr shell.Proposal
+		if err := cl.Call(ctx, "propose", map[string]any{"calls": []shell.Call{{Action: "agent.control", Args: args}}, "wait": s.WaitSeconds}, &pr); err != nil {
+			return textResult("refused: "+err.Error(), true)
+		}
+		out := map[string]any{"proposal": pr.ID, "status": pr.Status, "steps": pr.Steps}
+		switch pr.Status {
+		case shell.StatusApplied:
+			out["message"] = "The person granted the control session. The shell shows that you are in control; end it with agent_control_stop when done."
+			var ct any
+			_ = cl.Call(ctx, "control", nil, &ct)
+			out["control"] = ct
+		case shell.StatusDeclined:
+			out["message"] = "The person declined. Do not ask again without asking them first."
+		default:
+			out["message"] = "Not granted (" + pr.Status + ")."
+		}
+		return textResult(out, pr.Status != shell.StatusApplied)
+	case special == "stop":
+		var out any
+		if err := cl.Call(ctx, "control.stop", nil, &out); err != nil {
+			return textResult(err.Error(), true)
+		}
+		return textResult(out, false)
+	case strings.HasPrefix(special, "input:"):
+		req := map[string]any{"kind": strings.TrimPrefix(special, "input:")}
+		for k, v := range args {
+			req[k] = v
+		}
+		var out any
+		if err := cl.Call(ctx, "input", req, &out); err != nil {
+			return textResult("refused: "+err.Error(), true)
+		}
+		return textResult(out, false)
+	}
+	return textResult("unknown tool", true)
 }

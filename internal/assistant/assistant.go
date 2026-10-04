@@ -217,3 +217,48 @@ func (b *Bridge) Ignore(ctx context.Context, id string) (string, error) {
 	}
 	return b.run(ctx, []string{b.Pkexec, b.Basalt, "ignore", id, "--reason", "ignored from the desktop shell"})
 }
+
+var reUnderstood = regexp.MustCompile(`(?m)^Understood as: basalt ([a-z0-9@._: -]+)$`)
+
+// Understood extracts the command from `basalt ask --dry-run` output
+// ("Understood as: basalt why nginx"). Only read-only commands are
+// returned; a change (apply, rollback) is never run from a request in
+// natural language.
+func Understood(out string) []string {
+	m := reUnderstood.FindStringSubmatch(out)
+	if m == nil {
+		return nil
+	}
+	args := strings.Fields(m[1])
+	if readArgs(args) != nil {
+		return nil
+	}
+	return args
+}
+
+// TranslateHelper returns a function that posts a chat completions body
+// to the system's local model through the read helper (pkexec), for users
+// who may not open the model's socket. Nil when the helper is missing.
+func (b *Bridge) TranslateHelper() func(ctx context.Context, body []byte) ([]byte, error) {
+	if b == nil || b.Pkexec == "" {
+		return nil
+	}
+	if _, err := os.Stat(b.Helper); err != nil {
+		return nil
+	}
+	return func(ctx context.Context, body []byte) ([]byte, error) {
+		if len(body) > 64<<10 {
+			return nil, errors.New("translator request too large")
+		}
+		ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, b.Pkexec, b.Helper, "translate")
+		cmd.Stdin = bytes.NewReader(body)
+		var out, errb bytes.Buffer
+		cmd.Stdout, cmd.Stderr = &out, &errb
+		if err := cmd.Run(); err != nil {
+			return nil, fmt.Errorf("translator helper: %v: %s", err, strings.TrimSpace(errb.String()))
+		}
+		return out.Bytes(), nil
+	}
+}

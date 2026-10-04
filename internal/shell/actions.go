@@ -31,7 +31,10 @@ type ActionDef struct {
 	Title       string  `json:"title"`
 	Description string  `json:"description"`
 	Params      []Param `json:"params"`
-	plan        func(ctx context.Context, p *planner, args map[string]any) (step, error)
+	// Agent marks actions only an agent connection may propose (control
+	// sessions, screenshots); the command bar never produces them.
+	Agent bool `json:"agent,omitempty"`
+	plan  func(ctx context.Context, p *planner, args map[string]any) (step, error)
 }
 
 // step is one planned action: a human summary and, for actions that are
@@ -51,6 +54,7 @@ type planner struct {
 	outputs  []compositor.Output
 	settings theme.Settings
 	touched  bool // settings changed
+	meta     Meta // who asks
 }
 
 func (p *planner) window(ref any) (compositor.Window, error) {

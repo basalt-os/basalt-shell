@@ -38,7 +38,7 @@ window-rule {
 }
 
 spawn-at-startup "basalt-session-init"
-spawn-at-startup "basalt-shell" "daemon"
+spawn-at-startup "basalt-shelld"
 spawn-at-startup "basalt-shell-ui"
 
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
@@ -55,6 +55,8 @@ binds {
     Mod+S { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "quicksettings"; }
     Mod+Comma { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "settings"; }
     Mod+Escape { spawn "basalt-shell-ui" "ipc" "call" "shell" "close"; }
+    // Stop an agent's control session at once.
+    Mod+Shift+Escape { spawn "basalt-shell" "ctl" "control.stop"; }
 
     Mod+Return { spawn "foot"; }
     Mod+E { spawn "nautilus"; }

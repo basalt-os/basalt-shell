@@ -1,0 +1,7 @@
+/usr/bin/basalt-shelld					--	gen_context(system_u:object_r:basalt_shell_exec_t,s0)
+/usr/local/bin/basalt-shelld				--	gen_context(system_u:object_r:basalt_shell_exec_t,s0)
+/usr/bin/basalt-shell					--	gen_context(system_u:object_r:basalt_agent_mcp_exec_t,s0)
+/usr/local/bin/basalt-shell				--	gen_context(system_u:object_r:basalt_agent_mcp_exec_t,s0)
+/usr/libexec/basalt-shell/basalt-shell-ui-launch	--	gen_context(system_u:object_r:basalt_shell_ui_exec_t,s0)
+/usr/local/libexec/basalt-shell/basalt-shell-ui-launch	--	gen_context(system_u:object_r:basalt_shell_ui_exec_t,s0)
+/run/user/[0-9]+/basalt-shell(-headless)?(/.*)?		gen_context(system_u:object_r:basalt_shell_runtime_t,s0)

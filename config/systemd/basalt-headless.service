@@ -1,0 +1,19 @@
+[Unit]
+Description=Basalt desktop, headless (sway without a display, for agents)
+Documentation=https://github.com/openbasalt/basalt-shell/blob/main/docs/headless.md
+# Start it with: systemctl --user start basalt-headless
+# (on a server, `loginctl enable-linger USER` keeps the user manager up).
+
+[Service]
+Type=simple
+# Screen size and an optional VNC view for the person who confirms
+# (localhost only; reach it through an SSH tunnel). Override in a drop-in:
+#   systemctl --user edit basalt-headless
+Environment=BASALT_HEADLESS_SIZE=1920x1080
+Environment=BASALT_HEADLESS_VNC=127.0.0.1:5910
+ExecStart=/usr/bin/basalt-session headless
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

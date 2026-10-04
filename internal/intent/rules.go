@@ -30,6 +30,12 @@ type Result struct {
 	Explain []string `json:"explain,omitempty"`
 	Unknown []string `json:"unknown,omitempty"` // clauses not understood
 	Backend string   `json:"backend"`
+	// From the language model only:
+	AskSystem bool       `json:"ask_system,omitempty"` // a question for the system assistant (basalt ask)
+	Clarify   []string   `json:"clarify,omitempty"`    // intents dropped by grounding
+	None      bool       `json:"none,omitempty"`       // outside what the desktop does
+	Phrases   []string   `json:"phrases,omitempty"`    // canonical phrases run through the rules
+	Model     *ModelInfo `json:"model,omitempty"`
 }
 
 // Context is what the rules need to compute token changes.
@@ -54,6 +60,17 @@ func Rules(text string, ctx Context) Result {
 		res.Explain = append(res.Explain, "system request: basalt "+strings.Join(sys, " "))
 		return res
 	}
+	return compose(splitRe.Split(t, -1), ctx, res)
+}
+
+// Compose understands a list of clauses, each one a single request in the
+// rules' own vocabulary (the translator's canonical phrases use this:
+// splitting is not needed and app or window names may contain "and").
+func Compose(clauses []string, ctx Context, backend string) Result {
+	return compose(clauses, ctx, Result{Backend: backend})
+}
+
+func compose(clauses []string, ctx Context, res Result) Result {
 	// One working copy of tokens so that clauses compose ("darker with
 	// rounder corners" changes colors and radii in one proposal).
 	work := ctx.Tokens.Clone()
@@ -67,8 +84,8 @@ func Rules(text string, ctx Context) Result {
 	}
 	mode := work.Str("mode")
 	modeSwitched := ""
-	for _, clause := range splitRe.Split(t, -1) {
-		clause = strings.TrimSpace(stripFiller(clause))
+	for _, clause := range clauses {
+		clause = strings.TrimSpace(stripFiller(strings.ToLower(clause)))
 		if clause == "" {
 			continue
 		}
@@ -152,7 +169,8 @@ var colorNames = map[string]string{
 	"terra": "#a3472e", "terracotta": "#b5532f", "red": "#c0392b", "vermelho": "#c0392b",
 	"orange": "#d9772b", "laranja": "#d9772b", "yellow": "#c99a06", "amarelo": "#c99a06",
 	"green": "#3f8f4f", "verde": "#3f8f4f", "teal": "#2f7d78", "blue": "#3b6fd1", "azul": "#3b6fd1",
-	"purple": "#7b4fc9", "roxo": "#7b4fc9", "pink": "#c4497f", "rosa": "#c4497f", "slate": "#5f6f7f", "cinza": "#5f6f7f",
+	"purple": "#7b4fc9", "roxo": "#7b4fc9", "roxa": "#7b4fc9", "pink": "#c4497f", "rosa": "#c4497f", "slate": "#5f6f7f", "cinza": "#5f6f7f",
+	"vermelha": "#c0392b", "amarela": "#c99a06",
 }
 
 var reHex = regexp.MustCompile(`#[0-9a-f]{6}\b`)
@@ -265,7 +283,8 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 	}
 	// Motion.
 	switch {
-	case has(c, "reduce motion", "reduced motion", "no animation", "less motion", "disable animation", "sem animaç", "menos animaç", "stop animating"):
+	case has(c, "reduce motion", "reduced motion", "no animation", "less motion", "disable animation", "sem animaç", "menos animaç", "stop animating",
+		"less animation", "animations off", "turn off the animation", "turn off animation", "desliga as animaç", "desligar animaç"):
 		return []Call{{Action: "motion.set", Args: map[string]any{"motion": "reduced"}}}, []string{"reduced motion"}, true
 	case has(c, "enable animation", "full motion", "more animation", "com animaç", "turn on animation"):
 		return []Call{{Action: "motion.set", Args: map[string]any{"motion": "full"}}}, []string{"full motion"}, true
@@ -331,7 +350,7 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 		{[]string{"cascade", "cascata"}, "cascade"},
 		{[]string{"center", "centraliz"}, "center"},
 		{[]string{"rows", "linhas", "stack"}, "rows"},
-		{[]string{"tiling", "tile windows", "tile them", "lado a lado automático"}, "tile"},
+		{[]string{"tiling", "tile windows", "tile the windows", "tile all", "tile them", "lado a lado automático"}, "tile"},
 		{[]string{"float all", "float everything", "floating windows", "janelas flutuantes"}, "float"},
 	} {
 		if has(c, l.words...) && !has(c, "corner") {

@@ -20,7 +20,15 @@ PanelWindow {
     WlrLayershell.keyboardFocus: hasKeyboard ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     Binding { target: Ui; property: "confirmActive"; value: win.current !== null }
 
-    onCurrentChanged: if (current !== null) { shown = current; confirmBtn.forceActiveFocus(); }
+    onCurrentChanged: if (current !== null) { shown = current; armed = false; armTimer.restart(); confirmBtn.forceActiveFocus(); }
+
+    // The buttons take no input for a moment after a request appears, so
+    // a click or a key meant for something else does not answer it.
+    property bool armed: false
+    Timer { id: armTimer; interval: 700; onTriggered: win.armed = true }
+    readonly property var actionNames: shown ? (shown.calls || []).map(c => c.action) : []
+    readonly property bool asksControl: actionNames.indexOf("agent.control") >= 0
+    readonly property bool asksScreen: actionNames.indexOf("screen.capture") >= 0
     onHasKeyboardChanged: if (hasKeyboard) confirmBtn.forceActiveFocus()
 
     property int remaining: 0
@@ -30,7 +38,7 @@ PanelWindow {
     }
 
     function decide(approve) {
-        if (!current) return;
+        if (!current || !armed) return;
         Bus.decide(current.id, approve, () => {});
     }
 
@@ -70,7 +78,11 @@ PanelWindow {
                 }
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
-                    Txt { text: "An assistant wants to change your desktop"; role: "title" }
+                    Txt {
+                        text: win.asksControl ? "An assistant wants to control your desktop"
+                            : (win.asksScreen ? "An assistant wants to see your screen" : "An assistant wants to change your desktop")
+                        role: "title"
+                    }
                     Txt {
                         text: win.shown ? ("Requested by " + win.shown.actor + " through " + (win.shown.origin === "mcp" ? "MCP" : "local IPC") +
                               (win.queue.length > 1 ? "  (" + (win.queue.length - 1) + " more waiting)" : "")) : ""
@@ -80,6 +92,26 @@ PanelWindow {
             }
 
             ProposalView { width: parent.width; proposal: win.shown }
+
+            Rectangle {
+                visible: win.asksControl || win.asksScreen
+                width: parent.width
+                height: warnTxt.implicitHeight + Theme.s3 * 2
+                radius: Theme.radiusMd
+                color: Qt.rgba(Theme.warning.r, Theme.warning.g, Theme.warning.b, 0.16)
+                border.width: 1
+                border.color: Theme.warning
+                Txt {
+                    id: warnTxt
+                    anchors.fill: parent
+                    anchors.margins: Theme.s3
+                    wrapMode: Text.Wrap
+                    elide: Text.ElideNone
+                    text: win.asksControl
+                        ? "It will see everything on your screens and can type and click in any window until the time runs out. A frame shows while it is in control; stop it any time with the Stop button or Super+Shift+Escape. It cannot answer this kind of request for itself."
+                        : "It will receive an image of what is on the screen now, including any private content shown there."
+                }
+            }
 
             Txt {
                 width: parent.width
@@ -94,7 +126,7 @@ PanelWindow {
                 spacing: Theme.s2
                 anchors.right: parent.right
                 Btn { text: "Decline"; variant: "outline"; focusable: true; onClicked: win.decide(false); Keys.onEscapePressed: win.decide(false) }
-                Btn { id: confirmBtn; text: "Confirm"; icon: "check"; variant: "primary"; focusable: true; onClicked: win.decide(true); Keys.onEscapePressed: win.decide(false) }
+                Btn { id: confirmBtn; text: win.asksControl ? "Allow control" : (win.asksScreen ? "Show screenshot" : "Confirm"); icon: "check"; variant: "primary"; focusable: true; opacity: win.armed ? 1 : 0.5; onClicked: win.decide(true); Keys.onEscapePressed: win.decide(false) }
             }
         }
     }

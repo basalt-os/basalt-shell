@@ -26,6 +26,8 @@ PanelWindow {
     function submit() {
         const t = field.text.trim();
         if (!t || busy) return;
+        // A new request replaces the previous proposal: ignore it.
+        if (proposal && proposal.status === "pending") Bus.decide(proposal.id, false, () => {});
         busy = true; result = null; status = "";
         Bus.ask(t, (ok, res) => {
             busy = false;
@@ -58,6 +60,18 @@ PanelWindow {
     }
 
     Timer { id: closeTimer; interval: 1400; onTriggered: Ui.commandBar = false }
+
+    // Closing the bar with a proposal still open ignores it: nothing is
+    // left waiting (agents' input waits while a request is open).
+    Connections {
+        target: Ui
+        function onCommandBarChanged() {
+            if (!Ui.commandBar && win.proposal && win.proposal.status === "pending") {
+                Bus.decide(win.proposal.id, false, () => {});
+                win.result = null;
+            }
+        }
+    }
 
     onVisibleChanged: if (Ui.commandBar) {
         field.text = Ui.commandText;
@@ -134,7 +148,7 @@ PanelWindow {
                             color: Theme.accentSoft
                             anchors.verticalCenter: parent.verticalCenter
                             Txt { id: tag; anchors.centerIn: parent; role: "small"; color: Theme.accent
-                                  text: win.proposal ? ("understood by " + (win.proposal.backend === "model" ? "the local model" : "rules")) : "" }
+                                  text: win.proposal ? ("understood by " + (win.proposal.backend === "model" ? "the local model" : "the fixed phrases")) : "" }
                         }
                     }
                     Txt {

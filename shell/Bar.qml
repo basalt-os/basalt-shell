@@ -146,6 +146,16 @@ PanelWindow {
                 }
             }
 
+            // An agent in control: who, and Stop.
+            Btn {
+                visible: Bus.control !== null
+                icon: "spark"
+                text: "Agent in control"
+                variant: "danger"
+                implicitHeight: Theme.panelHeight - Theme.s2
+                onClicked: Bus.stopControl()
+            }
+
             // StatusNotifierItem tray.
             Row {
                 spacing: Theme.s1

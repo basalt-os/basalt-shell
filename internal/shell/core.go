@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/openbasalt/basalt-shell/internal/agentio"
 	"github.com/openbasalt/basalt-shell/internal/appearance"
 	"github.com/openbasalt/basalt-shell/internal/apps"
 	"github.com/openbasalt/basalt-shell/internal/assistant"
@@ -23,6 +24,7 @@ import (
 	"github.com/openbasalt/basalt-shell/internal/hw"
 	"github.com/openbasalt/basalt-shell/internal/intent"
 	"github.com/openbasalt/basalt-shell/internal/theme"
+	"github.com/openbasalt/basalt-shell/internal/wlvirt"
 )
 
 // Call is a request for one typed action.
@@ -81,6 +83,18 @@ type Core struct {
 	Translator *intent.Model
 	// Assistant is the system assistant bridge (nil when not installed).
 	Assistant *assistant.Bridge
+	// Tools are the screen capture and virtual keyboard programs.
+	Tools agentio.Tools
+	// Hooks replacing Tools (tests).
+	Screenshot func(context.Context, agentio.CaptureSpec) (*agentio.Capture, error)
+	TypeText   func(context.Context, string) error
+	KeyCombo   func(context.Context, string) error
+	// VirtualInput makes the daemon hold its own virtual keyboard and
+	// pointer on the compositor's seat (wlvirt) for agent input; Always
+	// keeps them for the whole session (a headless session has no input
+	// devices otherwise).
+	VirtualInput       bool
+	VirtualInputAlways bool
 
 	mu        sync.Mutex
 	proposals map[string]*Proposal
@@ -91,6 +105,10 @@ type Core struct {
 	desktop   Desktop
 	lastApps  appearance.Result
 	choices   map[string]chan string
+	control   *Control
+	virt      *wlvirt.Device
+	uiModal   bool
+	lastInput time.Time
 }
 
 // Event goes to UI subscribers.
@@ -309,7 +327,7 @@ func (c *Core) planner(ctx context.Context) *planner {
 }
 
 // plan validates calls and returns the proposal (not stored).
-func (c *Core) plan(ctx context.Context, calls []Call) (*Proposal, error) {
+func (c *Core) plan(ctx context.Context, calls []Call, m Meta) (*Proposal, error) {
 	if len(calls) == 0 {
 		return nil, errors.New("no actions")
 	}
@@ -317,6 +335,7 @@ func (c *Core) plan(ctx context.Context, calls []Call) (*Proposal, error) {
 		return nil, errors.New("too many actions in one request (at most 16)")
 	}
 	p := c.planner(ctx)
+	p.meta = m
 	pr := &Proposal{Calls: calls, base: p.settings.Clone()}
 	for _, call := range calls {
 		def, ok := ActionByName(call.Action)
@@ -373,14 +392,18 @@ func (c *Core) plan(ctx context.Context, calls []Call) (*Proposal, error) {
 // Meta describes where a proposal comes from.
 type Meta struct {
 	Origin, Actor, Request, Explain, Backend string
+	// PID and Domain identify the requesting process (SO_PEERCRED and its
+	// SELinux domain); 0 and "" for the command bar and the UI.
+	PID    int
+	Domain string
 }
 
 // Propose stores a proposal for the person to confirm in the shell UI.
 func (c *Core) Propose(ctx context.Context, m Meta, calls []Call) (*Proposal, error) {
 	origin, actor, request := m.Origin, m.Actor, m.Request
-	pr, err := c.plan(ctx, calls)
+	pr, err := c.plan(ctx, calls, m)
 	if err != nil {
-		_, _ = c.Audit.Append("refuse", actor, "invalid request: "+err.Error(), map[string]any{"calls": calls, "request": request})
+		_, _ = c.Audit.Append("refuse", actor, "invalid request: "+err.Error(), map[string]any{"calls": calls, "request": request, "domain": m.Domain})
 		return nil, err
 	}
 	pr.ID, pr.Origin, pr.Actor, pr.Request = newID(), origin, actor, request
@@ -398,7 +421,7 @@ func (c *Core) Propose(ctx context.Context, m Meta, calls []Call) (*Proposal, er
 		delete(c.proposals, old)
 	}
 	c.mu.Unlock()
-	_, _ = c.Audit.Append("request", actor, pr.summary(), map[string]any{"proposal": pr.ID, "origin": origin, "calls": calls, "diff": pr.Diff, "request": request})
+	_, _ = c.Audit.Append("request", actor, pr.summary(), map[string]any{"proposal": pr.ID, "origin": origin, "calls": calls, "diff": pr.Diff, "request": request, "pid": m.PID, "domain": m.Domain})
 	c.Broadcast("proposal", pr.public())
 	go func() {
 		t := time.NewTimer(time.Until(pr.Expires))
@@ -489,6 +512,13 @@ func (c *Core) Decide(ctx context.Context, id string, approve bool, by string) (
 		return pr.public(), fmt.Errorf("proposal %s is %s", id, st)
 	}
 	c.mu.Unlock()
+	// Synthetic input just ran: this confirmation may have been typed or
+	// clicked by an agent, not by the person. Refuse it (the proposal
+	// stays pending, the person can confirm again).
+	if c.recentInput() {
+		_, _ = c.Audit.Append("refuse", by, "confirmation right after synthetic input ignored", map[string]any{"proposal": pr.ID})
+		return pr.public(), errors.New("a confirmation right after agent input is not accepted; confirm again")
+	}
 	// A theme change was computed against the settings of that moment:
 	// if they changed since, the diff the person saw is not what would
 	// happen, so refuse instead of applying something else.
@@ -537,7 +567,12 @@ func (c *Core) run(ctx context.Context, runs []func(context.Context) (any, error
 // Execute runs actions the person started from the shell UI itself (a
 // click in the launcher, a slider in settings): no proposal, audited.
 func (c *Core) Execute(ctx context.Context, actor string, calls []Call) (*Proposal, error) {
-	pr, err := c.plan(ctx, calls)
+	for _, call := range calls {
+		if def, ok := ActionByName(call.Action); ok && def.Agent {
+			return nil, fmt.Errorf("%s is requested by agents, not run from the UI", call.Action)
+		}
+	}
+	pr, err := c.plan(ctx, calls, Meta{Origin: "ui", Actor: actor})
 	if err != nil {
 		return nil, err
 	}

@@ -23,7 +23,7 @@ rep('''#       basalt.profile=minimal          no hardware firmware, CPU microco
     '''#       basalt.profile=minimal          no hardware firmware, CPU microcode or
 #                                       fwupd, for virtual machines (default: standard)
 #       basalt.profile=desktop          standard plus the desktop edition: the
-#                                       Basalt shell on SwayFX (COPR) and niri,
+#                                       Basalt shell on sway (and niri),
 #                                       portals, PipeWire, greetd (traditional
 #                                       Fedora; the server default is unchanged)''')
 rep('BASALT_RECOVERY_KEY_PAUSE, BASALT_REPO_URL) and /basalt/site.ks',
@@ -40,17 +40,14 @@ fi
 ''', '''  echo "Basalt OS packages not found on the media and BASALT_REPO_URL is not set" >&2
   exit 1
 fi
-# Desktop edition: SwayFX is not in Fedora's repositories; it comes from
-# its upstream COPR.
-if [ "$BASALT_PROFILE" = desktop ]; then
-  echo "repo --name=copr-swayfx --baseurl=https://download.copr.fedorainfracloud.org/results/swayfx/swayfx/fedora-\\$releasever-\\$basearch/" >>/tmp/basalt-repo.ks
-fi
 ''')
 
 DESKTOP_PKGS = """basalt-shell
+basalt-shell-selinux
+basalt-agent-selinux
 basalt-assistant
 basalt-assistant-selinux
-swayfx
+sway
 niri
 quickshell
 xwayland-satellite
@@ -65,6 +62,7 @@ wireplumber
 upower
 polkit
 gnome-keyring
+gnome-keyring-pam
 gcr
 greetd
 tuigreet
@@ -79,6 +77,7 @@ adw-gtk3-theme
 adwaita-icon-theme
 adwaita-cursor-theme
 qt6ct
+qt5ct
 qt6-qtwayland
 rsms-inter-fonts
 jetbrains-mono-fonts
@@ -92,6 +91,7 @@ grim
 slurp
 wf-recorder
 wtype
+wayvnc
 brightnessctl
 xdg-utils
 xdg-user-dirs

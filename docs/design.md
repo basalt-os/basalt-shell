@@ -1,8 +1,17 @@
 # Basalt shell design
 
-Status: prototype (0.1.0). This document describes how the shell is put
+Status: prototype (0.2.0). This document describes how the shell is put
 together and why. Measurements, the compositor comparison and open
-questions are in [prototype-report.md](prototype-report.md).
+questions of 0.1.0 are in [prototype-report.md](prototype-report.md).
+The confirmation boundary is in [selinux.md](selinux.md), the headless
+session for agents in [headless.md](headless.md) and the command bar's
+local model in [command-bar.md](command-bar.md).
+
+Decided (ADR 0003, 2026-10-03): functionality and the best API for models
+and MCP come before looks. The default compositor is upstream sway from
+Fedora (runs without a GPU and headless, the most complete IPC, wlroots
+protocols for screen capture, virtual input and toplevel lists); niri is
+an optional second session; SwayFX is not shipped.
 
 ## Goals
 
@@ -12,7 +21,8 @@ questions are in [prototype-report.md](prototype-report.md).
 - Our own shell, beautiful and easy for end users to change: one set of
   design tokens, editable from a settings page, applied live.
 - Compositor-agnostic: the shell talks to the compositor through one
-  adapter interface, so the compositor can be swapped later.
+  adapter interface, so the compositor can be swapped later. sway is the
+  default and also runs headless, for agents in VMs and servers.
 - What people expect from a desktop: windows float by default, tiling is
   optional; regular apps (GTK, libadwaita, Qt, Electron, X11, Flatpak)
   work and follow the theme.
@@ -27,26 +37,34 @@ questions are in [prototype-report.md](prototype-report.md).
    Quickshell UI (QML, role "ui")              basalt-shell mcp (stdio)    basalt-shell ctl / scripts
    panel, launcher, command bar,                       |                          |
    confirmation sheet, settings, ...                   +------------+-------------+
-                   |                                                |  role "agent"
+   SELinux: basalt_shell_ui_t                          |  role "agent", SELinux: basalt_agent_mcp_t
+                   |                                                |
                    +---------------- Unix socket -------------------+
                                 $XDG_RUNTIME_DIR/basalt-shell/shell.sock
+                         (role from SO_PEERCRED + SO_PEERSEC of the peer)
                                           |
-                               basalt-shell daemon (Go)
+                               basalt-shelld (Go), SELinux: basalt_shell_t
         +----------------+----------------+-----------------+------------------+
         |                |                |                 |                  |
   compositor adapter  theme store    typed actions     audit log        appearance sync
-  sway/SwayFX (i3 IPC) tokens, themes, + proposals     (hash chain)     gsettings, portal,
-  niri (JSON socket)   settings.json   (confirmation)                   GTK css, qt6ct
+  sway (i3 IPC)        tokens, themes, + proposals     (hash chain)     gsettings, portal,
+  niri (JSON socket)   settings.json   (confirmation)                   GTK css, qt5ct, qt6ct
+        |
+  agents' last resort: grim (screencopy), wtype and the daemon's own
+  virtual keyboard and pointer (wlvirt), behind confirmation and a
+  visible control session
                                           |
                                system assistant bridge
                                (basalt CLI: read through a polkit helper,
                                 apply through basalt apply --confirm)
 ```
 
-- `basalt-shell daemon` is the single owner of desktop state and of every
-  change. It has no third-party Go modules.
-- `basalt-shell-ui` runs Quickshell (Qt 6 / QML) with the shell's QML. The
-  UI holds no logic that changes the desktop: it asks the daemon.
+- `basalt-shelld` (the daemon) is the single owner of desktop state and of
+  every change. It has no third-party Go modules.
+- `basalt-shell-ui` runs Quickshell (Qt 6 / QML) with the shell's QML
+  through `basalt-shell-ui-launch`, the entry point of the UI's SELinux
+  domain. The UI holds no logic that changes the desktop: it asks the
+  daemon.
 - `basalt-shell mcp` is an MCP server (protocol 2025-06-18, stdio). It is
   just another client of the daemon's socket, with the agent role.
 - `basalt-shell ctl OP [JSON]` and `basalt-shell propose ACTION [JSON]` are
@@ -76,20 +94,27 @@ Newline-delimited JSON over a Unix socket (mode 0600, directory 0700).
 | `chosen` | ui | the person's answer to a `choose` |
 | `assistant.pending`, `assistant.show` | any | the system assistant's proposals |
 | `assistant.apply`, `assistant.ignore` | ui | the system assistant's own confirmation flow |
+| `toplevels` | any | the windows (with their foreign-toplevel identifiers) |
+| `capture` | agent | a screenshot for this agent: confirmed by the person, or inside its control session |
+| `input` | agent | one synthetic input step (type, key, move, click, scroll), only inside the agent's control session |
+| `control`, `control.stop` | any | the control session; anyone may stop it |
+| `ui.state` | ui | the UI tells whether it shows a modal dialog |
+| `audit.verify` | any | check the activity log's chain |
 
 Roles. Every connection starts as `agent`. The `ui` role is granted only
-when the peer (SO_PEERCRED) is the same user and its executable is
-Quickshell. This keeps MCP clients and scripts from confirming their own
-requests through the socket. It is not a security boundary against code
-already running as the user (such code could also send keystrokes); the
-real boundary for the product is SELinux confinement of agent processes,
-as for the system assistant (ADR 0004). Writes from agents are always
+to a peer of the same user (SO_PEERCRED) whose SELinux domain (SO_PEERSEC)
+is the shell UI's, `basalt_shell_ui_t`, running Quickshell, and only to
+one connection at a time. Agents (`basalt_agent_mcp_t` and the rest of
+the agent family) can read and propose, never confirm. Without the Basalt
+policy the daemon falls back to the program name and says so. Details,
+tests and limits: [selinux.md](selinux.md). Writes from agents are always
 proposals, whatever they claim to be.
 
 ## Typed actions
 
-The closed set (15 kinds). Each has a JSON-schema of parameters, strict
-validation, a human summary, and runs only through the daemon:
+The closed set (15 kinds, plus 2 that only agents may propose: below).
+Each has a JSON-schema of parameters, strict validation, a human summary,
+and runs only through the daemon:
 
 | Action | Parameters |
 |---|---|
@@ -108,9 +133,33 @@ validation, a human summary, and runs only through the daemon:
 | `settings.open` | page |
 | `shell.open` | surface: launcher, commandbar, quicksettings, activity, notifications, settings |
 
-Read tools for MCP: `desktop_state`, `theme_get`, `apps_list`,
-`activity_recent`, `proposal_status`. Write tools are the actions above,
-named with underscores (`window_move`, `theme_set_tokens`, ...).
+Read tools for MCP: `desktop_state`, `toplevels_list`, `theme_get`,
+`apps_list`, `activity_recent`, `proposal_status`, `agent_control_status`.
+Write tools are the actions above, named with underscores (`window_move`,
+`theme_set_tokens`, ...), and the last-resort tools below.
+
+## Agents' last resort: screen and input
+
+For applications without a typed action, the MCP server offers what
+wlroots makes possible, always through the daemon (agents cannot reach
+the Wayland socket themselves):
+
+| Tool | Rule |
+|---|---|
+| `screen_capture` (`screen.capture`) | a PNG of an output or a window (grim, wlroots screencopy; a single window through ext-image-copy-capture where the compositor has it, else its area of the screen); each screenshot is confirmed on the sheet, which says the agent will see the screen; the image goes to that agent only (not to the log, not kept) |
+| `agent_control_request` (`agent.control`) | a control session of 1 to 15 minutes, confirmed on the sheet with a warning; bound to the requesting process |
+| `input_type_text`, `input_key`, `input_pointer_move`, `input_pointer_click`, `input_scroll` | only inside that session: text and keys through the virtual keyboard protocol (wtype), the pointer through the daemon's own virtual pointer (`zwlr_virtual_pointer_v1`, absolute positions in layout coordinates) |
+| `agent_control_stop` | ends the session |
+
+While a session runs, every screen has a frame and a banner saying which
+agent controls the desktop, the time left and a Stop button; the panel
+shows "Agent in control"; Super+Shift+Escape stops it. A screenshot
+outside a session flashes a short banner. Input is refused while the
+person has a confirmation, a choice or an authentication dialog open; a
+confirmation that arrives less than 1.5 s after synthetic input is
+refused, and the sheet's buttons take no input for 0.7 s after a request
+appears, so an agent cannot click or type its own "Confirm". Every
+capture and input step (with the text typed) goes to the activity log.
 
 ## Proposals and confirmation
 
@@ -146,21 +195,23 @@ The activity feed in the shell is this log.
 
 Free text goes to the daemon (`ask`):
 
-1. If a local language model is configured (the system assistant's
-   `[translator]` section in `/etc/basalt/assistant.conf`, the same local
-   llama.cpp service as `basalt ask`, or `BASALT_SHELL_TRANSLATOR`), the
-   request is translated into action calls with output constrained by a
-   JSON schema of the action set. A non-local endpoint is refused unless
-   `allow_remote = yes`.
-2. Otherwise, or when the model fails, deterministic rules (English and
-   Portuguese) understand short requests: darker or lighter, light or dark
-   mode, rounder or sharper corners, bigger or smaller text, spacing,
-   accent color, a theme by name, panel position, shadows, blur, motion,
-   open an app, close, focus, move to a workspace, arrange windows, open
-   settings. Clauses compose: "make it darker with rounder corners" is one
-   theme proposal with both changes.
+1. Fixed phrases (deterministic rules, English and Portuguese) first:
+   darker or lighter, light or dark mode, rounder or sharper corners,
+   bigger or smaller text, spacing, accent color, a theme by name, panel
+   position, shadows, blur, motion, open an app, close, focus, move to a
+   workspace, arrange windows, open settings. Clauses compose: "make it
+   darker with rounder corners" is one theme proposal with both changes.
+   When they understand the whole request they are used: exact and
+   instant.
+2. Anything else goes to the local language model when one is configured
+   (the system assistant's `[translator]` section in
+   `/etc/basalt/assistant.conf`, the same basalt-llm service as `basalt
+   ask`). Its output is constrained to a closed set of desktop intents,
+   checked against the words of the request and turned into the same
+   typed actions. Details and measurements: [command-bar.md](command-bar.md).
 3. System questions ("why nginx", "disk", "snapshots", "selinux denials",
-   "status", "pending", "show p-1a2b3c") go to the system assistant.
+   "status", "pending", "show p-1a2b3c") go to the system assistant; with
+   the model, its own translator (`basalt ask`) picks the command.
 
 The result is a proposal shown with its diff; nothing runs until Apply.
 
@@ -236,11 +287,12 @@ type Adapter interface {
 }
 ```
 
-- sway / SwayFX: the i3 binary IPC on `$SWAYSOCK` (GET_TREE, GET_WORKSPACES,
-  GET_OUTPUTS, RUN_COMMAND, SUBSCRIBE). Style through runtime commands:
-  client colors, borders, gaps on sway; on SwayFX also corner_radius,
-  shadows, blur and dimming, live. SwayFX is detected from its version
-  string or by probing a SwayFX command.
+- sway (the default): the i3 binary IPC on `$SWAYSOCK` (GET_TREE,
+  GET_WORKSPACES, GET_OUTPUTS, RUN_COMMAND, SUBSCRIBE). Style through
+  runtime commands: client colors, borders, gaps. sway 1.11 reports each
+  window's foreign-toplevel identifier. Pointer fallback through `seat
+  cursor` commands. (The adapter still recognizes SwayFX and sets its
+  corners, shadows and blur; SwayFX is not shipped.)
 - niri: JSON requests on `$NIRI_SOCKET` (Windows, Workspaces, Outputs,
   Action, EventStream). niri has no runtime styling command, so the
   adapter writes `basalt-theme.kdl` next to the niri config (which
@@ -270,12 +322,12 @@ tile`, the Windows settings page, or "tile windows" in the command bar).
 | Privacy | a panel indicator while any app captures the screen, a camera or the microphone (PipeWire input streams) |
 | GTK 4 / libadwaita | the portal settings live; exact palette for both modes (libadwaita CSS variables under a prefers-color-scheme media query) in a managed block of ~/.config/gtk-4.0/gtk.css, read when an app starts |
 | GTK 3 | adw-gtk3 / adw-gtk3-dark switched with the mode; the accent in a managed block of ~/.config/gtk-3.0/gtk.css |
-| Qt 5 / 6 | qt6ct (QT_QPA_PLATFORMTHEME) with a generated color scheme and fonts |
+| Qt 5 / 6 | qt5ct and qt6ct (QT_QPA_PLATFORMTHEME=qt6ct:qt5ct) with a generated color scheme and fonts, when the app starts |
 | Icons, cursor, fonts | gsettings (icon-theme, cursor-theme, cursor-size, font-name, monospace-font-name) and the compositor's cursor |
 | X11 apps | XWayland on sway; xwayland-satellite on niri (started on demand by niri) |
 | Electron | Ozone Wayland (ELECTRON_OZONE_PLATFORM_HINT=auto), dark mode from the portal |
 | Polkit agent | the shell's own (Quickshell polkit service), themed |
-| Secrets | gnome-keyring (Secret Service and the Secret portal) |
+| Secrets | gnome-keyring (Secret Service and the Secret portal), unlocked at login by pam_gnome_keyring in greetd's PAM stack (gnome-keyring-pam) |
 | Tray | StatusNotifierItem host in the panel |
 | Notifications | org.freedesktop.Notifications served by the shell |
 | Clipboard | wl-clipboard, cliphist history |
@@ -284,9 +336,10 @@ tile`, the Windows settings page, or "tile windows" in the command bar).
 
 ## Session
 
-`basalt-session sway|niri` sets the toolkit environment and starts the
-compositor with the shell's config; the wayland-sessions entries "Basalt
-(SwayFX)" and "Basalt (niri)" call it. `basalt-session-init`, started by
+`basalt-session sway|niri|headless` sets the toolkit environment and
+starts the compositor with the shell's config; the wayland-sessions
+entries "Basalt" (sway) and "Basalt (niri)" call it, and
+`basalt-headless.service` runs the headless session. `basalt-session-init`, started by
 the compositor, exports the session's environment to the systemd user
 manager (apps run in their own scopes and need DISPLAY, the Wayland and
 Qt variables and the Electron hint), stops portals left from an earlier
@@ -299,7 +352,9 @@ manager and does not change the host's application settings.
 
 ## Packaging
 
-`basalt-shell` RPM (spec in `packaging/`): daemon, QML, themes, session
-files, portal configuration, polkit policy and helper. Fedora 44 has
-Quickshell, niri, xwayland-satellite, the portals and every other
-dependency in its own repositories; SwayFX comes from its upstream COPR.
+`basalt-shell` RPM (spec in `packaging/`): daemon, client, UI launcher,
+QML, themes, session files, portal configuration, polkit policy and
+helper; `basalt-shell-selinux`: the `basalt_agent_base` and
+`basalt_shell` modules. Every dependency (sway, Quickshell, niri,
+xwayland-satellite, the portals, grim, wtype, wayvnc, qt5ct, qt6ct,
+gnome-keyring-pam) is in Fedora 44's own repositories: no COPR.

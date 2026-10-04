@@ -2,6 +2,12 @@
 
 Date: 2026-10-03. Prototype 0.1.0. How it is built: [design.md](design.md).
 
+Superseded in part (0.2.0, 2026-10-04): the owner decided sway as the
+default compositor (functionality and the API for models first), niri as
+an optional session and no SwayFX; the confirmation check moved from the
+program name to SELinux domains (selinux.md); qt5ct and the keyring
+unlock at login closed two gaps of the matrix below.
+
 ## What was built
 
 - A shell of our own on Quickshell (Qt 6 / QML): panel (workspaces, focused

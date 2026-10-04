@@ -1,9 +1,10 @@
-# Basalt shell session on sway or SwayFX.
+# Basalt shell session on sway (the default session of the desktop
+# edition; also the headless session for agents).
 #
 # The shell (panel, launcher, command bar, notifications, settings) is
-# basalt-shell-ui (Quickshell); window style (borders, gaps, and on SwayFX
-# corners, shadows, blur) is applied at runtime by the basalt-shell daemon
-# from the theme tokens, so nothing here hardcodes colors.
+# basalt-shell-ui (Quickshell); window style (borders, gaps, colors) is
+# applied at runtime by the daemon (basalt-shelld) from the theme tokens,
+# so nothing here hardcodes colors.
 #
 # Windows float by default, like most desktops. Tiling is one key away:
 # Super+T tiles or floats the focused window, the Windows settings page and
@@ -38,7 +39,7 @@ input type:touchpad {
 exec basalt-session-init
 
 # The shell.
-exec basalt-shell daemon
+exec basalt-shelld
 exec basalt-shell-ui
 
 # Shell surfaces.
@@ -49,6 +50,8 @@ bindsym $mod+n exec $ui toggle notifications
 bindsym $mod+s exec $ui toggle quicksettings
 bindsym $mod+comma exec $ui toggle settings
 bindsym $mod+Escape exec $ui close
+# Stop an agent's control session at once (any process may stop one).
+bindsym $mod+Shift+Escape exec basalt-shell ctl control.stop
 
 # Apps and windows.
 bindsym $mod+Return exec foot

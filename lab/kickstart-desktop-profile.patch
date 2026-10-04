@@ -1,11 +1,11 @@
---- a/kickstart/basalt-server.ks	2026-10-03 18:07:31.287096812 -0300
-+++ b/kickstart/basalt-server.ks	2026-10-03 18:07:31.298097004 -0300
+--- a/kickstart/basalt-server.ks	2026-10-03 23:39:06.904690306 -0300
++++ b/kickstart/basalt-server.ks	2026-10-03 23:39:06.920690587 -0300
 @@ -12,6 +12,10 @@
  #       basalt.finish=poweroff|reboot   (default: reboot)
  #       basalt.profile=minimal          no hardware firmware, CPU microcode or
  #                                       fwupd, for virtual machines (default: standard)
 +#       basalt.profile=desktop          standard plus the desktop edition: the
-+#                                       Basalt shell on SwayFX (COPR) and niri,
++#                                       Basalt shell on sway (and niri),
 +#                                       portals, PipeWire, greetd (traditional
 +#                                       Fedora; the server default is unchanged)
  #       basalt.unlock=tpm2|tang|tpm2+tang
@@ -37,28 +37,18 @@
  case "$BASALT_UNLOCK" in tpm2|tang|tpm2+tang) ;; *) echo "unknown basalt.unlock=$BASALT_UNLOCK" >&2; exit 1 ;; esac
  network_unlock=0
  if [ "$BASALT_ENCRYPT" = 1 ] && [ "$BASALT_UNLOCK" != tpm2 ]; then
-@@ -119,6 +124,11 @@
-   echo "Basalt OS packages not found on the media and BASALT_REPO_URL is not set" >&2
-   exit 1
- fi
-+# Desktop edition: SwayFX is not in Fedora's repositories; it comes from
-+# its upstream COPR.
-+if [ "$BASALT_PROFILE" = desktop ]; then
-+  echo "repo --name=copr-swayfx --baseurl=https://download.copr.fedorainfracloud.org/results/swayfx/swayfx/fedora-\$releasever-\$basearch/" >>/tmp/basalt-repo.ks
-+fi
- 
- # Boot loader: serial console first (and the screen); kernel lockdown and
- # module signature enforcement, which Fedora kernels apply under Secure Boot
-@@ -209,6 +219,59 @@
+@@ -209,6 +214,64 @@
    if [ "$BASALT_PROFILE" = minimal ]; then
      printf '%s\n' -linux-firmware -linux-firmware-whence '-*-firmware' -microcode_ctl '-fwupd*' -flashrom
    fi
 +  if [ "$BASALT_PROFILE" = desktop ]; then
 +    cat <<'PKG'
 +basalt-shell
++basalt-shell-selinux
++basalt-agent-selinux
 +basalt-assistant
 +basalt-assistant-selinux
-+swayfx
++sway
 +niri
 +quickshell
 +xwayland-satellite
@@ -73,6 +63,7 @@
 +upower
 +polkit
 +gnome-keyring
++gnome-keyring-pam
 +gcr
 +greetd
 +tuigreet
@@ -87,6 +78,7 @@
 +adwaita-icon-theme
 +adwaita-cursor-theme
 +qt6ct
++qt5ct
 +qt6-qtwayland
 +rsms-inter-fonts
 +jetbrains-mono-fonts
@@ -100,6 +92,7 @@
 +slurp
 +wf-recorder
 +wtype
++wayvnc
 +brightnessctl
 +xdg-utils
 +xdg-user-dirs

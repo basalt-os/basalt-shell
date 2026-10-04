@@ -13,10 +13,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/openbasalt/basalt-shell/internal/apps"
+	"github.com/openbasalt/basalt-shell/internal/audit"
 )
 
 // Request is one IPC message from a client (newline-delimited JSON).
@@ -44,11 +44,12 @@ const (
 type Server struct {
 	Core *Core
 	Path string
-	// UIExecutables are the program names allowed to take the ui role
-	// (checked through the peer's /proc/PID/exe).
-	UIExecutables []string
-	// InsecureUI accepts any same-user peer as ui (development only).
-	InsecureUI bool
+	// UI decides which peers may take the ui role (the only role that
+	// may confirm): their SELinux domain in the product (DetectUICheck).
+	UI UICheck
+
+	uiMu   sync.Mutex
+	uiSess *session
 }
 
 // DefaultSocket is $XDG_RUNTIME_DIR/basalt-shell/shell.sock.
@@ -65,15 +66,19 @@ func DefaultSocket() string {
 
 // Listen serves until ctx ends.
 func (s *Server) Listen(ctx context.Context) error {
-	if err := os.MkdirAll(filepath.Dir(s.Path), 0o700); err != nil {
-		return err
-	}
-	_ = os.Chmod(filepath.Dir(s.Path), 0o700)
 	if c, err := net.Dial("unix", s.Path); err == nil {
 		c.Close()
 		return fmt.Errorf("another basalt-shell daemon is listening on %s", s.Path)
 	}
+	// Start from a fresh directory when it holds only a stale socket: the
+	// daemon creating it gives it the SELinux type of the shell's runtime
+	// files (the only socket agents may reach), whoever created it before.
 	_ = os.Remove(s.Path)
+	_ = os.Remove(filepath.Dir(s.Path)) // fails, harmlessly, when not empty
+	if err := os.MkdirAll(filepath.Dir(s.Path), 0o700); err != nil {
+		return err
+	}
+	_ = os.Chmod(filepath.Dir(s.Path), 0o700)
 	l, err := net.Listen("unix", s.Path)
 	if err != nil {
 		return err
@@ -92,40 +97,31 @@ func (s *Server) Listen(ctx context.Context) error {
 	}
 }
 
-// peer returns the uid and pid of the other end.
-func peer(c *net.UnixConn) (uid, pid int, err error) {
-	raw, err := c.SyscallConn()
-	if err != nil {
-		return 0, 0, err
+// claimUI makes ss the one ui connection. A second process asking for
+// the ui role while the shell UI is connected is refused (and audited):
+// taking over needs the running UI gone first, which the person sees.
+// The same process reconnecting replaces its old connection.
+func (s *Server) claimUI(ss *session) bool {
+	s.uiMu.Lock()
+	defer s.uiMu.Unlock()
+	if s.uiSess != nil && s.uiSess != ss {
+		if s.uiSess.pid != ss.pid {
+			return false
+		}
+		// The same UI process reconnecting: its old connection is dead or
+		// about to be; the new one takes over.
+		s.uiSess.conn.Close()
 	}
-	var cred *syscall.Ucred
-	var cerr error
-	if err := raw.Control(func(fd uintptr) {
-		cred, cerr = syscall.GetsockoptUcred(int(fd), syscall.SOL_SOCKET, syscall.SO_PEERCRED)
-	}); err != nil {
-		return 0, 0, err
-	}
-	if cerr != nil {
-		return 0, 0, cerr
-	}
-	return int(cred.Uid), int(cred.Pid), nil
+	s.uiSess = ss
+	return true
 }
 
-func (s *Server) isUI(pid int) bool {
-	if s.InsecureUI {
-		return true
+func (s *Server) releaseUI(ss *session) {
+	s.uiMu.Lock()
+	if s.uiSess == ss {
+		s.uiSess = nil
 	}
-	exe, err := os.Readlink(fmt.Sprintf("/proc/%d/exe", pid))
-	if err != nil {
-		return false
-	}
-	base := filepath.Base(exe)
-	for _, n := range s.UIExecutables {
-		if base == n {
-			return true
-		}
-	}
-	return false
+	s.uiMu.Unlock()
 }
 
 type session struct {
@@ -136,6 +132,7 @@ type session struct {
 	role   string
 	client string
 	pid    int
+	peer   Peer
 }
 
 func (ss *session) send(v any) {
@@ -153,17 +150,18 @@ func (ss *session) send(v any) {
 
 func (s *Server) serve(ctx context.Context, conn *net.UnixConn) {
 	defer conn.Close()
-	uid, pid, err := peer(conn)
-	if err != nil || uid != os.Getuid() {
+	p, err := peerInfo(conn)
+	if err != nil || p.UID != os.Getuid() {
 		return
 	}
-	ss := &session{s: s, conn: conn, w: bufio.NewWriter(conn), role: RoleAgent, pid: pid}
+	ss := &session{s: s, conn: conn, w: bufio.NewWriter(conn), role: RoleAgent, pid: p.PID, peer: p}
 	r := bufio.NewReaderSize(conn, 1<<16)
 	var unsub func()
 	defer func() {
 		if unsub != nil {
 			unsub()
 		}
+		s.releaseUI(ss)
 	}()
 	for {
 		line, err := r.ReadBytes('\n')
@@ -184,10 +182,16 @@ func (s *Server) serve(ctx context.Context, conn *net.UnixConn) {
 				Client string `json:"client"`
 			}
 			_ = json.Unmarshal(req.Args, &a)
-			ss.client = a.Client
+			ss.client = sanitizeClient(a.Client)
 			if a.Role == RoleUI {
-				if !s.isUI(pid) {
-					ss.send(Reply{ID: req.ID, Error: "the ui role is reserved for the shell UI"})
+				err := s.UI.Allows(p)
+				if err == nil && ss.role != RoleUI && !s.claimUI(ss) {
+					err = errors.New("another shell UI is already connected")
+				}
+				if err != nil {
+					_, _ = s.Core.Audit.Append("refuse", ss.actor(), "ui role refused: "+err.Error(),
+						map[string]any{"pid": p.PID, "exe": p.Exe, "context": p.Context, "ui_check": s.UI.Mode})
+					ss.send(Reply{ID: req.ID, Error: "the ui role is reserved for the shell UI (" + err.Error() + ")"})
 					continue
 				}
 				ss.role = RoleUI
@@ -201,7 +205,7 @@ func (s *Server) serve(ctx context.Context, conn *net.UnixConn) {
 					}()
 				}
 			}
-			ss.send(Reply{ID: req.ID, OK: true, Result: map[string]any{"role": ss.role, "version": Version}})
+			ss.send(Reply{ID: req.ID, OK: true, Result: map[string]any{"role": ss.role, "version": Version, "domain": p.Type, "ui_check": s.UI.Mode}})
 			continue
 		}
 		// Long operations (waiting for a confirmation, the assistant) run
@@ -228,7 +232,30 @@ func (ss *session) actor() string {
 	if c == "" {
 		c = "pid " + strconv.Itoa(ss.pid)
 	}
+	if ss.peer.Type != "" {
+		// The domain comes from the kernel; the client name is only a label.
+		return "agent:" + c + " (" + ss.peer.Type + ")"
+	}
 	return "agent:" + c
+}
+
+// meta describes this connection for proposals.
+func (ss *session) meta(origin, request string) Meta {
+	return Meta{Origin: origin, Actor: ss.actor(), Request: request, PID: ss.pid, Domain: ss.peer.Type}
+}
+
+// sanitizeClient keeps a client's self-chosen name short and printable.
+func sanitizeClient(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if b.Len() >= 40 {
+			break
+		}
+		if r == '-' || r == '_' || r == '.' || r == ':' || r == '/' || (r >= '0' && r <= '9') || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 func decode(raw json.RawMessage, v any) error {
@@ -265,7 +292,8 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		return map[string]any{
 			"desktop": d, "theme": c.Theme(), "pending": c.Pending(), "activity": c.Audit.Tail(60),
 			"actions": Catalog(), "assistant": c.Assistant != nil && c.Assistant.Available(),
-			"translator": c.Translator != nil, "version": Version,
+			"translator": c.Translator != nil, "version": Version, "control": c.ControlState(),
+			"ui_check": ss.s.UI, "agent_io": c.AgentIO(),
 		}, nil
 	case "desktop":
 		return c.Refresh(ctx), nil
@@ -325,7 +353,7 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		if strings.HasPrefix(ss.client, "mcp") {
 			origin = "mcp"
 		}
-		pr, err := c.Propose(ctx, Meta{Origin: origin, Actor: ss.actor(), Request: a.Request}, a.Calls)
+		pr, err := c.Propose(ctx, ss.meta(origin, a.Request), a.Calls)
 		if err != nil {
 			return nil, err
 		}
@@ -376,6 +404,7 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		return pr.public(), nil
 	case "decide":
 		if err := ss.requireUI(); err != nil {
+			_, _ = c.Audit.Append("refuse", ss.actor(), "confirmation refused: not the shell UI", map[string]any{"pid": ss.pid, "context": ss.peer.Context})
 			return nil, err
 		}
 		var a struct {
@@ -447,6 +476,9 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		if err := ss.requireUI(); err != nil {
 			return nil, err
 		}
+		if c.recentInput() {
+			return nil, errors.New("an answer right after agent input is not accepted; answer again")
+		}
 		var a struct {
 			ID     string `json:"id"`
 			Choice string `json:"choice"`
@@ -471,6 +503,9 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		if err := ss.requireUI(); err != nil {
 			return nil, err
 		}
+		if c.recentInput() {
+			return nil, errors.New("an Apply right after agent input is not accepted; apply again")
+		}
 		var a struct {
 			ID   string `json:"id"`
 			Code string `json:"code"`
@@ -488,6 +523,61 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		_ = decode(req.Args, &a)
 		out, err := c.AssistantIgnore(ctx, a.ID)
 		return map[string]any{"output": out, "ok": err == nil}, nil
+	case "toplevels":
+		d := c.Refresh(ctx)
+		return d.Windows, nil
+	case "capture":
+		// A screenshot for this agent: inside its control session, or
+		// after the person confirmed it.
+		var a struct {
+			Args map[string]any `json:"args"`
+			Wait int            `json:"wait"`
+		}
+		if err := decode(req.Args, &a); err != nil {
+			return nil, err
+		}
+		if ss.role == RoleUI {
+			return nil, errors.New("the shell UI does not take screenshots for itself")
+		}
+		if a.Wait <= 0 || a.Wait > 600 {
+			a.Wait = 180
+		}
+		origin := "ipc"
+		if strings.HasPrefix(ss.client, "mcp") {
+			origin = "mcp"
+		}
+		return c.Capture(ctx, ss.meta(origin, ""), a.Args, time.Duration(a.Wait)*time.Second)
+	case "input":
+		var in InputRequest
+		if err := decode(req.Args, &in); err != nil {
+			return nil, err
+		}
+		if ss.role == RoleUI {
+			return nil, errors.New("the shell UI does not inject input")
+		}
+		return c.Input(ctx, ss.meta("ipc", ""), in)
+	case "control":
+		return c.ControlState(), nil
+	case "control.stop":
+		// Anyone may stop a control session: it only takes power away.
+		by := ss.actor()
+		return map[string]any{"stopped": c.StopControl(by, "control session stopped by "+by)}, nil
+	case "ui.state":
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		var a struct {
+			Modal bool `json:"modal"`
+		}
+		_ = decode(req.Args, &a)
+		c.SetUIModal(a.Modal)
+		return nil, nil
+	case "audit.verify":
+		n, err := audit.Verify(c.Audit.Path())
+		if err != nil {
+			return map[string]any{"ok": false, "records": n, "error": err.Error()}, nil
+		}
+		return map[string]any{"ok": true, "records": n}, nil
 	}
 	log.Printf("unknown op %q from %s", req.Op, ss.actor())
 	return nil, fmt.Errorf("unknown op %q", req.Op)

@@ -25,6 +25,7 @@ ShellRoot {
     ChooserSheet {}
     Settings {}
     PolkitDialog {}
+    AgentFrame {}
 
     // Make sure the singletons start with the shell.
     Component.onCompleted: { Bus.connected; Notifs.unread; Ui.launcher; }

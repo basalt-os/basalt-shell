@@ -1,22 +1,33 @@
 #!/bin/bash
 # Run the Basalt shell UI (Quickshell), or talk to a running one:
-#   basalt-shell-ui                      start the shell
+#   basalt-shell-ui                      start the shell (through the UI launcher,
+#                                        which enters the shell UI's SELinux domain)
 #   basalt-shell-ui ipc call shell toggle launcher
 set -eu
-qml=${BASALT_SHELL_QML:-}
-if [ -z "$qml" ]; then
-  for d in "$(dirname "$(readlink -f "$0")")/../share/basalt-shell/qml" "$(dirname "$(readlink -f "$0")")/../shell" /usr/local/share/basalt-shell/qml /usr/share/basalt-shell/qml; do
-    if [ -f "$d/shell.qml" ]; then qml=$(readlink -f "$d"); break; fi
-  done
-fi
-qs=$(command -v qs || command -v quickshell)
+self=$(dirname "$(readlink -f "$0")")
 if [ "${1:-}" = ipc ]; then
-  # The instance may not know its display (started by the compositor
-  # before WAYLAND_DISPLAY was exported): match it by config path only.
+  qml=${BASALT_SHELL_QML:-}
+  if [ -z "$qml" ]; then
+    for d in "$self/../share/basalt-shell/qml" "$self/../shell" /usr/local/share/basalt-shell/qml /usr/share/basalt-shell/qml; do
+      if [ -f "$d/shell.qml" ]; then qml=$(readlink -f "$d"); break; fi
+    done
+  fi
+  qs=$(command -v qs || command -v quickshell)
   shift
+  # Several shells may run (a desktop session and a headless one): talk to
+  # the one on this Wayland display, else to any (an instance started
+  # before WAYLAND_DISPLAY was exported does not know its display).
+  if [ -n "${WAYLAND_DISPLAY:-}" ]; then
+    for pid in $(pgrep -u "$(id -u)" -x quickshell; pgrep -u "$(id -u)" -x qs); do
+      if tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null | grep -qx "WAYLAND_DISPLAY=$WAYLAND_DISPLAY"; then
+        exec "$qs" ipc --pid "$pid" "$@"
+      fi
+    done
+  fi
   exec "$qs" -p "$qml" ipc --any-display "$@"
 fi
-if [ $# -gt 0 ]; then
-  exec "$qs" -p "$qml" "$@"
-fi
-exec "$qs" -p "$qml"
+for l in "$self/../libexec/basalt-shell/basalt-shell-ui-launch" /usr/local/libexec/basalt-shell/basalt-shell-ui-launch /usr/libexec/basalt-shell/basalt-shell-ui-launch; do
+  if [ -x "$l" ]; then exec "$l"; fi
+done
+echo "basalt-shell-ui: basalt-shell-ui-launch not found" >&2
+exit 1

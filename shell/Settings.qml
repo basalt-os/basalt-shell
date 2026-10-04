@@ -290,9 +290,14 @@ FloatingWindow {
                         text: "Models never act directly. They ask for typed actions (" + Bus.actions.length + " kinds); every change waits for you on a confirmation sheet and is written to the activity log."
                     }
                     Row { spacing: Theme.s2; Icon { name: Bus.translatorAvailable ? "check" : "info"; color: Bus.translatorAvailable ? Theme.success : Theme.textMuted }
-                          Txt { text: Bus.translatorAvailable ? "Command bar: local language model (with rules as fallback)" : "Command bar: rules (no local model configured)" } }
+                          Txt { text: Bus.translatorAvailable ? "Command bar: local language model (fixed phrases as fallback)" : "Command bar: fixed phrases (no local model configured)" } }
                     Row { spacing: Theme.s2; Icon { name: Bus.assistantAvailable ? "check" : "info"; color: Bus.assistantAvailable ? Theme.success : Theme.textMuted }
                           Txt { text: Bus.assistantAvailable ? "System assistant (basalt) installed: system questions and its proposals work here" : "System assistant (basalt) not installed" } }
+                    Row { spacing: Theme.s2
+                          Icon { name: Bus.uiCheck && Bus.uiCheck.mode === "selinux" ? "check" : "info"; color: Bus.uiCheck && Bus.uiCheck.mode === "selinux" ? Theme.success : Theme.warning }
+                          Txt { text: Bus.uiCheck && Bus.uiCheck.mode === "selinux"
+                                ? "Confirmations: only this shell's SELinux domain can confirm; agents run confined and can only ask"
+                                : "Confirmations: checked by program name only (" + (Bus.uiCheck ? Bus.uiCheck.reason : "unknown") + ")" } }
                     Section { title: "Connect an MCP client" }
                     Rectangle {
                         Layout.fillWidth: true

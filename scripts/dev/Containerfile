@@ -1,13 +1,12 @@
-# Development and "try it" image: a Fedora 44 user space with both
-# compositors, Quickshell and a few apps. Runs a compositor nested in the
+# Development and "try it" image: a Fedora 44 user space with sway, niri,
+# Quickshell and a few apps, all from Fedora. Runs a compositor nested in the
 # host's Wayland session (or headless for screenshots).
 FROM registry.fedoraproject.org/fedora:44
-RUN dnf -y install dnf-plugins-core && dnf -y copr enable swayfx/swayfx && \
-    dnf -y install --setopt=install_weak_deps=False \
-      swayfx niri quickshell xwayland-satellite xorg-x11-server-Xwayland \
+RUN dnf -y install --setopt=install_weak_deps=False \
+      sway niri quickshell xwayland-satellite xorg-x11-server-Xwayland \
       foot grim slurp wf-recorder wtype wl-clipboard jq \
       rsms-inter-fonts jetbrains-mono-fonts google-noto-sans-fonts google-noto-emoji-fonts \
-      adwaita-icon-theme adwaita-cursor-theme adw-gtk3-theme qt6ct qt6-qtwayland \
+      adwaita-icon-theme adwaita-cursor-theme adw-gtk3-theme qt6ct qt5ct qt6-qtwayland wayvnc \
       gnome-text-editor mesa-dri-drivers mesa-vulkan-drivers dbus-daemon dbus-tools \
       glib2 gsettings-desktop-schemas dconf libnotify xdg-utils \
       && dnf clean all

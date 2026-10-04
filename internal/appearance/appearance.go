@@ -13,8 +13,8 @@
 //     app starts;
 //   - ~/.config/gtk-3.0/gtk.css: the accent only (GTK 3 has no media
 //     queries; the adw-gtk3 theme follows the mode);
-//   - qt6ct: a generated color scheme and qt6ct.conf (Qt apps started with
-//     QT_QPA_PLATFORMTHEME=qt6ct).
+//   - qt6ct and qt5ct: a generated color scheme and qt6ct.conf / qt5ct.conf
+//     (Qt 6 and Qt 5 apps started with QT_QPA_PLATFORMTHEME=qt6ct:qt5ct).
 package appearance
 
 import (
@@ -107,10 +107,12 @@ func Apply(ctx context.Context, t, lightT, darkT theme.Tokens, configDir string)
 	} else {
 		ok(p3)
 	}
-	if err := writeQt6ct(t, configDir); err != nil {
-		fail("qt6ct", err)
-	} else {
-		ok("qt6ct colors")
+	for _, q := range []qtct{qt6ct, qt5ct} {
+		if err := writeQtct(t, configDir, q); err != nil {
+			fail(q.name, err)
+		} else {
+			ok(q.name + " colors")
+		}
 	}
 	return r
 }
@@ -203,10 +205,23 @@ func writeManaged(path, body string) error {
 	return os.Rename(tmp, path)
 }
 
-// writeQt6ct writes a qt6ct color scheme (QPalette roles in qt6ct order)
-// and points qt6ct.conf at it, keeping the user's other qt6ct settings.
-func writeQt6ct(t theme.Tokens, configDir string) error {
-	dir := filepath.Join(configDir, "qt6ct")
+// qtct describes qt6ct (Qt 6) or qt5ct (Qt 5): same files, a palette with
+// one role less in Qt 5 (no Accent) and Qt 5's font string.
+type qtct struct {
+	name  string
+	roles int
+	font  string // fmt with family and size
+}
+
+var (
+	qt6ct = qtct{name: "qt6ct", roles: 22, font: "\"%s,%d,-1,5,400,0,0,0,0,0,0,0,0,0,0,1\""}
+	qt5ct = qtct{name: "qt5ct", roles: 21, font: "\"%s,%d,-1,5,50,0,0,0,0,0\""}
+)
+
+// writeQtct writes a qt6ct or qt5ct color scheme (QPalette roles in
+// order) and points its .conf at it, keeping the user's other settings.
+func writeQtct(t theme.Tokens, configDir string, q qtct) error {
+	dir := filepath.Join(configDir, q.name)
 	if err := os.MkdirAll(filepath.Join(dir, "colors"), 0o755); err != nil {
 		return err
 	}
@@ -227,7 +242,7 @@ func writeQt6ct(t theme.Tokens, configDir string) error {
 	// LinkVisited, AlternateBase, NoRole, ToolTipBase, ToolTipText,
 	// PlaceholderText, Accent.
 	active := []string{text, alt, light, alt, dark, mid, text, "#ffffff", text, bg, surface, "#000000",
-		accent, accentText, accent, accent, surface, "#000000", alt, text, muted, accent}
+		accent, accentText, accent, accent, surface, "#000000", alt, text, muted, accent}[:q.roles]
 	disabled := make([]string, len(active))
 	for i, c := range active {
 		disabled[i] = c
@@ -248,7 +263,7 @@ func writeQt6ct(t theme.Tokens, configDir string) error {
 	if err := os.WriteFile(schemePath, []byte(scheme), 0o644); err != nil {
 		return err
 	}
-	confPath := filepath.Join(dir, "qt6ct.conf")
+	confPath := filepath.Join(dir, q.name+".conf")
 	conf := map[string]map[string]string{}
 	order := []string{}
 	if b, err := os.ReadFile(confPath); err == nil {
@@ -284,8 +299,8 @@ func writeQt6ct(t theme.Tokens, configDir string) error {
 		set("Appearance", "icon_theme", v)
 	}
 	size := int(t.Num("font.size") - 1)
-	set("Fonts", "general", fmt.Sprintf("\"%s,%d,-1,5,400,0,0,0,0,0,0,0,0,0,0,1\"", t.Str("font.family"), size))
-	set("Fonts", "fixed", fmt.Sprintf("\"%s,%d,-1,5,400,0,0,0,0,0,0,0,0,0,0,1\"", t.Str("font.mono"), size))
+	set("Fonts", "general", fmt.Sprintf(q.font, t.Str("font.family"), size))
+	set("Fonts", "fixed", fmt.Sprintf(q.font, t.Str("font.mono"), size))
 	var b strings.Builder
 	for _, sec := range order {
 		fmt.Fprintf(&b, "[%s]\n", sec)

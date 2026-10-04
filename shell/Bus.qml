@@ -23,12 +23,17 @@ Singleton {
     property bool translatorAvailable: false
     property var assistantPending: []
     property string version: ""
+    property var control: null        // an agent's control session, or null
+    property var uiCheck: null        // how the daemon recognizes this UI (selinux, exe)
+    property var agentIO: ({})        // last-resort capabilities (screen capture, input)
+    property var lastAgentActivity: null
 
     signal notify(var data)           // notification.show from an agent
     signal openRequested(string surface, string page)
     signal proposalChanged(var proposal)
     signal chooseRequested(var req)
     signal chooseDone(string id)
+    signal agentActivity(var data)    // a screenshot or an input step by an agent
 
     property int _next: 1
     property var _callbacks: ({})
@@ -98,6 +103,8 @@ Singleton {
             case "ui": bus.openRequested(m.data.open || "", m.data.page || ""); break;
             case "choose": bus.chooseRequested(m.data); break;
             case "choice-done": bus.chooseDone(m.data.id); break;
+            case "control": bus.control = m.data; break;
+            case "agent-activity": bus.lastAgentActivity = m.data; bus.agentActivity(m.data); break;
             }
             return;
         }
@@ -110,7 +117,12 @@ Singleton {
 
     function _onConnected() {
         call("hello", { role: "ui", client: "quickshell" }, (ok, res) => {
-            if (!ok) console.warn("basalt-shell: hello refused:", res);
+            if (!ok) {
+                // Without the ui role the shell cannot confirm anything:
+                // reconnect and ask again in a moment.
+                console.warn("basalt-shell: hello refused:", res);
+                helloRetry.start();
+            }
         });
         call("state", {}, (ok, s) => {
             if (!ok) return;
@@ -122,7 +134,11 @@ Singleton {
             bus.assistantAvailable = s.assistant;
             bus.translatorAvailable = s.translator;
             bus.version = s.version;
+            bus.control = s.control || null;
+            bus.uiCheck = s.ui_check || null;
+            bus.agentIO = s.agent_io || ({});
             bus.ready = true;
+            bus.call("ui.state", { modal: Ui.modal });
             bus.refreshAssistant();
         });
     }
@@ -139,6 +155,16 @@ Singleton {
             onRead: data => bus._handle(data)
         }
     }
+
+    // The daemon refuses agent input while the person has a dialog open.
+    Connections {
+        target: Ui
+        function onModalChanged() { bus.call("ui.state", { modal: Ui.modal }); }
+    }
+
+    function stopControl() { call("control.stop", {}); }
+
+    Timer { id: helloRetry; interval: 3000; onTriggered: { sock.connected = false; sock.connected = true; } }
 
     // Reconnect when the daemon restarts.
     Timer {

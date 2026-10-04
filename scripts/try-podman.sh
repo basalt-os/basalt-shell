@@ -1,6 +1,6 @@
 #!/bin/bash
 # Try the Basalt shell without installing anything on your system: a
-# Fedora 44 container with SwayFX, niri and Quickshell runs a nested
+# Fedora 44 container with sway, niri and Quickshell runs a nested
 # session in a window of your current Wayland desktop. Its home, settings
 # and notifications stay inside the container.
 #

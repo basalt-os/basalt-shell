@@ -1,7 +1,13 @@
 #!/bin/bash
-# Start a Basalt shell session on sway / SwayFX or niri.
-#   basalt-session [sway|niri]   (default: $BASALT_COMPOSITOR, else swayfx/sway if installed, else niri)
-# Used by the wayland-sessions entries and by the nested "try it" scripts.
+# Start a Basalt shell session.
+#   basalt-session [sway|niri]     a desktop session (default: sway, Fedora's package)
+#   basalt-session headless        sway with no display, GPU or input devices: a
+#                                  desktop for agents in VMs and servers (see
+#                                  docs/headless.md); BASALT_HEADLESS_SIZE=WxH,
+#                                  BASALT_HEADLESS_VNC=ADDR:PORT to watch and
+#                                  confirm through wayvnc
+# Used by the wayland-sessions entries, the nested "try it" scripts and
+# basalt-headless.service.
 set -eu
 
 share=${BASALT_SHELL_DATA:-}
@@ -12,17 +18,17 @@ if [ -z "$share" ]; then
 fi
 export BASALT_SHELL_DATA=$share
 
-which=${1:-${BASALT_COMPOSITOR:-}}
-if [ -z "$which" ]; then
-  if command -v sway >/dev/null; then which=sway; else which=niri; fi
-fi
+which=${1:-${BASALT_COMPOSITOR:-sway}}
+[ "$which" = swayfx ] && which=sway
 
 # Toolkit integration: Wayland first, X11 apps through XWayland (sway) or
-# xwayland-satellite (niri); Qt follows qt6ct (palette written by the
-# daemon), GTK and libadwaita follow gsettings and the portal.
+# xwayland-satellite (niri); Qt 5 and Qt 6 follow qt5ct / qt6ct (palettes
+# written by the daemon; Qt takes the first theme of the list it has,
+# checked with Qt 5.15 and Qt 6.10),
+# GTK and libadwaita follow gsettings and the portal.
 export XDG_SESSION_TYPE=wayland
 export QT_QPA_PLATFORM="wayland;xcb"
-export QT_QPA_PLATFORMTHEME=qt6ct
+export QT_QPA_PLATFORMTHEME="qt6ct:qt5ct"
 export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
 export MOZ_ENABLE_WAYLAND=1
 export ELECTRON_OZONE_PLATFORM_HINT=auto
@@ -31,15 +37,39 @@ export _JAVA_AWT_WM_NONREPARENTING=1
 export XCURSOR_THEME=${XCURSOR_THEME:-Adwaita}
 export XCURSOR_SIZE=${XCURSOR_SIZE:-24}
 
+conf=${XDG_CONFIG_HOME:-$HOME/.config}/basalt-shell
+mkdir -p "$conf/sway.d"
+
+if [ "$which" = headless ]; then
+  # No display, no GPU needed: wlroots' headless backend with the pixman
+  # (CPU) renderer unless a render node exists; Quickshell draws with Qt's
+  # software renderer. Its own socket and state, so it can run next to a
+  # desktop session of the same user.
+  export WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_HEADLESS_OUTPUTS=1
+  if ! ls /dev/dri/renderD* >/dev/null 2>&1 || [ "${BASALT_HEADLESS_GPU:-0}" != 1 ]; then
+    export WLR_RENDERER=pixman QT_QUICK_BACKEND=software LIBGL_ALWAYS_SOFTWARE=1
+  fi
+  export BASALT_HEADLESS=1 BASALT_SHELL_WEAK=1
+  rt=${XDG_RUNTIME_DIR:?XDG_RUNTIME_DIR is not set}
+  export BASALT_SHELL_SOCKET=${BASALT_SHELL_SOCKET:-$rt/basalt-shell-headless/shell.sock}
+  export BASALT_SHELL_STATE_DIR=${BASALT_SHELL_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/basalt-shell-headless}
+  unset WAYLAND_DISPLAY DISPLAY NIRI_SOCKET SWAYSOCK
+  size=${BASALT_HEADLESS_SIZE:-1920x1080}
+  [[ $size =~ ^[0-9]{3,5}x[0-9]{3,5}$ ]] || { echo "basalt-session: BASALT_HEADLESS_SIZE must be WxH" >&2; exit 2; }
+  # Not in the daemon's socket directory: the daemon creates that one
+  # itself, so it gets the SELinux type agents may reach.
+  hc=$rt/basalt-headless-sway.conf
+  printf 'include %s/sway/config\noutput HEADLESS-1 resolution %s position 0 0 scale 1\n' "$share" "$size" >"$hc"
+  export BASALT_SHELL_COMPOSITOR=sway XDG_CURRENT_DESKTOP=sway:Basalt XDG_SESSION_DESKTOP=sway
+  exec sway -c "$hc" "${@:2}"
+fi
+
 # Nested in another desktop (a window): keep the host session untouched,
 # including its GTK and Qt settings, unless BASALT_SHELL_APPS=1.
 if [ -n "${WAYLAND_DISPLAY:-}" ] || [ -n "${DISPLAY:-}" ]; then
   export BASALT_NESTED=1
   [ "${BASALT_SHELL_APPS:-0}" = 1 ] || export BASALT_SHELL_NO_APPS=1
 fi
-
-conf=${XDG_CONFIG_HOME:-$HOME/.config}/basalt-shell
-mkdir -p "$conf/sway.d"
 
 # When the compositor exits, stop the session's user services (portals,
 # autostarted apps) so the next session starts them with its own
@@ -54,7 +84,7 @@ session_end() {
 trap 'session_end; exit 0' TERM HUP
 
 case "$which" in
-  sway|swayfx)
+  sway)
     # A nested session must not see the host compositor's socket.
     unset NIRI_SOCKET SWAYSOCK
     export BASALT_SHELL_COMPOSITOR=sway
@@ -83,7 +113,7 @@ case "$which" in
     session_end
     ;;
   *)
-    echo "basalt-session: unknown compositor $which (sway or niri)" >&2
+    echo "basalt-session: unknown session $which (sway, niri or headless)" >&2
     exit 2
     ;;
 esac

@@ -135,6 +135,8 @@ func (a *Adapter) Caps() compositor.Caps {
 		Animations:      false,
 		Events:          true,
 		WorkspaceByName: true,
+		Pointer:         true,
+		ToplevelCapture: a.hasForeignIDs(),
 	}
 }
 
@@ -175,6 +177,7 @@ type node struct {
 	WindowProperties *winProps       `json:"window_properties"`
 	Nodes            []node          `json:"nodes"`
 	FloatingNodes    []node          `json:"floating_nodes"`
+	ForeignID        string          `json:"foreign_toplevel_identifier"`
 	Marks            json.RawMessage `json:"marks"`
 }
 
@@ -225,6 +228,7 @@ func (a *Adapter) Windows(context.Context) ([]compositor.Window, error) {
 				Floating:  floating || n.Type == "floating_con",
 				XWayland:  n.Shell == "xwayland",
 				Rect:      n.Rect.toRect(),
+				ForeignID: n.ForeignID,
 			}
 			if n.AppID != nil {
 				w.AppID = *n.AppID
@@ -449,6 +453,69 @@ func (a *Adapter) ApplyStyle(_ context.Context, s compositor.Style) error {
 		}
 	}
 	return first
+}
+
+// hasForeignIDs reports whether this sway puts foreign-toplevel
+// identifiers in its tree (1.11 and newer).
+func (a *Adapter) hasForeignIDs() bool {
+	a.mu.Lock()
+	v := a.version
+	a.mu.Unlock()
+	var maj, min int
+	if _, err := fmt.Sscanf(strings.TrimPrefix(v, "sway version "), "%d.%d", &maj, &min); err != nil {
+		return false
+	}
+	return maj > 1 || (maj == 1 && min >= 11)
+}
+
+var buttons = map[string]string{"left": "button1", "middle": "button2", "right": "button3"}
+
+// PointerMove warps the pointer to a layout position (sway's seat cursor
+// command, which injects the motion like a real device would).
+func (a *Adapter) PointerMove(_ context.Context, x, y int) error {
+	return a.run(fmt.Sprintf("seat seat0 cursor set %d %d", x, y))
+}
+
+// PointerButton presses, releases or clicks a button.
+func (a *Adapter) PointerButton(_ context.Context, button, action string) error {
+	b, ok := buttons[button]
+	if !ok {
+		return fmt.Errorf("unknown button %q (left, middle, right)", button)
+	}
+	switch action {
+	case "press", "release":
+		return a.run("seat seat0 cursor " + action + " " + b)
+	case "click", "":
+		if err := a.run("seat seat0 cursor press " + b); err != nil {
+			return err
+		}
+		return a.run("seat seat0 cursor release " + b)
+	}
+	return fmt.Errorf("unknown pointer action %q", action)
+}
+
+// PointerScroll scrolls with sway's axis buttons (4 up, 5 down, 6 left,
+// 7 right), one step per unit.
+func (a *Adapter) PointerScroll(_ context.Context, dx, dy int) error {
+	step := func(n int, neg, pos string) error {
+		b := pos
+		if n < 0 {
+			b, n = neg, -n
+		}
+		for i := 0; i < n && i < 50; i++ {
+			if err := a.run("seat seat0 cursor press " + b); err != nil {
+				return err
+			}
+			if err := a.run("seat seat0 cursor release " + b); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if err := step(dy, "button4", "button5"); err != nil {
+		return err
+	}
+	return step(dx, "button6", "button7")
 }
 
 // Subscribe opens a second connection for window, workspace and output

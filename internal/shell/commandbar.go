@@ -21,32 +21,17 @@ type AskResult struct {
 	Unknown   []string            `json:"unknown,omitempty"`
 	Backend   string              `json:"backend"`
 	Error     string              `json:"error,omitempty"`
+	Clarify   []string            `json:"clarify,omitempty"`
+	Model     *intent.ModelInfo   `json:"model,omitempty"`
 }
 
-// actionInfos describes the action set for the model prompt.
-func actionInfos() []intent.ActionInfo {
-	out := make([]intent.ActionInfo, 0, len(Actions))
-	for _, a := range Actions {
-		var ps []string
-		for _, p := range a.Params {
-			s := p.Name + ":" + p.Type
-			if len(p.Enum) > 0 {
-				s += "[" + strings.Join(p.Enum, "|") + "]"
-			}
-			if !p.Required {
-				s += "?"
-			}
-			ps = append(ps, s)
-		}
-		out = append(out, intent.ActionInfo{Name: a.Name, Description: a.Description, Params: strings.Join(ps, ", ")})
-	}
-	return out
-}
-
-// Ask understands a command-bar request: the language model when one is
-// configured (falling back to rules when it fails), else the rules.
-// Desktop actions become a proposal; system questions go to the
-// assistant's read commands. Nothing is applied here.
+// Ask understands a command-bar request: the fixed phrases (rules) when
+// they understand all of it, else the local language model when one is
+// configured (constrained to the closed set of desktop intents and
+// grounded in the request), else what the rules understood. Desktop actions become a
+// proposal; system questions go to the system assistant (its own
+// translator, `basalt ask`, then its read commands). Nothing is applied
+// here.
 func (c *Core) Ask(ctx context.Context, text string) AskResult {
 	text = strings.TrimSpace(text)
 	res := AskResult{Request: text}
@@ -56,24 +41,56 @@ func (c *Core) Ask(ctx context.Context, text string) AskResult {
 	}
 	st := c.Theme()
 	ictx := intent.Context{Tokens: st.Tokens, Themes: st.Themes}
-	var r intent.Result
-	if c.Translator != nil {
-		mctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		mr, err := c.Translator.Translate(mctx, text, ictx, actionInfos())
+	// The fixed phrases first: when they understand the whole request
+	// they are exact and instant. Anything they do not fully understand
+	// goes to the local model (if any); when the model is unavailable or
+	// unsure, whatever the fixed phrases understood is used.
+	// (Measured on the lab set: fixed phrases 69%, the 0.6B model alone
+	// 75%, both in this order 91%; docs/command-bar.md.)
+	rr := intent.Rules(text, ictx)
+	rulesComplete := (len(rr.Calls) > 0 && len(rr.Unknown) == 0) || len(rr.System) > 0
+	r := rr
+	if !rulesComplete && c.Translator != nil {
+		mctx, cancel := context.WithTimeout(ctx, 45*time.Second)
+		mr, err := c.Translator.Translate(mctx, text, ictx)
 		cancel()
-		if err == nil && (len(mr.Calls) > 0 || len(mr.System) > 0) {
+		switch {
+		case err != nil:
+			r.Explain = append(r.Explain, "local model unavailable ("+err.Error()+")")
+		case len(mr.Calls) > 0 || mr.AskSystem:
 			r = mr
-		} else {
-			r = intent.Rules(text, ictx)
-			if err != nil {
-				r.Explain = append(r.Explain, "model unavailable ("+err.Error()+"), used rules")
-			}
+		case len(rr.Calls) > 0:
+			r.Model = mr.Model
+			r.Explain = append(r.Explain, "the local model was unsure; used what the fixed phrases understood")
+		default:
+			r = mr
 		}
-	} else {
-		r = intent.Rules(text, ictx)
 	}
-	res.Explain, res.Unknown, res.Backend = r.Explain, r.Unknown, r.Backend
-	_, _ = c.Audit.Append("ask", "commandbar", text, map[string]any{"backend": r.Backend, "calls": r.Calls, "system": r.System, "unknown": r.Unknown})
+	res.Explain, res.Unknown, res.Backend, res.Clarify, res.Model = r.Explain, r.Unknown, r.Backend, r.Clarify, r.Model
+	_, _ = c.Audit.Append("ask", "commandbar", text, map[string]any{"backend": r.Backend, "calls": r.Calls, "system": r.System,
+		"ask_system": r.AskSystem, "unknown": r.Unknown, "clarify": r.Clarify, "model": r.Model, "phrases": r.Phrases})
+
+	if r.AskSystem && len(r.Calls) == 0 {
+		if c.Assistant == nil || !c.Assistant.Available() {
+			res.Kind, res.Error = "error", "the system assistant (basalt) is not installed on this machine"
+			return res
+		}
+		// The assistant's own translator (basalt ask) picks the command.
+		out, err := c.Assistant.Ask(ctx, text)
+		if args := assistant.Understood(out); len(args) > 0 && err == nil {
+			r.System = args
+			res.Explain = append(res.Explain, "system assistant: basalt "+strings.Join(args, " "))
+		} else if rr := intent.Rules(text, ictx); len(rr.System) > 0 {
+			r.System = rr.System
+			res.Explain = append(res.Explain, "system request (fixed phrases): basalt "+strings.Join(rr.System, " "))
+		} else {
+			res.Kind, res.Text = "system", strings.TrimSpace(out)
+			if res.Text == "" && err != nil {
+				res.Kind, res.Error = "error", err.Error()
+			}
+			return res
+		}
+	}
 
 	if len(r.System) > 0 {
 		res.Kind = "system"
@@ -102,6 +119,11 @@ func (c *Core) Ask(ctx context.Context, text string) AskResult {
 	if len(r.Calls) == 0 {
 		res.Kind = "unknown"
 		res.Error = "I did not understand that. Try: \"make it darker with rounder corners\", \"open text editor\", \"arrange windows side by side\", \"why nginx\"."
+		if r.None {
+			res.Error = "That is not something the desktop does. Try: \"dark mode\", \"open text editor\", \"arrange windows side by side\", \"why nginx\"."
+		} else if len(r.Clarify) > 0 {
+			res.Error = "Please say which one: " + strings.Join(r.Clarify, "; ")
+		}
 		return res
 	}
 	calls := make([]Call, len(r.Calls))

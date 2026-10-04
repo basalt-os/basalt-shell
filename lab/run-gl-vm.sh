@@ -10,6 +10,10 @@
 #
 #   lab/run-gl-vm.sh import    copy the libvirt VM's disk and firmware variables (VM shut off)
 #   lab/run-gl-vm.sh start     start (VNC and SPICE on $DESK_DISPLAY_LISTEN, SSH on 127.0.0.1:$DESK_SSH_PORT)
+#   lab/run-gl-vm.sh start nogpu    the same disk without 3D: a 2D virtio-vga, Mesa's
+#                                   llvmpipe in the guest (a machine or VM without a GPU)
+#   lab/run-gl-vm.sh start server   no display device at all (a server): only the
+#                                   headless session can run (basalt-session headless)
 #   lab/run-gl-vm.sh stop      ACPI shutdown
 #
 # Uses QEMU user networking (its own NAT, isolated from other labs), no TPM.
@@ -37,6 +41,13 @@ import() {
 
 start() {
   local code=/usr/share/edk2/ovmf/OVMF_CODE_4M.secboot.qcow2
+  local gpu=(-device virtio-vga-gl,xres=1920,yres=1080 -display egl-headless,rendernode="${DESK_RENDERNODE:-/dev/dri/renderD128}")
+  case "${1:-gl}" in
+    gl) ;;
+    nogpu) gpu=(-device virtio-vga,xres=1920,yres=1080 -display none) ;;
+    server) gpu=(-vga none -display none) ;;
+    *) echo "start [gl|nogpu|server]" >&2; exit 2 ;;
+  esac
   [ -s "$LAB_DIR/desk-display.pass" ] || { echo "missing $LAB_DIR/desk-display.pass" >&2; exit 1; }
   systemd-run --user --unit="$name" --collect \
     qemu-system-x86_64 -name "$name" \
@@ -45,8 +56,7 @@ start() {
       -drive if=pflash,format=qcow2,readonly=on,file="$code" \
       -drive if=pflash,format=qcow2,file="$vm/vars.qcow2" \
       -drive file="$vm/disk.qcow2",if=virtio,format=qcow2,discard=unmap \
-      -device virtio-vga-gl,xres=1920,yres=1080 \
-      -display egl-headless,rendernode="${DESK_RENDERNODE:-/dev/dri/renderD128}" \
+      "${gpu[@]}" \
       -vnc "$listen:$vnc_display,password=on" \
       -object secret,id=spicepw,file="$LAB_DIR/desk-display.pass" \
       -spice "port=$spice_port,addr=$listen,password-secret=spicepw" \
@@ -58,18 +68,27 @@ start() {
       -serial file:"$vm/serial.log"
   for _ in $(seq 20); do [ -S "$vm/monitor.sock" ] && break; sleep 0.5; done
   # VNC passwords are at most 8 characters.
-  printf 'set_password vnc %s\n' "$(head -c 8 "$LAB_DIR/desk-display.pass")" | nc -U -q1 "$vm/monitor.sock" >/dev/null 2>&1 ||
-    printf 'set_password vnc %s\n' "$(head -c 8 "$LAB_DIR/desk-display.pass")" | socat - UNIX-CONNECT:"$vm/monitor.sock" >/dev/null
+  monitor "set_password vnc $(head -c 8 "$LAB_DIR/desk-display.pass")"
   echo "started $name: VNC $listen:$((5900 + vnc_display)), SPICE $listen:$spice_port, SSH 127.0.0.1:$ssh_port"
 }
 
 stop() {
-  printf 'system_powerdown\n' | nc -U -q1 "$vm/monitor.sock" >/dev/null 2>&1 || true
+  monitor system_powerdown || true
+}
+
+# monitor CMD: one command to the QEMU monitor (Fedora's nc is ncat, which
+# has no -q; python is always there).
+monitor() {
+  python3 - "$vm/monitor.sock" "$1" <<'PY'
+import socket, sys, time
+s = socket.socket(socket.AF_UNIX); s.connect(sys.argv[1]); time.sleep(0.3); s.recv(4096)
+s.sendall((sys.argv[2] + "\n").encode()); time.sleep(1); s.close()
+PY
 }
 
 case "${1:-}" in
   import) import ;;
-  start) start ;;
+  start) start "${2:-gl}" ;;
   stop) stop ;;
   *) sed -n '2,15p' "$0"; exit 2 ;;
 esac

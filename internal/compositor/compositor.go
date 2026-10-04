@@ -1,7 +1,7 @@
 // Package compositor is the window-management seam of the shell: one
 // interface that the rest of the shell (actions, MCP tools, the panel)
 // uses, and one backend per compositor. Backends speak the compositor's
-// own IPC (sway/SwayFX: the i3 JSON IPC; niri: its JSON socket), so the
+// own IPC (sway: the i3 JSON IPC; niri: its JSON socket), so the
 // compositor can be swapped without touching the shell.
 package compositor
 
@@ -31,6 +31,10 @@ type Window struct {
 	Floating  bool   `json:"floating"`
 	XWayland  bool   `json:"xwayland,omitempty"`
 	Rect      Rect   `json:"rect"`
+	// ForeignID is the window's ext-foreign-toplevel-list identifier, when
+	// the compositor reports it (sway 1.11+): screen capture of exactly
+	// this window (grim -T), without the windows on top of it.
+	ForeignID string `json:"foreign_id,omitempty"`
 }
 
 // Workspace is one workspace. ID is what Switch takes; Index is the
@@ -65,6 +69,8 @@ type Caps struct {
 	ConfigReload    bool `json:"config_reload"`    // style is applied by rewriting a watched config file
 	Events          bool `json:"events"`           // event stream for live updates
 	WorkspaceByName bool `json:"workspace_by_name"`
+	Pointer         bool `json:"pointer"`          // absolute pointer moves and clicks (Pointer interface)
+	ToplevelCapture bool `json:"toplevel_capture"` // windows carry a foreign-toplevel identifier
 }
 
 // Style is the part of the theme the compositor draws (window borders,
@@ -112,6 +118,18 @@ type Adapter interface {
 	// Subscribe delivers events until ctx ends. The channel closes when
 	// the connection drops.
 	Subscribe(ctx context.Context) (<-chan Event, error)
+}
+
+// Pointer is implemented by backends that can move the pointer and
+// click, for the agents' last-resort input (after the person granted a
+// control session). Coordinates are global layout coordinates.
+type Pointer interface {
+	PointerMove(ctx context.Context, x, y int) error
+	// PointerButton presses, releases or clicks (press then release)
+	// "left", "right" or "middle".
+	PointerButton(ctx context.Context, button, action string) error
+	// PointerScroll scrolls by steps (positive dy is down, dx is right).
+	PointerScroll(ctx context.Context, dx, dy int) error
 }
 
 // ErrUnsupported is returned for an operation a backend cannot do.

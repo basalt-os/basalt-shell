@@ -1,0 +1,45 @@
+## <summary>Basalt desktop shell: daemon, UI and agent client domains.</summary>
+
+########################################
+## <summary>
+##	Run the shell's MCP server / command line (basalt-shell) in its
+##	agent domain, basalt_agent_mcp_t (for basalt-agent's native domains
+##	and other agent launchers).
+## </summary>
+## <param name="domain">
+##	<summary>Domain allowed to transition.</summary>
+## </param>
+## <param name="role">
+##	<summary>Role allowed the agent domain.</summary>
+## </param>
+#
+interface(`basalt_shell_mcp_run',`
+	gen_require(`
+		type basalt_agent_mcp_t, basalt_agent_mcp_exec_t;
+	')
+	domtrans_pattern($1, basalt_agent_mcp_exec_t, basalt_agent_mcp_t)
+	role $2 types basalt_agent_mcp_t;
+	allow basalt_agent_mcp_t $1:fd use;
+	allow basalt_agent_mcp_t $1:fifo_file rw_inherited_fifo_file_perms;
+	allow basalt_agent_mcp_t $1:process sigchld;
+')
+
+########################################
+## <summary>
+##	Request through the shell daemon's socket (the agent role: read,
+##	propose, wait; never confirm, which the daemon grants only to peers
+##	in basalt_shell_ui_t). For agent domains.
+## </summary>
+## <param name="domain">
+##	<summary>Domain allowed access.</summary>
+## </param>
+#
+interface(`basalt_shell_request',`
+	gen_require(`
+		type basalt_shell_t, basalt_shell_runtime_t;
+	')
+	userdom_search_user_tmp_dirs($1)
+	allow $1 basalt_shell_runtime_t:dir search_dir_perms;
+	allow $1 basalt_shell_runtime_t:sock_file write_sock_file_perms;
+	allow $1 basalt_shell_t:unix_stream_socket connectto;
+')

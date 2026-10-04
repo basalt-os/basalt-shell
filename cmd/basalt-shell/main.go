@@ -1,11 +1,15 @@
-// Command basalt-shell is the daemon, MCP server and command-line client
-// of the Basalt OS desktop shell.
+// Command basalt-shell is the client side of the Basalt desktop shell:
+// the MCP server for agents and the command line for scripts. It talks to
+// the daemon (basalt-shelld) over the local socket with the agent role:
+// it can read and request, never confirm. With the Basalt SELinux policy
+// it runs confined in basalt_agent_mcp_t.
 //
-//	basalt-shell daemon            run the shell daemon (started by the session)
 //	basalt-shell mcp               MCP server on stdio (for a local model or an MCP client)
-//	basalt-shell ctl OP [JSON]     send one IPC request (agent role) and print the reply
+//	basalt-shell ctl OP [JSON]     send one IPC request and print the reply
 //	basalt-shell propose ACTION [JSON-ARGS] [--wait N]
 //	                               propose one typed action; the person confirms it in the shell
+//	basalt-shell screenshot [--window REF | --output NAME] [--max-width N] [FILE.png|-]
+//	                               ask for a screenshot (confirmed by the person); PNG on stdout by default
 //	basalt-shell choose-output     ask the person which screen to share (portal chooser)
 //	basalt-shell audit verify      check the activity log's hash chain
 //	basalt-shell version
@@ -18,64 +22,23 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
-	"github.com/openbasalt/basalt-shell/internal/assistant"
 	"github.com/openbasalt/basalt-shell/internal/audit"
-	"github.com/openbasalt/basalt-shell/internal/compositor"
-	_ "github.com/openbasalt/basalt-shell/internal/compositor/fake"
-	_ "github.com/openbasalt/basalt-shell/internal/compositor/niri"
-	_ "github.com/openbasalt/basalt-shell/internal/compositor/sway"
-	"github.com/openbasalt/basalt-shell/internal/hw"
-	"github.com/openbasalt/basalt-shell/internal/intent"
 	"github.com/openbasalt/basalt-shell/internal/mcp"
+	"github.com/openbasalt/basalt-shell/internal/paths"
 	"github.com/openbasalt/basalt-shell/internal/shell"
-	"github.com/openbasalt/basalt-shell/internal/theme"
 )
 
-var version = "0.1.0-dev"
+var version = "0.2.0-dev"
 
 func usage() {
-	fmt.Fprint(os.Stderr, `usage: basalt-shell daemon | mcp | ctl OP [JSON] | propose ACTION [JSON] [--wait N] | audit verify | version
+	fmt.Fprint(os.Stderr, `usage: basalt-shell mcp | ctl OP [JSON] | propose ACTION [JSON] [--wait N] | screenshot [--window REF|--output NAME] FILE.png | choose-output | audit verify | version
+(the daemon is basalt-shelld)
 `)
 	os.Exit(2)
-}
-
-func configDir() string {
-	if d := os.Getenv("XDG_CONFIG_HOME"); d != "" {
-		return d
-	}
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".config")
-}
-
-func stateDir() string {
-	if d := os.Getenv("XDG_STATE_HOME"); d != "" {
-		return filepath.Join(d, "basalt-shell")
-	}
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".local", "state", "basalt-shell")
-}
-
-func themeDirs() []string {
-	if d := os.Getenv("BASALT_SHELL_THEMES"); d != "" {
-		return strings.Split(d, ":")
-	}
-	dirs := []string{"/usr/share/basalt-shell/themes"}
-	if exe, err := os.Executable(); err == nil {
-		// Running from a checkout or a ~/.local install.
-		for _, rel := range []string{"../share/basalt-shell/themes", "../../themes", "../themes"} {
-			p := filepath.Clean(filepath.Join(filepath.Dir(exe), rel))
-			if st, err := os.Stat(p); err == nil && st.IsDir() {
-				dirs = append(dirs, p)
-			}
-		}
-	}
-	return dirs
 }
 
 func main() {
@@ -89,9 +52,7 @@ func main() {
 	defer stop()
 	switch os.Args[1] {
 	case "daemon":
-		if err := daemon(ctx); err != nil {
-			log.Fatal(err)
-		}
+		log.Fatal("the daemon is basalt-shelld")
 	case "mcp":
 		s := &mcp.Server{Socket: shell.DefaultSocket()}
 		if v, err := strconv.Atoi(os.Getenv("BASALT_SHELL_MCP_WAIT")); err == nil {
@@ -134,12 +95,9 @@ func main() {
 		// (chooser_cmd): prints the output the person picked in the shell.
 		chooseOutput(ctx)
 	case "audit":
-		n, err := audit.Verify(filepath.Join(stateDir(), "audit.jsonl"))
-		if err != nil {
-			fmt.Printf("audit chain BROKEN after %d records: %v\n", n, err)
-			os.Exit(1)
-		}
-		fmt.Printf("audit chain ok: %d records\n", n)
+		auditVerify(ctx)
+	case "screenshot":
+		screenshot(ctx, os.Args[2:])
 	case "version":
 		fmt.Println("basalt-shell", version)
 	default:
@@ -197,37 +155,82 @@ func chooseOutput(ctx context.Context) {
 	fmt.Println(res.Choice)
 }
 
-func daemon(ctx context.Context) error {
-	cfg := filepath.Join(configDir(), "basalt-shell")
-	store := theme.NewStore(themeDirs(), cfg)
-	if err := store.Load(); err != nil {
-		return err
+// auditVerify asks the daemon to check the activity log's chain (the
+// log is the daemon's: a confined client does not read it), or checks
+// the file itself when no daemon runs.
+func auditVerify(ctx context.Context) {
+	var res struct {
+		OK      bool   `json:"ok"`
+		Records int64  `json:"records"`
+		Error   string `json:"error"`
 	}
-	for _, e := range store.LoadErrors() {
-		log.Printf("theme: %s", e)
+	cl, err := mcp.Dial(shell.DefaultSocket(), shell.RoleAgent, "ctl")
+	if err == nil {
+		defer cl.Close()
+		err = cl.Call(ctx, "audit.verify", nil, &res)
 	}
-	lg, err := audit.Open(filepath.Join(stateDir(), "audit.jsonl"))
 	if err != nil {
-		return err
+		n, verr := audit.Verify(paths.AuditLog())
+		res.Records, res.OK = n, verr == nil
+		if verr != nil {
+			res.Error = verr.Error()
+		}
 	}
-	comp := compositor.Detect()
-	rep := hw.Probe()
-	core := shell.New(comp, store, lg, rep, configDir())
-	if os.Getenv("BASALT_SHELL_NO_APPS") == "1" {
-		core.ApplyApps = false
+	if !res.OK {
+		fmt.Printf("audit chain BROKEN after %d records: %s\n", res.Records, res.Error)
+		os.Exit(1)
 	}
-	core.Translator = intent.FromAssistantConfig("/etc/basalt/assistant.conf")
-	if b, ok := assistant.Default(); ok {
-		core.Assistant = b
+	fmt.Printf("audit chain ok: %d records\n", res.Records)
+}
+
+// screenshot asks the daemon for a screenshot and writes the PNG.
+func screenshot(ctx context.Context, argv []string) {
+	args := map[string]any{}
+	file := ""
+	for i := 0; i < len(argv); i++ {
+		switch argv[i] {
+		case "--window", "--output", "--max-width":
+			if i+1 >= len(argv) {
+				usage()
+			}
+			v := argv[i+1]
+			i++
+			switch argv[i-1] {
+			case "--window":
+				args["target"], args["window"] = "window", v
+			case "--output":
+				args["target"], args["output"] = "output", v
+			default:
+				n, _ := strconv.Atoi(v)
+				args["max_width"] = n
+			}
+		default:
+			file = argv[i]
+		}
 	}
-	log.Printf("compositor %s %s; hardware weak=%v %v; translator=%v; assistant=%v",
-		comp.Name(), comp.Version(ctx), rep.Weak, rep.Reasons, core.Translator != nil, core.Assistant != nil)
-	_, _ = lg.Append("start", "daemon", "basalt-shell "+version+" on "+comp.Name(), map[string]any{"hardware": rep})
-	core.Refresh(ctx)
-	core.ApplyTheme(ctx)
-	go core.Watch(ctx)
-	srv := &shell.Server{Core: core, Path: shell.DefaultSocket(), UIExecutables: []string{"quickshell", "qs"},
-		InsecureUI: os.Getenv("BASALT_SHELL_INSECURE_UI") == "1"}
-	log.Printf("listening on %s", srv.Path)
-	return srv.Listen(ctx)
+	if file == "" {
+		file = "-"
+	}
+	cl, err := mcp.Dial(shell.DefaultSocket(), shell.RoleAgent, "ctl")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer cl.Close()
+	var res shell.CaptureResult
+	cctx, cancel := context.WithTimeout(ctx, 4*time.Minute)
+	defer cancel()
+	if err := cl.Call(cctx, "capture", map[string]any{"args": args, "wait": 180}, &res); err != nil {
+		log.Fatal(err)
+	}
+	if len(res.PNG) == 0 {
+		log.Fatalf("no screenshot: %s", res.Status)
+	}
+	// Confined (basalt_agent_mcp_t) this program cannot create files:
+	// "-" (the default) writes to stdout for the caller to redirect.
+	if file == "-" {
+		os.Stdout.Write(res.PNG)
+	} else if err := os.WriteFile(file, res.PNG, 0o600); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Fprintf(os.Stderr, "screenshot %dx%d (%s)\n", res.Capture.Width, res.Capture.Height, res.Capture.Method)
 }

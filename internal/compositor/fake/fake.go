@@ -53,7 +53,7 @@ func (a *Adapter) rec(s string) { a.mu.Lock(); a.Calls = append(a.Calls, s); a.m
 func (a *Adapter) Name() string                   { return "fake" }
 func (a *Adapter) Version(context.Context) string { return "fake 1" }
 func (a *Adapter) Caps() compositor.Caps {
-	return compositor.Caps{Floating: true, MoveResize: true, FloatByDefault: true, LiveCorners: true, LiveBorders: true, Events: true}
+	return compositor.Caps{Floating: true, MoveResize: true, FloatByDefault: true, LiveCorners: true, LiveBorders: true, Events: true, Pointer: true}
 }
 func (a *Adapter) Windows(context.Context) ([]compositor.Window, error) {
 	a.mu.Lock()
@@ -167,4 +167,22 @@ func (a *Adapter) Subscribe(ctx context.Context) (<-chan compositor.Event, error
 	ch := make(chan compositor.Event)
 	go func() { <-ctx.Done(); close(ch) }()
 	return ch, nil
+}
+
+// PointerMove records a pointer move.
+func (a *Adapter) PointerMove(_ context.Context, x, y int) error {
+	a.rec(fmt.Sprintf("pointer move %d %d", x, y))
+	return nil
+}
+
+// PointerButton records a button action.
+func (a *Adapter) PointerButton(_ context.Context, button, action string) error {
+	a.rec("pointer " + action + " " + button)
+	return nil
+}
+
+// PointerScroll records a scroll.
+func (a *Adapter) PointerScroll(_ context.Context, dx, dy int) error {
+	a.rec(fmt.Sprintf("pointer scroll %d %d", dx, dy))
+	return nil
 }

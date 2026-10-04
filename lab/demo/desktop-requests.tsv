@@ -1,0 +1,33 @@
+# request	expected (actions joined by +, or system, or none); the lab VM has a foot window
+make it darker with rounder corners	theme.set_tokens
+deixa o tema claro e a cor de destaque verde	theme.switch+theme.set_tokens
+por favor, coloca as janelas uma do lado da outra	windows.arrange
+abre o editor de texto	app.launch
+manda o foot pra área de trabalho dois	window.to_workspace
+I can't read anything, the letters are tiny	theme.set_tokens:font.size+
+switch to the tide look	theme.switch:tide
+por que o nginx caiu?	system
+quanto espaço sobra no disco?	system
+instala o steam	none
+dark mode please	theme.switch
+quero o modo claro	theme.switch
+turn off the animations	motion.set
+less animation, my computer is slow	motion.set
+put the panel at the bottom	theme.set_tokens
+coloca a barra embaixo	theme.set_tokens
+make the accent blue	theme.set_tokens
+cor de destaque roxa	theme.set_tokens
+close the terminal	window.close
+fecha essa janela	window.close
+go to workspace 3	workspace.switch
+vai pra área de trabalho 2	workspace.switch
+tile the windows	windows.arrange
+cascade everything	windows.arrange
+open firefox	app.launch
+abre as configurações de aparência	settings.open
+use the lichen theme	theme.switch:lichen
+more space between things	theme.set_tokens
+the corners are too round	theme.set_tokens:radius.md-
+show me the snapshots	system
+are there selinux denials?	system
+delete all my files	none

@@ -163,3 +163,6 @@ func Verify(path string) (int64, error) {
 	}
 	return n, sc.Err()
 }
+
+// Path is the log file's path.
+func (l *Log) Path() string { return l.path }
