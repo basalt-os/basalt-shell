@@ -3,14 +3,21 @@
 #   scripts/build-rpm.sh [FEDORA_RELEASE]   -> build/rpm/*.rpm
 # The SELinux subpackage is built against the agent family's base module:
 # BASALT_AGENT_SELINUX=DIR with basalt_agent_base.if (default: the
-# basalt-os-image checkout next to this one), used in place of the
+# basalt-os checkout next to this one), used in place of the
 # basalt-agent-selinux build dependency.
 set -eu
 cd "$(dirname "$0")/.."
 rel=${1:-44}
 ver=$(cat VERSION)
 podman=${PODMAN:-podman}
-base=${BASALT_AGENT_SELINUX:-../basalt-os-image/packages/basalt-agent/selinux}
+# basalt_agent_base: BASALT_AGENT_SELINUX, else a basalt-os checkout next
+# to this repository (github.com/basalt-os/basalt-os; os-src in the lab).
+base=${BASALT_AGENT_SELINUX:-}
+if [ -z "$base" ]; then
+  for d in ../basalt-os ../os-src ../basalt-os-image; do
+    [ -f "$d/packages/basalt-agent/selinux/basalt_agent_base.if" ] && { base=$d/packages/basalt-agent/selinux; break; }
+  done
+fi
 [ -f "$base/basalt_agent_base.if" ] || { echo "basalt_agent_base.if not found in $base (set BASALT_AGENT_SELINUX)" >&2; exit 1; }
 mkdir -p build/rpm
 cp "$base/basalt_agent_base.if" build/rpm/

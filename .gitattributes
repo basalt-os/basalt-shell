@@ -1,0 +1,3 @@
+# Source archives (git archive, GitHub tarballs, the RPM build) leave out
+# the lab screenshots and recordings.
+/media export-ignore

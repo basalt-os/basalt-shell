@@ -1,6 +1,6 @@
 [Unit]
 Description=Basalt desktop, headless (sway without a display, for agents)
-Documentation=https://github.com/openbasalt/basalt-shell/blob/main/docs/headless.md
+Documentation=https://github.com/basalt-os/basalt-shell/blob/main/docs/headless.md
 # Start it with: systemctl --user start basalt-headless
 # (on a server, `loginctl enable-linger USER` keeps the user manager up).
 

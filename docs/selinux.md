@@ -20,7 +20,7 @@ The session (greetd, `unconfined_t` on Fedora) starts the three programs
 and the kernel moves each into its domain. The UI launcher pins what runs
 in the UI domain: Quickshell from `/usr/bin`, the QML installed next to
 the launcher, and an environment without plugin, import or preload paths
-(`QT_PLUGIN_PATH`, `QML2_IMPORT_PATH`, `LD_*`, `BASALT_SHELL_QML`, ...).
+(`QT_PLUGIN_PATH`, `QML2_IMPORT_PATH`, `LD_*`, `BASALT_SHELL_QML` and the like).
 
 ## The check on the socket
 
@@ -61,10 +61,10 @@ daemon, which applies the confirmation, control-session and audit rules
 `basalt-shell screenshot` writes the PNG to stdout, MCP clients get it
 inline.
 
-## The agent family (shared with basalt-agent, ADR 0009)
+## The agent family (shared with basalt-agent)
 
 `basalt_agent_mcp_t` is a member of the Basalt agent family. The family's
-base module, `basalt_agent_base`, lives with basalt-agent (basalt-os-image,
+base module, `basalt_agent_base`, lives with basalt-agent ([basalt-os](https://github.com/basalt-os/basalt-os),
 `packages/basalt-agent/selinux`, package `basalt-agent-selinux`): the
 attribute `basalt_agent_domain`, the baseline `basalt_agent_domain_type()`,
 helpers such as `basalt_agent_use_terminals()`, and the neverallow rules

@@ -7,7 +7,8 @@ The confirmation boundary is in [selinux.md](selinux.md), the headless
 session for agents in [headless.md](headless.md) and the command bar's
 local model in [command-bar.md](command-bar.md).
 
-Decided (ADR 0003, 2026-10-03): functionality and the best API for models
+Decided (2026-10-03, after the 0.1.0 comparison in
+[prototype-report.md](prototype-report.md)): functionality and the best API for models
 and MCP come before looks. The default compositor is upstream sway from
 Fedora (runs without a GPU and headless, the most complete IPC, wlroots
 protocols for screen capture, virtual input and toplevel lists); niri is
@@ -137,7 +138,7 @@ and runs only through the daemon:
 Read tools for MCP: `desktop_state`, `toplevels_list`, `theme_get`,
 `apps_list`, `activity_recent`, `proposal_status`, `agent_control_status`.
 Write tools are the actions above, named with underscores (`window_move`,
-`theme_set_tokens`, ...), and the last-resort tools below.
+`theme_set_tokens` and so on), and the last-resort tools below.
 
 ## Agents' last resort: screen and input
 

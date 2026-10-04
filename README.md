@@ -1,6 +1,9 @@
 # basalt-shell
 
-> Prototype. Part of Basalt OS, a Fedora remix. Expect breaking changes.
+> Pre-release prototype (0.3.0). Expect breaking changes. Part of
+> [Basalt OS](https://basalt-os.org), a Linux distribution built as a
+> Fedora remix; not affiliated with or endorsed by the Fedora Project or
+> Red Hat.
 
 The desktop shell of Basalt OS: a panel, an application launcher,
 notifications, quick settings, an "Ask the system" command bar and an
@@ -18,7 +21,24 @@ adapter interface. Windows float by default; tiling is one key away.
 
 ![The command bar proposing a theme change, on niri](media/niri/05-commandbar-proposal.webp)
 
-![An MCP request waiting for the person](media/swayfx/07-mcp-sheet.webp)
+| | |
+|---|---|
+| ![An MCP request waiting for the person](media/swayfx/07-mcp-sheet.webp) | ![Settings: theme, mode, accent, shape and size](media/niri/04-settings-appearance.webp) |
+| An agent's request over MCP waits for the person | Settings: every change applies live, to the shell and to apps |
+| ![The launcher](media/niri/02-launcher-search.webp) | ![The system assistant explains a failed service](media/niri/06-assistant-report.webp) |
+| The launcher | The command bar asking the Basalt OS system assistant |
+
+More screenshots and short recordings are in [media/](media/).
+
+## Status
+
+A working prototype, not yet a release: everything below runs on sway and
+niri on Fedora 44, in a lab VM and in the container described under "Try
+it". Before 1.0 it still needs a greeter and a lock screen of its own (it
+uses tuigreet and a themed swaylock today), more typed actions, an
+independent review of the confirmation boundary, and translations. The
+packages are not yet in a public repository; until they are, build them
+from source (below) or try the shell in a container.
 
 ## Pieces
 
@@ -46,6 +66,8 @@ Pick one.
    system (podman, Mesa GPU):
 
    ```sh
+   git clone https://github.com/basalt-os/basalt-shell.git
+   cd basalt-shell
    scripts/try-podman.sh sway     # or: scripts/try-podman.sh niri
    ```
 
@@ -65,7 +87,9 @@ Pick one.
 3. Headless, for an agent: `systemctl --user start basalt-headless`
    ([docs/headless.md](docs/headless.md)).
 
-4. As part of Basalt OS: the installer's desktop profile
+4. On Basalt OS: `sudo dnf install basalt-shell` from the Basalt OS
+   repository (<https://obpkg.org/basalt>) once a release that includes it
+   is published. The installer's desktop profile
    (`basalt.profile=desktop`, see `lab/`) installs it with greetd.
 
 Keys: Super+Space launcher, Super+A command bar, Super+S quick settings,
@@ -155,9 +179,15 @@ scripts/                install, try (podman, nested), RPM, development
 media/                  screenshots and recordings from the lab
 ```
 
+## Contributing and security
+
+Issues and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
+Report security problems privately, as [SECURITY.md](SECURITY.md) explains.
+The OpenBasalt [code of conduct](CODE_OF_CONDUCT.md) applies.
+
 ## License
 
-Code: Apache License 2.0 ([LICENSE](LICENSE)). Wallpapers from the Basalt
+Code: Apache License 2.0 ([LICENSE](LICENSE), [NOTICE](NOTICE)). Wallpapers from the Basalt
 OS branding kit: CC-BY-SA-4.0 ([LICENSE-artwork](LICENSE-artwork)).
 Quickshell is LGPL-3.0, sway MIT, niri GPL-3.0; they are
 separate programs the shell runs on, not part of this repository.

@@ -74,7 +74,7 @@ minutes and the agent is told so.
 | Tool | Notes |
 |---|---|
 | `desktop_state`, `toplevels_list`, `theme_get`, `apps_list`, `activity_recent` | read at once |
-| the typed write tools (`app_launch`, `window_*`, `windows_arrange`, `theme_*`, ...) | each waits for the person |
+| the typed write tools (`app_launch`, `window_*`, `windows_arrange`, `theme_*` and the rest) | each waits for the person |
 | `screen_capture` | a PNG of the screen or of a window, confirmed per screenshot |
 | `agent_control_request` | a 1 to 15 minute session: screenshots without asking and `input_*` (type, keys, pointer, scroll); a frame and a banner show it; Super+Shift+Escape or Stop ends it |
 

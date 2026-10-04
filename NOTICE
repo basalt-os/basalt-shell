@@ -1,0 +1,15 @@
+Basalt shell
+Copyright 2026 Edimar Cardoso and the Basalt OS contributors.
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The wallpapers in shell/wallpapers come from the Basalt OS branding kit and
+are licensed under CC-BY-SA-4.0 (see LICENSE-artwork).
+
+The compiled SELinux policy module in the basalt-shell-selinux package
+contains expansions of the SELinux reference policy macros
+(selinux-policy-devel, GPL-2.0-or-later). Its sources in selinux/ are
+Apache-2.0.
+
+Quickshell (LGPL-3.0), sway (MIT) and niri (GPL-3.0) are separate programs
+the shell runs on; they are not part of this repository.

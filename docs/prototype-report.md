@@ -2,7 +2,7 @@
 
 Date: 2026-10-03. Prototype 0.1.0. How it is built: [design.md](design.md).
 
-Superseded in part (0.2.0, 2026-10-04): the owner decided sway as the
+Superseded in part (0.2.0, 2026-10-04): the project chose sway as the
 default compositor (functionality and the API for models first), niri as
 an optional session and no SwayFX; the confirmation check moved from the
 program name to SELinux domains (selinux.md); qt5ct and the keyring
@@ -180,9 +180,9 @@ Notes:
 Make niri the default compositor of the desktop edition and keep sway as
 the second backend:
 
-- It gives the owner's "beautiful, subtle animations" out of the box, is
+- It gives the "beautiful, subtle animations" asked for out of the box, is
   an official Fedora package (no COPR in the default install, which the
-  signed, traditional repository model of ADR 0005 and 0006 prefers), and
+  signed, traditional package repository model of Basalt OS prefers), and
   its IPC covers every action the model needs.
 - Floating by default works on niri with one window rule; scrollable
   tiling is a strength for people who later want tiling.
@@ -204,8 +204,8 @@ drops shadows when motion is reduced).
 
 ## Trying it
 
-- In the lab VM over the LAN (SPICE or VNC; details in the private access
-  note), both sessions installed, switch with the greeter.
+- In a lab VM (SPICE or VNC, see `lab/`), both sessions installed,
+  switch with the greeter.
 - `scripts/try-podman.sh sway|niri`: a nested session in a window of the
   current desktop, from a Fedora 44 container; nothing installed on the
   host. Tested inside the lab VM (a nested SwayFX in the niri session).
@@ -215,10 +215,14 @@ drops shadows when motion is reduced).
   the VM: the nested daemon drives the nested compositor and leaves the
   host's settings alone).
 
-## Decisions for the owner
+## Open decisions at 0.1.0
+
+Answered for 0.2.0: sway is the default (item 1), Quickshell stays (2),
+SwayFX is not packaged (5), qt5ct ships (6) and the command bar uses the
+local model when it is installed (7).
 
 1. Default compositor of the desktop edition: niri (recommended) or keep
-   Sway as decided in ADR 0003 (then SwayFX from our repository, or plain
+   Sway as decided earlier (then SwayFX from our repository, or plain
    sway).
 2. Toolkit for Basalt's own layer: Quickshell (Qt/QML), as prototyped.
 3. Whether niri's need for a GPU is acceptable for the desktop edition
@@ -228,7 +232,7 @@ drops shadows when motion is reduced).
 5. Whether to package SwayFX and scenefx in the Basalt repository.
 6. Qt 5 apps: ship qt5ct too, or accept that Qt 5 apps keep Fusion colors.
 7. Local model for the command bar: wire the existing basalt-llm
-   translator (same endpoint) once the M2b model is picked; the rules
+   translator (same endpoint) once its model is picked; the rules
    cover the demo phrases today.
 
 ## Known gaps

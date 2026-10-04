@@ -24,7 +24,7 @@ policy_module(basalt_shell, 0.1.0)
 #
 # basalt_agent_mcp_t belongs to the Basalt agent family: the shared base
 # module basalt_agent_base (shipped by basalt-agent-selinux, from
-# basalt-os-image packages/basalt-agent) gives the attribute, the baseline
+# the basalt-os repository, packages/basalt-agent) gives the attribute, the baseline
 # and the family's neverallow rules. This module adds the shell's part of
 # "agents request, the person confirms": the request socket
 # (basalt_shell_request) and the confirming domain (basalt_shell_ui_t),

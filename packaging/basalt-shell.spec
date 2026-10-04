@@ -7,7 +7,7 @@ Version:        %{basalt_version}
 Release:        1%{?dist}
 Summary:        Basalt OS desktop shell: AI-coordinated, themeable, compositor-agnostic
 License:        Apache-2.0 AND CC-BY-SA-4.0
-URL:            https://github.com/openbasalt/basalt-shell
+URL:            https://github.com/basalt-os/basalt-shell
 Source0:        basalt-shell-%{version}.tar.gz
 
 BuildRequires:  golang >= 1.24
@@ -110,7 +110,7 @@ fi
 %selinux_relabel_post -s %{selinuxtype}
 
 %files
-%license LICENSE LICENSE-artwork
+%license LICENSE LICENSE-artwork NOTICE
 %doc README.md docs/design.md
 %{_bindir}/basalt-shell
 %{_bindir}/basalt-shelld
@@ -134,6 +134,12 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Sun Oct 04 2026 Basalt OS developers - 0.3.0-1
+- Window decorations that follow the theme on sway and niri; Qt windows
+  use client-side decorations when the Adwaita plugin is installed.
+- Window states (normal, minimized, maximized, left, right) as a typed
+  action and MCP tool; panel window list and window menu.
+
 * Sun Oct 04 2026 Basalt OS developers - 0.2.0-1
 - sway (Fedora) is the default session; SwayFX dropped; niri optional.
 - Headless session for agents; screen capture, virtual input and
