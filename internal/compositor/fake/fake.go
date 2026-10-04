@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	compositor.Register(func() compositor.Adapter {
+	compositor.Register("fake", func() compositor.Adapter {
 		if os.Getenv("BASALT_SHELL_COMPOSITOR") != "fake" {
 			return nil
 		}

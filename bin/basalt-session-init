@@ -22,6 +22,9 @@ if [ "${BASALT_NESTED:-0}" != 1 ]; then
     xdg-desktop-portal-wlr.service xdg-desktop-portal-gnome.service 2>/dev/null
   dbus-update-activation-environment --systemd $present
   systemctl --user import-environment $present
+  # A session killed without cleanup (greeter restart, crash) leaves the
+  # targets active and autostarted apps dead: restart them.
+  systemctl --user stop basalt-session.target xdg-desktop-autostart.target 2>/dev/null
   systemctl --user start basalt-session.target
   swayidle -w timeout 900 basalt-lock before-sleep basalt-lock &
 fi

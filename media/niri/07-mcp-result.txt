@@ -1,0 +1,31 @@
+server: {'name': 'basalt-shell', 'title': 'Basalt desktop shell', 'version': '0.1.0'}
+{
+  "diff": [
+    {
+      "key": "color.accent",
+      "from": "#b5502f",
+      "to": "#2f7d78"
+    },
+    {
+      "key": "radius.lg",
+      "from": 28,
+      "to": 24
+    },
+    {
+      "key": "radius.md",
+      "from": 19,
+      "to": 16
+    },
+    {
+      "key": "radius.window",
+      "from": 19,
+      "to": 18
+    }
+  ],
+  "message": "The person confirmed it and it was applied.",
+  "proposal": "d-9f68cd9d",
+  "status": "applied",
+  "steps": [
+    "Set color.accent, radius.lg, radius.md, radius.window"
+  ]
+}

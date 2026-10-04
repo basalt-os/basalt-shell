@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	compositor.Register(func() compositor.Adapter {
+	compositor.Register("sway", func() compositor.Adapter {
 		p := os.Getenv("SWAYSOCK")
 		if p == "" {
 			return nil

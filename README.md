@@ -15,7 +15,9 @@ The shell runs on sway / SwayFX and on niri through one adapter
 interface, so the compositor can be swapped. Windows float by default;
 tiling is one key away.
 
-![The shell on SwayFX](media/screenshots/swayfx/01-panel.png)
+![The command bar proposing a theme change, on niri](media/niri/05-commandbar-proposal.webp)
+
+![An MCP request waiting for the person, on SwayFX](media/swayfx/07-mcp-sheet.webp)
 
 ## Pieces
 

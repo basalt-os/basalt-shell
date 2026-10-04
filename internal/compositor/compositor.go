@@ -123,19 +123,30 @@ var ErrNoCompositor = errors.New("no supported compositor (set SWAYSOCK or NIRI_
 // Factory builds an adapter from the environment, or returns nil.
 type Factory func() Adapter
 
-var factories []Factory
+type named struct {
+	name string
+	f    Factory
+}
 
-// Register adds a backend factory; backends call it from init.
-func Register(f Factory) { factories = append(factories, f) }
+var factories []named
 
-// Detect returns the first backend whose compositor is running, or a
-// stub that answers every call with ErrNoCompositor.
+// Register adds a backend factory under a name; backends call it from init.
+func Register(name string, f Factory) { factories = append(factories, named{name, f}) }
+
+// Detect returns the backend named by BASALT_SHELL_COMPOSITOR (set by
+// basalt-session; "none" for no compositor), else the first backend whose
+// compositor is running, or a stub that answers every call with
+// ErrNoCompositor.
 func Detect() Adapter {
-	if want := os.Getenv("BASALT_SHELL_COMPOSITOR"); want == "none" {
+	want := os.Getenv("BASALT_SHELL_COMPOSITOR")
+	if want == "none" {
 		return None{}
 	}
 	for _, f := range factories {
-		if a := f(); a != nil {
+		if want != "" && f.name != want {
+			continue
+		}
+		if a := f.f(); a != nil {
 			return a
 		}
 	}

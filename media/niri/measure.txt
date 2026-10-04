@@ -1,0 +1,8 @@
+compositor: niri (niri 26.04)
+renderer: virgl (host GPU)
+motion: full
+animation capture: 81 frames in 10.588000s (frames arrive only on change; 3 x drawer + launcher open/close)
+idle niri: cpu 0.1% (10 s), rss 104 MiB
+idle quickshell: cpu 0.1% (10 s), rss 224 MiB
+idle basalt-shell daemon: cpu 0.0% (10 s), rss 13 MiB
+ctl desktop round trip (incl. process start): 10 ms average

@@ -51,15 +51,22 @@ session_end() {
     xdg-desktop-portal-wlr.service xdg-desktop-portal-gnome.service 2>/dev/null
   systemctl --user unset-environment WAYLAND_DISPLAY DISPLAY SWAYSOCK NIRI_SOCKET 2>/dev/null
 }
+trap 'session_end; exit 0' TERM HUP
 
 case "$which" in
   sway|swayfx)
+    # A nested session must not see the host compositor's socket.
+    unset NIRI_SOCKET SWAYSOCK
+    export BASALT_SHELL_COMPOSITOR=sway
     export XDG_CURRENT_DESKTOP=sway:Basalt
     export XDG_SESSION_DESKTOP=sway
-    sway -c "$share/sway/config" "${@:2}"
+    sway -c "$share/sway/config" "${@:2}" &
+    wait $!
     session_end
     ;;
   niri)
+    unset NIRI_SOCKET SWAYSOCK
+    export BASALT_SHELL_COMPOSITOR=niri
     export XDG_CURRENT_DESKTOP=niri:Basalt
     export XDG_SESSION_DESKTOP=niri
     # niri reads NIRI_CONFIG; the theme include is written next to it.
@@ -71,7 +78,8 @@ case "$which" in
     fi
     export NIRI_CONFIG="$conf/niri/config.kdl" BASALT_NIRI_CONFIG="$conf/niri/config.kdl"
     if [ "${BASALT_NESTED:-0}" = 1 ]; then exec niri "${@:2}"; fi
-    niri --session "${@:2}"
+    niri --session "${@:2}" &
+    wait $!
     session_end
     ;;
   *)

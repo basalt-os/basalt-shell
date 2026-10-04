@@ -72,6 +72,8 @@ Newline-delimited JSON over a Unix socket (mode 0600, directory 0700).
 | `decide` | ui | confirm or decline a proposal |
 | `ask` | ui | command bar request (understand, then propose) |
 | `theme.save_as`, `reload` | ui | save the current look as a user theme, reload theme files |
+| `choose` | any | ask the person to pick one of fixed options (the screen-share output chooser); waits for the answer |
+| `chosen` | ui | the person's answer to a `choose` |
 | `assistant.pending`, `assistant.show` | any | the system assistant's proposals |
 | `assistant.apply`, `assistant.ignore` | ui | the system assistant's own confirmation flow |
 
@@ -260,11 +262,14 @@ tile`, the Windows settings page, or "tile windows" in the command bar).
 
 | Need | How |
 |---|---|
-| File chooser, app chooser, settings portal | xdg-desktop-portal with -gtk on both compositors |
-| Screenshot, screen sharing (PipeWire) | -wlr on sway / SwayFX (output chosen by clicking, slurp), -gnome on niri (niri implements the Mutter screen cast API) |
+| File chooser, app chooser | xdg-desktop-portal-gtk on both compositors |
+| Settings portal (color-scheme, accent-color) | -gnome first, -gtk second (the GTK backend does not publish accent-color) |
+| Screenshot | -wlr on both (on niri, -gnome 50 asked for permission and never answered) |
+| Screen sharing (PipeWire) | -wlr on sway / SwayFX, the output chosen on a sheet in the shell (`basalt-shell choose-output`, audited); -gnome on niri (niri implements the Mutter screen cast API, with its own chooser) |
 | Dark/light and accent for every app (Flatpak too) | org.freedesktop.appearance color-scheme and accent-color through the portal, from gsettings written by the daemon |
-| GTK 4 / libadwaita | the portal settings live; exact palette from a managed block in ~/.config/gtk-4.0/gtk.css (new windows) |
-| GTK 3 | adw-gtk3 / adw-gtk3-dark theme switched with the mode, same managed gtk.css block |
+| Privacy | a panel indicator while any app captures the screen, a camera or the microphone (PipeWire input streams) |
+| GTK 4 / libadwaita | the portal settings live; exact palette for both modes (libadwaita CSS variables under a prefers-color-scheme media query) in a managed block of ~/.config/gtk-4.0/gtk.css, read when an app starts |
+| GTK 3 | adw-gtk3 / adw-gtk3-dark switched with the mode; the accent in a managed block of ~/.config/gtk-3.0/gtk.css |
 | Qt 5 / 6 | qt6ct (QT_QPA_PLATFORMTHEME) with a generated color scheme and fonts |
 | Icons, cursor, fonts | gsettings (icon-theme, cursor-theme, cursor-size, font-name, monospace-font-name) and the compositor's cursor |
 | X11 apps | XWayland on sway; xwayland-satellite on niri (started on demand by niri) |
@@ -281,7 +286,13 @@ tile`, the Windows settings page, or "tile windows" in the command bar).
 
 `basalt-session sway|niri` sets the toolkit environment and starts the
 compositor with the shell's config; the wayland-sessions entries "Basalt
-(SwayFX)" and "Basalt (niri)" call it. The desktop profile of the Basalt
+(SwayFX)" and "Basalt (niri)" call it. `basalt-session-init`, started by
+the compositor, exports the session's environment to the systemd user
+manager (apps run in their own scopes and need DISPLAY, the Wayland and
+Qt variables and the Electron hint), stops portals left from an earlier
+session and starts basalt-session.target, the clipboard history and the
+idle lock. Local additions: `~/.config/basalt-shell/sway.d/*` (sway) and
+`~/.config/basalt-shell/niri/local.kdl` (niri). The desktop profile of the Basalt
 installer uses greetd with tuigreet. Run inside another desktop (a nested
 window), the session does not export anything to the host's systemd user
 manager and does not change the host's application settings.

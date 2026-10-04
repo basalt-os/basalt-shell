@@ -1,0 +1,8 @@
+compositor: sway (0.5.2)
+renderer: virgl (host GPU)
+motion: full
+animation capture: 152 frames in 11.863000s (frames arrive only on change; 3 x drawer + launcher open/close)
+idle sway: cpu 0.0% (10 s), rss 78 MiB
+idle quickshell: cpu 0.0% (10 s), rss 226 MiB
+idle basalt-shell daemon: cpu 0.0% (10 s), rss 13 MiB
+ctl desktop round trip (incl. process start): 13 ms average

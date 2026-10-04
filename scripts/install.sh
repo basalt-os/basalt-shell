@@ -26,7 +26,7 @@ pkgs=(niri quickshell xwayland-satellite xorg-x11-server-Xwayland
   pipewire wireplumber upower polkit gnome-keyring gcr
   foot adw-gtk3-theme adwaita-icon-theme adwaita-cursor-theme qt6ct qt6-qtwayland
   rsms-inter-fonts jetbrains-mono-fonts google-noto-sans-fonts
-  swayidle swaylock wl-clipboard cliphist grim slurp wtype brightnessctl xdg-utils golang make)
+  swayidle swaylock wl-clipboard cliphist grim slurp wtype brightnessctl xdg-utils dbus-daemon golang make)
 if [ "$swayfx" = 1 ]; then
   sudo dnf -y install dnf-plugins-core
   sudo dnf -y copr enable swayfx/swayfx

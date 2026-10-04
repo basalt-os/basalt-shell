@@ -36,6 +36,7 @@ Recommends:     grim
 Recommends:     slurp
 Recommends:     foot
 Recommends:     gnome-keyring
+Recommends:     dbus-daemon
 
 %description
 The Basalt OS desktop shell: panel, launcher, notifications, quick

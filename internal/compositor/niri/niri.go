@@ -26,7 +26,7 @@ import (
 )
 
 func init() {
-	compositor.Register(func() compositor.Adapter {
+	compositor.Register("niri", func() compositor.Adapter {
 		p := os.Getenv("NIRI_SOCKET")
 		if p == "" {
 			return nil
