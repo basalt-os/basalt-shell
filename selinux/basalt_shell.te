@@ -440,7 +440,7 @@ dontaudit basalt_skill_t self:capability { dac_override dac_read_search sys_ptra
 
 # ---- basalt_skill_index_t
 
-allow basalt_skill_index_t self:process { fork sigchld sigkill signal signull getsched setpgid };
+allow basalt_skill_index_t self:process { fork sigchld sigkill signal signull getsched setpgid getattr };
 allow basalt_skill_index_t self:fifo_file rw_fifo_file_perms;
 allow basalt_skill_index_t self:unix_stream_socket create_stream_socket_perms;
 allow basalt_skill_index_t basalt_skill_index_exec_t:file { map read execute getattr };
@@ -501,7 +501,7 @@ dontaudit basalt_skill_send_t self:udp_socket name_bind;
 
 # ---- basalt_skill_files_t
 
-allow basalt_skill_files_t self:process { fork sigchld signal signull getsched };
+allow basalt_skill_files_t self:process { fork sigchld signal signull getsched getattr };
 allow basalt_skill_files_t self:fifo_file rw_fifo_file_perms;
 allow basalt_skill_files_t basalt_skill_files_exec_t:file { map read execute getattr };
 kernel_read_system_state(basalt_skill_files_t)
