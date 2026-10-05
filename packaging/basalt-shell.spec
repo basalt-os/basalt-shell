@@ -224,6 +224,12 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Mon Oct 05 2026 Basalt OS developers - 0.4.1-1
+- basalt-session allows wlroots' software renderer
+  (WLR_RENDERER_ALLOW_SOFTWARE=1): SwayFX needs GLES, so on machines and
+  VMs without a GPU the session exited at once and the login screen came
+  back; a hardware GPU is still used when present.
+
 * Sun Oct 04 2026 Basalt OS developers - 0.4.0-1
 - Voice: push to talk (basalt-voiced: whisper.cpp with Silero VAD and
   Piper, no network, nothing kept); off while the screen is locked.

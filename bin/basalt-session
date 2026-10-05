@@ -41,6 +41,12 @@ export SDL_VIDEODRIVER="wayland,x11"
 export _JAVA_AWT_WM_NONREPARENTING=1
 export XCURSOR_THEME=${XCURSOR_THEME:-Adwaita}
 export XCURSOR_SIZE=${XCURSOR_SIZE:-24}
+# wlroots refuses a software EGL renderer (llvmpipe) unless this is set,
+# and SwayFX draws with GLES only (no pixman): without it the session
+# cannot start on a machine or VM with no GPU and falls back to the login
+# screen. A hardware GPU is still used when there is one; the shell turns
+# the effects off when the renderer is software.
+export WLR_RENDERER_ALLOW_SOFTWARE=${WLR_RENDERER_ALLOW_SOFTWARE:-1}
 
 conf=${XDG_CONFIG_HOME:-$HOME/.config}/basalt-shell
 mkdir -p "$conf/sway.d"
