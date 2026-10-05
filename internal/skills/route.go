@@ -255,7 +255,7 @@ func ContentWords(text string) []string {
 }
 
 var (
-	reReply  = regexp.MustCompile(`(?i)^\s*(?:please\s+|can you\s+|could you\s+)?(?:reply|respond|answer|write back|responda|responder)\b\s*(?:to\s+)?(.*)$`)
+	reReply  = regexp.MustCompile(`(?i)^\s*(?:please\s+|can you\s+|could you\s+)?(?:reply|replied|respond|answer|write back|responda|responder)\b\s*(?:to\s+)?(.*)$`)
 	reMove   = regexp.MustCompile(`(?i)^\s*(?:please\s+)?(?:move|put|file)\s+(.+?)\s+(?:to|into|in)\s+(?:the\s+|a\s+|my\s+)?(?:folder\s+(?:called\s+|named\s+)?)?(.+?)(?:\s+folder)?\s*[.!]?\s*$`)
 	reRename = regexp.MustCompile(`(?i)^\s*(?:please\s+)?rename\s+(.+?)\s+(?:to|as)\s+(.+?)\s*[.!]?\s*$`)
 	reUndo   = regexp.MustCompile(`(?i)^\s*(?:please\s+)?(?:undo|put (?:them|it|the files?) back|revert|desfazer|desfa[cç]a)\b`)

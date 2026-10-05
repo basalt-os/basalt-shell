@@ -87,6 +87,7 @@ func TestClassifyAct(t *testing.T) {
 		{"rename result 1 to statement-september.pdf", SkillRename, "result 1", "statement-september.pdf"},
 		{"Reply to Priya the slides will be ready on Friday morning.", SkillReply, "Priya", "the slides will be ready on Friday morning."},
 		{"Reply to Priya, the slides are ready.", SkillReply, "Priya", "the slides are ready."},
+		{"Replied Priya the slides will be ready on Friday morning.", SkillReply, "Priya", "the slides will be ready on Friday morning."},
 		{"undo", SkillUndo, "", ""},
 		{"put them back", SkillUndo, "", ""},
 		{"forward this to bob@example.net", SkillUnsupported, "", ""},

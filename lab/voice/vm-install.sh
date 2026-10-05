@@ -28,6 +28,8 @@ restorecon -RF /usr/libexec/basalt-voice /usr/lib64/chromium-browser 2>/dev/null
 restorecon -RF /home/basalt/.local/share /run/user/1000 2>/dev/null || true
 cp $st/lab/demo-tools/* /usr/local/bin/ 2>/dev/null || true
 echo "installed: $(basalt-shelld version) $(basalt-voiced version)"
+# The voice service is a user unit: the session restart does not restart it.
+runuser -u basalt -- env XDG_RUNTIME_DIR=/run/user/1000 systemctl --user try-restart basalt-voice.service 2>/dev/null || true
 if [ "${1:-}" = --session ]; then
   rm -f /run/greetd.run   # initial_session (autologin) runs once per boot otherwise
   systemctl restart greetd

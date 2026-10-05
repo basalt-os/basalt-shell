@@ -33,14 +33,31 @@ wait_for() {
   echo "timeout waiting for $2" >&2
 }
 click_primary() { # click the primary button on screen (Allow, Send, Insert)
-  local tmp=/tmp/demo-find.png xy
-  grim "$tmp"
-  xy=$(python3 "$here/findbtn.py" "$tmp" "$@") || { echo "no button" >&2; return 1; }
+  local tmp=/tmp/demo-find.png xy=""
+  # The card may still be fading in: look again for a few seconds.
+  for _ in 1 2 3 4 5 6 7 8; do
+    grim "$tmp"
+    xy=$(python3 "$here/findbtn.py" "$tmp" "$@" 2>/dev/null) && break
+    xy=""; sleep 1
+  done
+  [ -n "$xy" ] || { echo "no button" >&2; return 1; }
   # A person's pointer: move there, a short pause, click.
   ydotool mousemove -a -x ${xy% *} -y ${xy#* } >/dev/null; sleep 0.6
   ydotool click 0xC0 >/dev/null
   # Then the pointer goes out of the way.
   sleep 0.4; ydotool mousemove -a -x 1900 -y 1060 >/dev/null
+}
+# allow_if_asked N: when the request needs a permission (a record after
+# line N says so), show it a moment and press Allow, as the person would.
+allow_if_asked() {
+  AFTER=$1
+  for _ in $(seq 240); do
+    if tail -n +$(($1 + 1)) "$log" | grep -q '"need_grant"'; then
+      sleep 2.5; shot "$2"; AFTER=$(lines); click_primary; return 0
+    fi
+    tail -n +$(($1 + 1)) "$log" | grep -q '"answer"\|"act":' && return 0
+    sleep 0.5
+  done
 }
 say() { # say TEXT NAME: a spoken request, screenshot while the key is held
   ( sleep 1.6; shot "$2-listening" ) &
@@ -52,8 +69,7 @@ scene_files() {
   rec_start files
   local n; n=$(lines)
   say "Find the PDF the bank sent last month." files-1
-  wait_for "$n" '"need_grant"'; sleep 2.5; shot files-2-permission
-  n=$(lines); click_primary
+  allow_if_asked "$n" files-2-permission; n=$AFTER
   wait_for "$n" '"answer"'; sleep 7
   shot files-3-answer
   rec_stop files
@@ -63,9 +79,8 @@ scene_mail() {
   rec_start mail-summary
   local n; n=$(lines)
   say "What did Priya say in her last email?" mail-1
-  wait_for "$n" '"need_grant"'; sleep 2.5; shot mail-2-permission
-  n=$(lines); click_primary
-  wait_for "$n" '"type":"voice","actor":"voice"\|"answer"'; wait_for "$n" '"answer"'; sleep 9
+  allow_if_asked "$n" mail-2-permission; n=$AFTER
+  wait_for "$n" '"answer"'; sleep 9
   shot mail-3-summary
   rec_stop mail-summary
 }
@@ -74,6 +89,7 @@ scene_reply() {
   rec_start reply
   local n; n=$(lines)
   say "Reply to Priya: the slides will be ready on Friday morning." reply-1
+  allow_if_asked "$n" reply-1b-permission; n=$AFTER
   wait_for "$n" '"act":"mail.send"'; sleep 6
   shot reply-2-draft
   n=$(lines); click_primary

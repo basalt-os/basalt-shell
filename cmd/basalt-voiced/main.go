@@ -83,7 +83,7 @@ func load() config {
 		ttsBin:   env("BASALT_VOICE_TTS_BIN", "/usr/libexec/basalt-voice/piper/piper"),
 		ttsModel: env("BASALT_VOICE_TTS_MODEL", "/usr/share/basalt-voice/voices/en_US-ljspeech-medium.onnx"),
 		peer:     env("BASALT_VOICE_PEER", "auto"),
-		prompt:   env("BASALT_VOICE_PROMPT", "Find the PDF. Summarize my email, my inbox, the web page. Open result 2. Documents, Downloads, Desktop."),
+		prompt:   env("BASALT_VOICE_PROMPT", "Find the PDF. Summarize my email, my inbox, the web page. Reply to the email. Open result 2. Documents, Downloads, Desktop."),
 		rate:     16000,
 		// Absolute paths: the voice domain may run these programs and
 		// no other (no PATH search through the person's folders).

@@ -18,7 +18,10 @@ Column {
     }
     spacing: Theme.s3
 
-    onPvChanged: if (isMail) { subjectField.text = pv.subject || ""; bodyEdit.text = pv.body || ""; }
+    // Fill the editable fields from the preview (pv itself, not isMail:
+    // the bindings may not have caught up when this runs).
+    onPvChanged: if (pv && pv.kind === "mail") { subjectField.text = pv.subject || ""; bodyEdit.text = pv.body || ""; }
+    Component.onCompleted: if (pv && pv.kind === "mail") { subjectField.text = pv.subject || ""; bodyEdit.text = pv.body || ""; }
 
     Rectangle {
         visible: ap.warnings && ap.warnings.length > 0
