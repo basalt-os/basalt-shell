@@ -100,10 +100,13 @@ elif a.engine == "fw":
         return " ".join(s.text.strip() for s in segs)
 
 errs = words = 0
+names_n = [0, 0]
 lat = []
 by = {}
 with open(a.out, "w") as out:
-    for f, voice, noise, ref in rows:
+    for row in rows:
+        f, voice, noise, ref = row[:4]
+        name = row[4] if len(row) > 4 else ""
         p = os.path.join(a.set, f)
         t0 = time.perf_counter()
         hyp = transcribe(p)
@@ -111,12 +114,22 @@ with open(a.out, "w") as out:
         e, n = wer(ref, hyp)
         errs += e; words += n; lat.append(ms)
         k = by.setdefault(noise, [0, 0]); k[0] += e; k[1] += n
-        out.write(json.dumps({"file": f, "voice": voice, "noise": noise, "ref": ref, "hyp": hyp, "ms": round(ms), "audio_ms": round(audio_ms(p)), "errors": e, "words": n}) + "\n")
+        name_ok = None
+        if name:
+            # The name is right when every word of it is spelled as such.
+            hw = set(norm(hyp).split())
+            name_ok = all(w in hw for w in norm(name).split())
+            names_n[0] += 1
+            names_n[1] += 1 if name_ok else 0
+        out.write(json.dumps({"file": f, "voice": voice, "noise": noise, "ref": ref, "hyp": hyp, "ms": round(ms), "audio_ms": round(audio_ms(p)), "errors": e, "words": n, "name": name, "name_ok": name_ok}) + "\n")
 if srv:
     srv.terminate()
 lat.sort()
 summary = {"engine": a.engine, "ac": a.ac, "model": os.path.basename(model_path.rstrip("/")), "beam": a.beam, "threads": a.threads, "gpu": a.gpu, "n": len(rows),
            "wer": round(100 * errs / max(words, 1), 2), "wer_clean": round(100 * by.get("clean", [0, 1])[0] / max(by.get("clean", [0, 1])[1], 1), 2),
            "wer_noise15": round(100 * by.get("noise15", [0, 1])[0] / max(by.get("noise15", [0, 1])[1], 1), 2),
-           "p50_ms": round(statistics.median(lat)), "p90_ms": round(lat[int(0.9 * (len(lat) - 1))]), "mean_ms": round(statistics.mean(lat))}
+           "p50_ms": round(statistics.median(lat)), "p90_ms": round(lat[int(0.9 * (len(lat) - 1))]), "mean_ms": round(statistics.mean(lat)),
+           "prompt": bool(a.prompt)}
+if names_n[0]:
+    summary["names_ok"] = round(100 * names_n[1] / names_n[0], 1)
 print(json.dumps(summary))

@@ -20,12 +20,27 @@ PanelWindow {
     MouseArea { anchors.fill: parent; onClicked: Ui.drawer = false }
 
     function icon(t) {
-        return ({ request: "spark", confirm: "check", apply: "check", decline: "close", expire: "info", fail: "warning",
-                  refuse: "shield", ask: "search", start: "power" })[t] || "info";
+        return ({ request: "spark", confirm: "check", apply: "check", done: "check", decline: "close", expire: "info", fail: "warning",
+                  refuse: "shield", ask: "search", start: "power", voice: "mic", skill: "search", edit: "list" })[t] || "info";
     }
     function tint(t) {
-        return ({ apply: Theme.success, confirm: Theme.success, decline: Theme.textMuted, fail: Theme.danger, refuse: Theme.warning,
-                  expire: Theme.textMuted, request: Theme.accent })[t] || Theme.text;
+        return ({ apply: Theme.success, confirm: Theme.success, done: Theme.success, decline: Theme.textMuted, fail: Theme.danger, refuse: Theme.warning,
+                  expire: Theme.textMuted, request: Theme.accent, edit: Theme.accent })[t] || Theme.text;
+    }
+    // What a record means, for the person (the type stays in the log).
+    function label(r) {
+        return ({ request: qsTr("Waiting for you"), apply: qsTr("You confirmed"), done: qsTr("Done"), decline: qsTr("You declined"),
+                  expire: qsTr("Nobody confirmed it"), fail: qsTr("Failed"), refuse: qsTr("Refused"), voice: qsTr("Voice"),
+                  skill: qsTr("The assistant read"), edit: qsTr("You edited it"), confirm: qsTr("You confirmed") })[r.type] || r.type;
+    }
+    // The exact preview of an acting step, one line.
+    function detail(r) {
+        const pv = r.data && r.data.previews && r.data.previews.length > 0 ? r.data.previews[0] : null;
+        if (pv && pv.kind === "mail") return qsTr("To %1 · %2 · %3 characters, no attachment").arg(pv.to).arg(pv.subject).arg(pv.chars);
+        if (pv && pv.kind === "files") return qsTr("Files: %1").arg((pv.moves || []).map(m => m.from + " → " + m.to).join("; "));
+        if (pv && pv.kind === "dictation") return qsTr("Into %1").arg(pv.app);
+        if (r.type === "skill" && r.data && r.data.warnings && r.data.warnings.length > 0) return r.data.warnings[0];
+        return "";
     }
     function ago(ts) {
         const d = (new Date() - new Date(ts)) / 1000;
@@ -137,10 +152,18 @@ PanelWindow {
                             y: Theme.s1 + 2
                             Txt { width: parent.width; text: modelData.text; wrapMode: Text.Wrap; elide: Text.ElideNone; maximumLineCount: 3 }
                             Txt {
+                                visible: text !== ""
+                                width: parent.width
+                                role: "small"
+                                color: modelData.type === "skill" ? Theme.warning : Theme.text
+                                wrapMode: Text.Wrap; elide: Text.ElideNone; maximumLineCount: 3
+                                text: win.detail(modelData)
+                            }
+                            Txt {
                                 width: parent.width
                                 role: "small"
                                 color: Theme.textMuted
-                                text: modelData.type + "  ·  " + modelData.actor + "  ·  " + win.ago(modelData.time) + "  ·  #" + modelData.seq
+                                text: win.label(modelData) + "  ·  " + modelData.actor + "  ·  " + win.ago(modelData.time) + "  ·  #" + modelData.seq
                             }
                         }
                         MouseArea { id: actMa; anchors.fill: parent; hoverEnabled: true }

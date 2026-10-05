@@ -598,7 +598,8 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		c.VoiceCancel(ctx)
 		return nil, nil
 	case "voice.status":
-		return c.VoiceStatus(), nil
+		st := c.VoiceStatus()
+		return map[string]any{"voice": st, "dictation": c.DictationState()}, nil
 	case "grants":
 		if c.Skills == nil {
 			return []any{}, nil

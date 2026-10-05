@@ -15,6 +15,14 @@ every change it asks for waits for the person's confirmation on a sheet in
 the shell and is written to a hash-chained activity log. Only the shell
 UI's SELinux domain can confirm; agents run confined and can only ask.
 
+Hold Super+V and speak: speech is turned into text on the computer
+(whisper.cpp; nothing is kept), and the words go into the focused text
+field as dictation, or to the assistant, which can find files, read and
+summarize e-mail and web pages, reply to an e-mail, and move or rename
+files. Every action is shown exactly and waits for the person's
+confirmation; content the assistant reads is treated as data, never as
+instructions ([docs/voice.md](docs/voice.md)).
+
 The shell runs on sway (the default; on SwayFX, when installed, with
 rounded corners, shadows, blur and dimmed inactive windows from the
 theme's tokens, turned off on weak hardware; also headless, without a

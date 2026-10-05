@@ -147,6 +147,34 @@ the likely source of the rtkit AVC seen on the first live desktop image,
 gone since apps run in the person's domain (rtkit now grants Firefox's
 thread, no denial).
 
+## Voice and skill domains (0.4)
+
+Five more domains hold the voice service and the skills' workers. They
+form the attribute `basalt_skill_family` and are started by the shell
+daemon (the voice service by the user unit):
+
+| Domain | Program | May | May not |
+|---|---|---|---|
+| `basalt_voice_t` | basalt-voiced | PipeWire (its socket type `basalt_pipewire_sock_t`), its runtime directory, the speech models | network, home files, Wayland, D-Bus |
+| `basalt_skill_index_t` | basalt-skill-index | read plain home content (`user_home_t`) of granted folders, write the index | network, keys, configuration |
+| `basalt_skill_t` | basalt-skill | read the index; web, IMAP and DNS ports in a per-job network session | home files, credentials, SMTP |
+| `basalt_skill_send_t` | basalt-skill-send | SMTP and DNS in a session that allows only the account's server | the index, the mailbox, web ports, home files |
+| `basalt_skill_files_t` | basalt-skill-files | list, create and rename in plain home content | open, read, write or delete a file; network |
+
+None of them may run a general program. The few tools they need get
+types of their own, `basalt_voice_tool_exec_t` (whisper-cli, Piper,
+pw-cat), `basalt_pdf_tool_exec_t` (pdftotext, pdfinfo) and
+`basalt_browser_exec_t` (Chromium), which every other domain may still run
+as before. `neverallow` rules keep `bin_t`, `shell_exec_t`, the setuid
+helpers' types (sudo, su, passwd, chfn, mount, fusermount and others;
+pkexec and newgrp are `bin_t`), `usr_t`, `etc_t`, running a library or the
+dynamic loader as a program, and running anything they can write (home,
+temporary and memory files) out of these domains. The workers and the
+voice service also set `no_new_privs`. Fedora's `corecmd_exec_bin` is
+not used: on Fedora it grants every `base_ro_file_type`, the shell
+included. The lab's escape matrix (`lab/voice/tests/escape-test.sh`)
+checks each domain against what it may do.
+
 ## Limits
 
 - This is a boundary against confined agents. Code running unconfined as

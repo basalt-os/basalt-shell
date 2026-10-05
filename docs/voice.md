@@ -1,9 +1,12 @@
-# Voice and the read-only skills
+# Voice and the skills
 
-Status: spike (2026-10). Push to talk, local speech in both directions,
-and three read-only skills (find files, read and summarize e-mail, read
-and summarize a web page), reachable by voice and from the command bar. The lab, the tests and the
-benchmarks are in `lab/voice/`.
+Status: 0.4 (2026-10), pre-release. Push to talk, local speech in both
+directions, three read-only skills (find files, read and summarize
+e-mail, read and summarize a web page) and three acting skills that are
+always previewed and confirmed (dictation into the focused text field,
+reply to an e-mail, move and rename files), reachable by voice and from
+the command bar. The lab, the tests and the benchmarks are in
+`lab/voice/`.
 
 ## What the person does
 
@@ -15,6 +18,20 @@ benchmarks are in `lab/voice/`.
 - The same requests can be typed in the command bar (Super+A): "find the
   PDF the bank sent last month", "what did Ana say in her last email?",
   "summarize news.example.org", "open result 2".
+- With a text field focused (any app that supports text input, through
+  the Wayland input method), holding Super+V dictates into it: the card
+  says "Dictating into Mousepad", the words appear underlined in the
+  field, and they are typed only after Insert (or Super+Shift+Return);
+  Discard (Super+Shift+BackSpace) drops them. Starting with "assistant"
+  sends the words to the assistant instead. Password and PIN fields get
+  no dictation.
+- "Reply to Priya: the slides will be ready on Friday" shows the reply:
+  from and to (the sender of Priya's message, not editable), the subject
+  and the text, both editable. Nothing is sent until Send.
+- "Move result 2 to Archive", "move my cleanup notes to Archive",
+  "rename result 1 to statement-september": the list of moves, confirmed
+  with Confirm; "undo" puts the files back. Nothing is deleted or
+  replaced.
 - The first time a skill needs a folder, a mailbox or a site, the bar
   shows a permission ("Let the assistant read and search the files in
   ~/Documents, ~/Downloads, ~/Desktop for 1 hour"), with Allow and Don't
@@ -44,6 +61,10 @@ benchmarks are in `lab/voice/`.
 | `basalt-skill-index` | builds the file index of the granted folders: metadata, text of PDFs (poppler), Office and OpenDocument files, HTML (visible and hidden text), plain text, with the guard's findings per file. No symlinks, no hidden files, never `~/.ssh`, `~/.gnupg`, keyrings, browser profiles. |
 | `basalt-skill` | searches the index (BM25 over name, title and text, with kind and time filters), reads a mailbox (read-only IMAP client: `EXAMINE` and `BODY.PEEK` only, the command set is closed), reads a page (headless Chromium over a DevTools pipe, throw-away profile, every request checked). |
 | `internal/guard` | content is data: finds instructions addressed to an assistant, hidden text, invisible and look-alike characters, exfiltration links and images, deceptive links; cleans content for the model; filters the model's output. |
+| `basalt-skill-send` | sends one confirmed e-mail: a send-only SMTP client with a closed command set (no VRFY, EXPN, second recipient), TLS required unless the server has a reserved lab name. |
+| `basalt-skill-files` | renames and moves files inside a granted folder after confirmation: `openat2` beneath the folder with no symbolic links, `renameat2` with no replace, never a read or a delete. |
+| `internal/wlime` | the shell daemon as the session's input method (`zwp_input_method_v2`): knows when a text field has focus and of which kind, shows pre-edit text, commits confirmed text. |
+| `internal/ledger` | sends the acting records (with their exact previews), grants, refusals and skill sessions to basalt-ledger. |
 
 ## Security model
 
@@ -87,6 +108,32 @@ benchmarks are in `lab/voice/`.
    it was followed."), and spoken.
 8. Content cannot promote itself. A file whose text tries to instruct the
    assistant is listed after clean files, whatever the model picked.
+9. Acting is a typed action with an exact preview, confirmed only in the
+   shell UI. `text.insert`, `mail.send` and `files.move` are planned only
+   from the person's own words (the command bar or push to talk); an
+   agent connection cannot propose them. The confirmation shows exactly
+   what will be done (the dictated text; the recipient, subject and
+   text; every move), the activity log and basalt-ledger keep that
+   preview, and what runs is what was shown (an edit of an e-mail's text
+   on the confirmation plans the action again).
+10. Replies: the recipient is the sender of the message the person named,
+    never an address from the content (a Reply-To that points elsewhere
+    is shown as a warning and ignored). The text is the person's words;
+    the model only rewrites an instruction about the recipient ("tell
+    her..."), and its draft is replaced by the person's words when it has
+    links or addresses, copies the message, repeats what the message
+    dictates, or adds numbers the person did not say. Plain text, no
+    attachment, one recipient.
+11. Files: only the files the person named (result numbers or a search
+    of their words), only inside one granted folder, never hidden, never
+    replacing a file, never deleting; each batch can be undone.
+12. Own programs only. The voice and skill domains may run their own
+    tools and nothing else: no shell, no interpreter, no setuid helper
+    (sudo, su, pkexec, newgrp), no program they wrote, not through the
+    dynamic loader (`neverallow` rules, and `no_new_privs`).
+13. Push to talk is off while the screen is locked: the compositor does
+    not run the shell's key bindings during a session lock, and the
+    daemon refuses to open the microphone while a screen locker runs.
 
 ## Model
 
@@ -103,7 +150,11 @@ ten times slower); the output filter clips instead.
 - `/etc/basalt/voice.conf`: speech to text and text to speech programs and
   models, threads, hold limit.
 - `~/.config/basalt-shell/skills.conf`: mail accounts (password in a
-  private file, mode 0600), named sites, the folders a file grant offers.
+  private file, mode 0600; `address`, `name`, `smtp_host`, `smtp_port`,
+  `smtp_tls` for replies), named sites, the folders a file grant offers,
+  `[contacts] names = ...` (names the speech recognition should spell
+  right; the senders of a granted mailbox are added while the grant
+  lasts).
 
 ## Lab
 
@@ -111,7 +162,9 @@ ten times slower); the output filter clips instead.
 (`vm-lab-setup.sh`: lab DNS, web server with request log, dovecot with
 the seeded mailbox, the corpus), deploy (`deploy.sh`), the hostile corpus
 (`corpus/make-corpus.py`), the tests (`tests/injection-matrix.py`,
-`tests/consent-test.py`, `tests/escape-test.sh`), the speech benchmarks
+`tests/consent-test.py`, `tests/acting-matrix.py`, `tests/escape-test.sh`
+with `tests/escape-expect.py`), the SMTP sink and demo names
+(`vm-lab-acting.sh`, `demo/demo-home.sh`), the speech benchmarks
 (`speech/`) and the lab microphone (`demo-tools/lab-say`: a PipeWire pipe
 source and ydotool holding Super+V).
 
@@ -126,10 +179,16 @@ product step). The speech models are English only (Whisper `.en`, the
 Piper voices): when the session's language is not English, the first
 spoken answer says that answers are spoken in English.
 
-## Push to talk and focus
+## Push to talk and where the words go
 
-The spike sends every utterance to the assistant (the command bar). The
-recommended routing, not built yet: dictation into a focused text field
-through the Wayland input-method protocol, the assistant when no text
-field has focus or the utterance is a command; one microphone owner with
-a visible state; actions still previewed and confirmed.
+The shell owns the microphone and decides where the words go when the key
+goes down, and the card shows it while the person speaks:
+
+- a text field has focus: dictation into it (as an input method, never
+  synthetic key presses), previewed in the field and typed after Insert;
+- no text field, the command bar is open, or the words start with
+  "assistant": a request to the assistant;
+- a password or PIN field: no dictation; the words go to the assistant.
+
+Only one input method can be bound on a seat; with another one running
+(IBus, Fcitx) dictation is off and every utterance goes to the assistant.

@@ -56,7 +56,7 @@ echo uinput > /etc/modules-load.d/lab-uinput.conf; modprobe uinput || true
 # Corpus.
 rm -rf /root/corpus && python3 $st/corpus/make-corpus.py /root/corpus >/dev/null
 rsync -a --delete /root/corpus/web/ /srv/lab-web/
-mkdir -p $home/voice-lab && cp /root/corpus/cases.json $home/voice-lab/cases.json && chown -R $user:$user $home/voice-lab
+mkdir -p $home/voice-lab && cp /root/corpus/cases.json /root/corpus/acting.json $home/voice-lab/ && chown -R $user:$user $home/voice-lab
 # Mailbox.
 pass_file=$home/.config/basalt-shell/mail-lab.pass
 mkdir -p $home/.config/basalt-shell /srv/lab-mail

@@ -288,6 +288,11 @@ func (c *Core) VoiceRelease(ctx context.Context) error {
 	if c.Voice == nil {
 		return errors.New("the voice service is not running")
 	}
+	if c.VoiceStatus().State != "listening" {
+		// A release without a press that opened the microphone (refused
+		// at the lock screen, or a stray key-up): nothing to close.
+		return nil
+	}
 	release := time.Now()
 	c.setVoice(VoiceState{State: "transcribing"})
 	go c.voiceTurn(release)

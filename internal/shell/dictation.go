@@ -207,3 +207,15 @@ func (c *Core) dictate(ctx context.Context, rt voiceRoute, text string) (*Propos
 		Explain: i18n.G("Dictation into %s", rt.Target)},
 		[]Call{{Action: "text.insert", Args: map[string]any{"text": text, "field": fmt.Sprint(rt.Gen), "app": rt.Target}}})
 }
+
+// DictationState says whether dictation is possible now (for the UI and
+// the tests): the input method is held, a text field is active, and it is
+// not a field for secrets. The field's text is never exposed.
+func (c *Core) DictationState() map[string]any {
+	im := c.inputMethod()
+	if im == nil {
+		return map[string]any{"available": false}
+	}
+	st := im.State()
+	return map[string]any{"available": st.Available, "active": st.Active, "sensitive": st.Sensitive(), "purpose": st.Purpose}
+}

@@ -116,3 +116,10 @@ func TestPlainName(t *testing.T) {
 		}
 	}
 }
+
+func TestURLWordsDoNotRoute(t *testing.T) {
+	if r := Classify("Summarize http://news.lab.test/a07-email.html"); r.Skill != SkillWeb {
+		t.Errorf("got %q", r.Skill)
+	}
+}
+

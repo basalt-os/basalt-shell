@@ -4,9 +4,11 @@ spoken by several voices of two TTS engines (Piper voices trained from
 public-domain data, a multi-speaker Piper voice, Kokoro), clean and with
 background noise at 15 dB SNR, as 16 kHz mono WAV files.
 
-    make-set.py MODELS_DIR OUT_DIR
+    make-set.py MODELS_DIR OUT_DIR [SENTENCES]
 
-Writes OUT_DIR/manifest.tsv: file, voice, noise, reference.
+SENTENCES defaults to sentences.txt; a line may be "NAME | sentence" (the
+names set, names.txt: the name the recognizer must spell).
+Writes OUT_DIR/manifest.tsv: file, voice, noise, reference (and name).
 """
 import json, os, subprocess, sys, wave
 import numpy as np
@@ -14,7 +16,15 @@ import numpy as np
 models, out = sys.argv[1], sys.argv[2]
 os.makedirs(out, exist_ok=True)
 here = os.path.dirname(os.path.abspath(__file__))
-sentences = [l.strip() for l in open(os.path.join(here, "sentences.txt")) if l.strip() and not l.startswith("#")]
+src = sys.argv[3] if len(sys.argv) > 3 else os.path.join(here, "sentences.txt")
+sentences, names = [], []
+for l in open(src):
+    l = l.strip()
+    if not l or l.startswith("#"):
+        continue
+    n, _, t = l.partition(" | ") if " | " in l else ("", "", l)
+    names.append(n.strip())
+    sentences.append(t.strip())
 piper = os.path.join(models, "piper/piper/piper")
 rng = np.random.default_rng(7)
 
@@ -78,10 +88,10 @@ for engine, name, model, spk in voices:
             y = x if noise == "clean" else noisy(x)
             f = f"{name}-{noise}-{i:02d}.wav"
             save(os.path.join(out, f), y)
-            rows.append((f, name, noise, s))
+            rows.append((f, name, noise, s, names[i - 1]))
     print(name, "done", flush=True)
 with open(os.path.join(out, "manifest.tsv"), "w") as m:
-    m.write("file\tvoice\tnoise\treference\n")
+    m.write("file\tvoice\tnoise\treference\tname\n")
     for r in rows:
         m.write("\t".join(r) + "\n")
 print(len(rows), "files")

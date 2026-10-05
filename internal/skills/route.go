@@ -116,7 +116,10 @@ func Classify(text string) Route {
 		}
 		return r
 	}
-	mail := has(t, "email", "emails", "mail", "inbox", "mailbox", "unread", "newsletter", "messages from", "message from", "wrote me", "wrote to me")
+	// Words inside an address ("/a07-email.html") do not route: only the
+	// request's own words.
+	plain := reHost.ReplaceAllString(t, " ")
+	mail := has(plain, "email", "emails", "mail", "inbox", "mailbox", "unread", "newsletter", "messages from", "message from", "wrote me", "wrote to me")
 	web := has(t, "page", "website", "site", "web page", "webpage", "article", "url", "link", "headline", "headlines", "blog") || reHost.MatchString(t)
 	files := has(t, "file", "files", "pdf", "pdfs", "document", "documents", "folder", "spreadsheet", "spreadsheets", "scan", "photo",
 		"picture", "contract", "receipt", "invoice", "statement", "slides", "presentation", "docx", "notes", "downloads", "report")

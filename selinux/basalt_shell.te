@@ -388,6 +388,13 @@ allow basalt_skill_t basalt_skill_exec_t:file { map read execute getattr };
 can_exec(basalt_skill_t, basalt_browser_exec_t)
 corecmd_search_bin(basalt_skill_t)
 corecmd_read_bin_symlinks(basalt_skill_t)
+# Chromium maps its data files (icudtl.dat, the V8 snapshot, the .pak
+# resources), labeled bin_t in its directory: read-only mappings, never
+# execution (domain_can_mmap_files is off on Basalt).
+gen_require(`
+	type bin_t;
+')
+allow basalt_skill_t bin_t:file map;
 # Chromium's JavaScript engine.
 basalt_agent_allow_jit(basalt_skill_t)
 miscfiles_read_fonts(basalt_skill_t)

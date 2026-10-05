@@ -1,0 +1,18 @@
+# The names set: requests with people's names (the hard case of the spike:
+# "What did Ana say" became "it on a say"). NAME | sentence.
+Ana | What did Ana say in her last email?
+Priya | Reply to Priya: the slides are ready.
+Siobhan | Find the contract Siobhan sent in March.
+Oluwaseun | Do I have any email from Oluwaseun about the budget?
+Wojciech | Reply to Wojciech: I will call you tomorrow.
+Aoife | What did Aoife write about the meeting?
+Ngozi | Summarize the email from Ngozi.
+Joaquim | Reply to Joaquim and tell him the invoice is paid.
+Ines | Find the photos Ines shared last week.
+Tomasz | Did Tomasz answer my question about the rent?
+Mei | Reply to Mei: Thursday works for me.
+Rafael | What did Rafael say about the flight?
+Lan Nguyen | Find the report from Lan Nguyen.
+Beatriz | Reply to Beatriz: thanks for the photos.
+Kwame | Do I have an email from Kwame today?
+Saoirse | What did Saoirse send me yesterday?
