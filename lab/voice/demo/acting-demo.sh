@@ -39,6 +39,8 @@ click_primary() { # click the primary button on screen (Allow, Send, Insert)
   # A person's pointer: move there, a short pause, click.
   ydotool mousemove -a -x ${xy% *} -y ${xy#* } >/dev/null; sleep 0.6
   ydotool click 0xC0 >/dev/null
+  # Then the pointer goes out of the way.
+  sleep 0.4; ydotool mousemove -a -x 1900 -y 1060 >/dev/null
 }
 say() { # say TEXT NAME: a spoken request, screenshot while the key is held
   ( sleep 1.6; shot "$2-listening" ) &
@@ -101,7 +103,9 @@ scene_timeline() {
 }
 scene_dictation() {
   ui close; sleep 0.5
-  swaymsg -q '[app_id="org.xfce.mousepad"] kill' 2>/dev/null; sleep 0.5
+  # A fresh editor: no session restore prompt, nothing left from a test.
+  gsettings set org.xfce.mousepad.preferences.file session-restore never 2>/dev/null
+  pkill -9 -x mousepad; sleep 0.5
   swaymsg -q exec mousepad; sleep 3
   rec_start dictation
   local n; n=$(lines)
@@ -112,6 +116,10 @@ scene_dictation() {
   wait_for "$n" '"type":"done"'; sleep 2.5
   shot dictation-3-typed
   rec_stop dictation
+  pkill -9 -x mousepad
 }
+# The lab microphone (a PipeWire pipe source) is gone after a session
+# restart: load it again, else lab-say blocks on its pipe.
+pactl list short sources | grep -q lab_mic || { systemctl --user restart lab-mic; sleep 1; }
 scenes=${*:-files mail reply invoice timeline dictation}
 for s in $scenes; do "scene_$s"; done

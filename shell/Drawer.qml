@@ -126,7 +126,8 @@ PanelWindow {
                     Layout.fillHeight: true
                     clip: true
                     spacing: Theme.s1
-                    model: Bus.activity.slice().reverse().filter(r => r.type !== "start")
+                    // Bookkeeping records stay in the log, not in the feed.
+                    model: Bus.activity.slice().reverse().filter(r => r.type !== "start" && r.text !== "microphone closed" && r.text !== "sender names read for speech recognition")
                     delegate: Item {
                         required property var modelData
                         width: feed.width

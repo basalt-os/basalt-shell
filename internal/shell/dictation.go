@@ -106,11 +106,27 @@ func (c *Core) routeVoice() voiceRoute {
 	if !st.Active {
 		return voiceRoute{Mode: "assistant"}
 	}
-	app := c.focusedApp()
+	app, ok := c.focusedWindowApp()
+	if !ok {
+		// No app window has focus: the active field is the shell's own
+		// (the command bar, even while hidden). The words are a request.
+		return voiceRoute{Mode: "assistant"}
+	}
 	if st.Sensitive() {
 		return voiceRoute{Mode: "assistant", Target: app, Note: i18n.G("The focused field is for a password or code: it gets no dictation.")}
 	}
 	return voiceRoute{Mode: "dictation", Target: app, Gen: st.Gen}
+}
+
+// focusedWindowApp names the focused app window for the person; false
+// when no app window has focus (a shell surface has the keyboard).
+func (c *Core) focusedWindowApp() (string, bool) {
+	for _, w := range c.Refresh(context.Background()).Windows {
+		if w.Focused {
+			return c.focusedApp(), true
+		}
+	}
+	return "", false
 }
 
 // focusedApp names the focused window's app for the person.

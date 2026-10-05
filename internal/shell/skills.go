@@ -306,7 +306,7 @@ func (c *Core) voiceTurn(release time.Time) {
 	c.mu.Lock()
 	rt := c.voiceRoute
 	c.mu.Unlock()
-	rep, err := c.Voice.Do(ctx, voice.Request{Op: "stop", Prompt: c.speechPrompt()})
+	rep, err := c.Voice.Do(ctx, voice.Request{Op: "stop", Prompt: c.speechPrompt(rt.Mode == "dictation"), Dictation: rt.Mode == "dictation"})
 	_, _ = c.Audit.Append("voice", "ui", "microphone closed", nil)
 	if err != nil || rep.Transcript == nil {
 		msg := i18n.G("Speech to text failed.")
@@ -383,13 +383,17 @@ func (c *Core) voiceTurn(release time.Time) {
 
 // speechPrompt is the extra speech-recognition prompt of this utterance:
 // the names the person may say (contacts, senders of the granted mailbox).
-func (c *Core) speechPrompt() string {
+func (c *Core) speechPrompt(dictation bool) string {
 	if c.Skills == nil {
 		return ""
 	}
 	names := c.Skills.SpeechNames(24)
 	if len(names) == 0 {
 		return ""
+	}
+	if dictation {
+		// Free text: the names as the start of a message.
+		return "Hi " + strings.Join(names, ", ") + "."
 	}
 	return "Names: " + strings.Join(names, ", ") + "."
 }

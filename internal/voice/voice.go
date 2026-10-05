@@ -27,6 +27,10 @@ type Request struct {
 	// Prompt (stop) adds words to the speech-to-text prompt: the names
 	// the person is likely to say (granted contacts and mail senders).
 	Prompt string `json:"prompt,omitempty"`
+	// Dictation (stop): free text, not a request; the requests'
+	// vocabulary prompt is left out (it made Whisper hear "Hi Ana" as
+	// "High honor" in the lab).
+	Dictation bool `json:"dictation,omitempty"`
 }
 
 // Transcript is the result of stop.

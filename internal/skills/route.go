@@ -262,7 +262,8 @@ var (
 	reSend   = regexp.MustCompile(`(?i)^\s*(?:please\s+)?(?:send|forward)\b`)
 	reDelete = regexp.MustCompile(`(?i)^\s*(?:please\s+)?(?:delete|remove|erase|trash|wipe)\b`)
 	// Where the reply's text starts: "reply to Ana: ...", "... saying ...".
-	reReplySep = regexp.MustCompile(`(?i)\s*(?::|\s+saying\s+|\s+and say\s+|,\s*say\s+|\s+and tell (?:her|him|them)\s+|\s+tell (?:her|him|them)\s+|\s+to say\s+|\s+with\s+)`)
+	reNameFirst = regexp.MustCompile(`^([\p{Lu}][\p{L}'-]+)[,]?\s+(\S.*)$`)
+	reReplySep  = regexp.MustCompile(`(?i)\s*(?::|\s+saying\s+|\s+and say\s+|,\s*say\s+|\s+and tell (?:her|him|them)\s+|\s+tell (?:her|him|them)\s+|\s+to say\s+|\s+with\s+)`)
 )
 
 // classifyAct recognizes the acting requests. They are recognized only
@@ -278,6 +279,10 @@ func classifyAct(text string) (Route, bool) {
 		r := Route{Skill: SkillReply}
 		if loc := reReplySep.FindStringIndex(m[1]); loc != nil {
 			r.Select, r.Rest = strings.TrimSpace(m[1][:loc[0]]), strings.TrimSpace(m[1][loc[1]:])
+		} else if n := reNameFirst.FindStringSubmatch(m[1]); n != nil && !stopWords[strings.ToLower(n[1])] {
+			// Spoken, the colon is lost: "reply to Priya the slides are
+			// ready". A capitalized first name, then the text.
+			r.Select, r.Rest = n[1], strings.TrimSpace(n[2])
 		} else {
 			r.Select = strings.TrimSpace(m[1])
 		}

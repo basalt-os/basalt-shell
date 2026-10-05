@@ -35,7 +35,14 @@ if [ "${LAB_SAY_ECHO:-0}" = 1 ]; then
 fi
 KEY_SUPER=125 KEY_V=47
 ydotool key $KEY_SUPER:1 $KEY_V:1 >/dev/null
-sleep 0.35
+# Speak once the microphone is really open (the capture stream is
+# running), as a person who waits for the card: under load the stream
+# can take a while, and audio written before it would be lost.
+for _ in $(seq 40); do
+  pactl list short sources 2>/dev/null | grep -q 'lab_mic.*RUNNING' && break
+  sleep 0.1
+done
+sleep 0.25
 # Half a second of silence, the speech, a little silence: real time.
 python3 - "$raw" "$fifo" <<'PY'
 import sys, time

@@ -287,7 +287,7 @@ func (s *service) handle(ctx context.Context, req voice.Request) voice.Reply {
 		}
 		return voice.Reply{OK: true}
 	case "stop":
-		t, err := s.stopListening(ctx, extraPrompt(req.Prompt))
+		t, err := s.stopListening(ctx, extraPrompt(req.Prompt), req.Dictation)
 		if err != nil {
 			return voice.Reply{Error: err.Error(), Transcript: t}
 		}
@@ -399,7 +399,7 @@ func (s *service) setState(st string) {
 	s.mu.Unlock()
 }
 
-func (s *service) stopListening(ctx context.Context, extra string) (*voice.Transcript, error) {
+func (s *service) stopListening(ctx context.Context, extra string, dictation bool) (*voice.Transcript, error) {
 	buf, held, capMS := s.closeMic()
 	if buf == nil {
 		return nil, errors.New("not listening")
@@ -413,7 +413,7 @@ func (s *service) stopListening(ctx context.Context, extra string) (*voice.Trans
 	if len(pcm) < s.cfg.rate*2*3/10 { // under 0.3 s
 		return t, nil
 	}
-	tr, err := s.transcribeWith(ctx, pcm, extra)
+	tr, err := s.transcribeWith(ctx, pcm, extra, dictation)
 	if tr != nil {
 		tr.AudioMS, tr.CaptureMS, tr.Level = t.AudioMS, t.CaptureMS, t.Level
 	}
@@ -455,7 +455,7 @@ var reNoise = regexp.MustCompile(`\[[^\]]*\]|\([^)]*\)`)
 
 // transcribe runs whisper.cpp with Silero VAD on one utterance.
 func (s *service) transcribe(ctx context.Context, pcm []byte) (*voice.Transcript, error) {
-	return s.transcribeWith(ctx, pcm, os.Getenv("BASALT_VOICE_TEST_NAMES"))
+	return s.transcribeWith(ctx, pcm, os.Getenv("BASALT_VOICE_TEST_NAMES"), os.Getenv("BASALT_VOICE_TEST_DICTATION") == "1")
 }
 
 // extraPrompt keeps the shell's extra prompt words short and plain: names
@@ -474,7 +474,7 @@ func extraPrompt(p string) string {
 	return strings.TrimSpace(b.String())
 }
 
-func (s *service) transcribeWith(ctx context.Context, pcm []byte, extra string) (*voice.Transcript, error) {
+func (s *service) transcribeWith(ctx context.Context, pcm []byte, extra string, dictation bool) (*voice.Transcript, error) {
 	start := time.Now()
 	f, err := os.CreateTemp(s.cfg.runDir, "utt-*.wav")
 	if err != nil {
@@ -496,7 +496,11 @@ func (s *service) transcribeWith(ctx context.Context, pcm []byte, extra string) 
 	}
 	// A short prompt with the words of the desktop's requests: Whisper
 	// heard "PDF" as "PD of" in the lab without it.
-	if prompt := strings.TrimSpace(s.cfg.prompt + " " + extra); prompt != "" {
+	base := s.cfg.prompt
+	if dictation {
+		base = ""
+	}
+	if prompt := strings.TrimSpace(base + " " + extra); prompt != "" {
 		args = append(args, "--prompt", prompt)
 	}
 	// The encoder normally works on a 30 s window whatever the length of
