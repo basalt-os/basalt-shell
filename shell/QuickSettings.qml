@@ -173,6 +173,8 @@ PanelWindow {
                 Btn { text: "Settings"; icon: "sliders"; variant: "outline"; onClicked: { Ui.quickSettings = false; Ui.open("settings", "appearance"); } }
                 Item { Layout.fillWidth: true }
                 Btn { icon: "list"; text: "Activity"; onClicked: Ui.open("activity", "") }
+                // Lock, log out, suspend, restart, power off.
+                Btn { icon: "power"; e2e: "qs-power"; focusable: true; onClicked: Ui.open("power", "") }
             }
         }
     }

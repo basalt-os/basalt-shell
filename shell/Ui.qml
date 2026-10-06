@@ -15,6 +15,8 @@ Singleton {
     property bool drawer: false          // notifications and activity
     property string drawerTab: "notifications"
     property bool settings: false
+    // The power menu (lock, log out, suspend, restart, power off).
+    property bool powerMenu: false
     property string settingsPage: "appearance"
     property string commandText: ""
     // The window menu: { win: window id, x, y: global position } or null.
@@ -31,7 +33,7 @@ Singleton {
     readonly property bool modal: polkitActive || confirmActive || chooserActive
 
     function closeAll() {
-        launcher = false; commandBar = false; quickSettings = false; drawer = false; windowMenu = null;
+        launcher = false; commandBar = false; quickSettings = false; drawer = false; windowMenu = null; powerMenu = false;
     }
 
     function windowById(id) {
@@ -81,12 +83,13 @@ Singleton {
         case "activity": drawerTab = "activity"; drawer = true; break;
         case "notifications": drawerTab = "notifications"; drawer = true; break;
         case "settings": if (page) settingsPage = page; settings = true; break;
+        case "power": powerMenu = true; break;
         }
     }
     function toggle(surface) {
         const isOpen = { launcher: launcher, commandbar: commandBar, quicksettings: quickSettings,
                          activity: drawer && drawerTab === "activity", notifications: drawer && drawerTab === "notifications",
-                         settings: settings }[surface];
+                         settings: settings, power: powerMenu }[surface];
         if (isOpen) {
             if (surface === "settings") settings = false; else closeAll();
         } else {

@@ -18,7 +18,7 @@ basalt-os documentation, `docs/local-model.md`), it understands more.
 
    | Intents | Fields |
    |---|---|
-   | dark_mode, light_mode, toggle_mode, darker, lighter, rounder_corners, sharper_corners, square_corners, bigger_text, smaller_text, more_spacing, less_spacing, reduce_motion, full_motion, panel_top, panel_bottom, shadows_on, shadows_off, blur_on, blur_off, theme_reset, spoken_answers_off, spoken_answers_on | none |
+   | dark_mode, light_mode, toggle_mode, darker, lighter, rounder_corners, sharper_corners, square_corners, bigger_text, smaller_text, more_spacing, less_spacing, reduce_motion, full_motion, panel_top, panel_bottom, shadows_on, shadows_off, blur_on, blur_off, theme_reset, spoken_answers_off, spoken_answers_on, lock_screen, log_out, suspend, restart, power_off | none |
    | accent | color, from a list |
    | use_theme | theme, from the installed themes |
    | arrange | layout, from a list |

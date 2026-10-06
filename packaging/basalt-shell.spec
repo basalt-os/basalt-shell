@@ -275,6 +275,17 @@ fi
   note "I did not catch that. Try again." in the person's language, not
   an error; red is only for errors. Routing is a pure rule with tests:
   nothing focused, or a field that lost focus, goes to the assistant.
+- Power menu: a power button at the right end of the panel and in
+  quick settings, and Super+Shift+E, open Lock screen, Log out, Suspend,
+  Restart and Power off (English and Brazilian Portuguese, keyboard
+  navigable). Log out, Restart and Power off count down 60 s and then go
+  ahead, with Cancel, and list the open apps. Through logind
+  (systemctl, loginctl) with the system's polkit rules. Typed or spoken
+  requests ("restart the computer", "desligar", "sair da sessão",
+  "bloquear a tela") become the action session.power as a proposal the
+  person confirms; agents can neither propose nor call it (person-only
+  actions are no longer listed as MCP tools). swayidle also locks on
+  logind's lock request.
 
 * Tue Oct 06 2026 Basalt OS developers - 0.6.1-1
 - Settings, Additional drivers: with a system assistant older than

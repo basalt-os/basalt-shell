@@ -115,7 +115,10 @@ Super+N notifications, Super+Comma settings, Super+Return terminal,
 Super+T float or tile, Super+Q close, Super+Up maximize, Super+Left and
 Super+Right snap, Super+Down restore, Super+H minimize (the panel's window
 list brings it back), Super+Alt+Space window menu, Super+1..5 workspaces,
-Super+Shift+Escape stop an agent's control session.
+Super+Shift+Escape stop an agent's control session, Super+L lock,
+Super+Shift+E the power menu (lock, log out, suspend, restart, power off;
+also the power button at the right end of the panel and in quick
+settings).
 
 Things to type in the command bar: "make it darker with rounder corners",
 "light mode", "use the lichen theme", "accent green", "bigger text",

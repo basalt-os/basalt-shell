@@ -36,7 +36,8 @@ elif [ "${BASALT_NESTED:-0}" != 1 ]; then
   # targets active and autostarted apps dead: restart them.
   systemctl --user stop basalt-session.target xdg-desktop-autostart.target 2>/dev/null
   systemctl --user start basalt-session.target
-  swayidle -w timeout 900 basalt-lock before-sleep basalt-lock &
+  # lock: logind's Lock signal (loginctl lock-session) locks too.
+  swayidle -w timeout 900 basalt-lock before-sleep basalt-lock lock basalt-lock &
 fi
 # Screen sharing on sway asks which output to share (slurp); per-user
 # default, kept if the person changed it.

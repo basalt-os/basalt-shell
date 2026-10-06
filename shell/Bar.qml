@@ -335,6 +335,15 @@ PanelWindow {
                 active: Ui.quickSettings
                 onClicked: Ui.toggle("quicksettings")
             }
+            // Lock, log out, suspend, restart, power off (Super+Shift+E).
+            Btn {
+                icon: "power"
+                e2e: "panel-power"
+                implicitHeight: Theme.panelHeight - Theme.s2
+                implicitWidth: implicitHeight
+                active: Ui.powerMenu
+                onClicked: Ui.toggle("power")
+            }
         }
     }
 }

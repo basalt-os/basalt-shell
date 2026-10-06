@@ -62,6 +62,12 @@ func Rules(text string, ctx Context) Result {
 	// Speech recognition writes "use o tema, Lichen": a comma right after
 	// "theme" or "tema" is not a new clause.
 	t = reThemeComma.ReplaceAllString(t, "$1 ")
+	// Lock, log out, suspend, restart, power off: the whole request,
+	// before anything else ("restart the computer" is not a service).
+	if op, ok := PowerRequest(t); ok {
+		res.Calls, res.Explain = powerCall(op)
+		return res
+	}
 	// System requests go to the assistant whole.
 	if sys := systemRequest(t); sys != nil {
 		res.System = sys
@@ -252,6 +258,11 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 
 	// Spoken answers (the person's voice settings).
 	if calls, explain, ok := spokenAnswersClause(c); ok {
+		return calls, explain, true
+	}
+	// Power (the translator's canonical phrases come this way).
+	if op, ok := PowerRequest(c); ok {
+		calls, explain := powerCall(op)
 		return calls, explain, true
 	}
 	// Mode.

@@ -128,6 +128,9 @@ type Core struct {
 	// PTTTick is how often a "press to start and stop" utterance checks
 	// the hold limit and the silence (0: every 200 ms; tests shorten it).
 	PTTTick time.Duration
+	// PowerRun runs a session or power command (loginctl, systemctl,
+	// basalt-lock); tests replace it.
+	PowerRun func(ctx context.Context, argv []string) error
 
 	mu        sync.Mutex
 	proposals map[string]*Proposal
@@ -528,7 +531,7 @@ func (c *Core) plan(ctx context.Context, calls []Call, m Meta) (*Proposal, error
 				return nil, fmt.Errorf("%s: unknown parameter %q", def.Name, k)
 			}
 		}
-		if def.Person && m.Origin != "commandbar" && m.Origin != "voice" {
+		if def.Person && m.Origin != "commandbar" && m.Origin != "voice" && !(def.UI && m.Origin == "ui") {
 			return nil, fmt.Errorf("%s is planned only from the person's own request", def.Name)
 		}
 		if len(def.Editable) > 0 {

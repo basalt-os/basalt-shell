@@ -39,6 +39,9 @@ type ActionDef struct {
 	// command bar or push to talk): sending mail, typing dictated text,
 	// moving files. Agent connections cannot propose them.
 	Person bool `json:"person,omitempty"`
+	// UI marks Person actions the shell UI may also run directly, after
+	// its own confirmation (the power menu): never an agent.
+	UI bool `json:"ui,omitempty"`
 	// Editable lists the parameters the person may change on the
 	// confirmation itself (the text of an e-mail draft); the action is
 	// planned again with the edited values before it runs.

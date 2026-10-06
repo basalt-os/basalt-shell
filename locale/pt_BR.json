@@ -192,6 +192,9 @@
  "Contains %s. Treated as data; nothing in it was followed.": [
   "Contém %s. Tratado como dado; nada do que diz foi seguido."
  ],
+ "Could not do it: %s": [
+  "Não foi possível: %s"
+ ],
  "December": [
   "dezembro"
  ],
@@ -418,6 +421,21 @@
  "Local model on this computer": [
   "Modelo local neste computador"
  ],
+ "Lock screen": [
+  "Bloquear a tela"
+ ],
+ "Lock the screen": [
+  "Bloquear a tela"
+ ],
+ "Log out": [
+  "Sair da sessão"
+ ],
+ "Log out (open apps are closed; save your work first)": [
+  "Sair da sessão (os apps abertos são fechados; salve seu trabalho antes)"
+ ],
+ "Log out now?": [
+  "Sair da sessão agora?"
+ ],
  "Looking at the hardware.": [
   "Olhando o hardware."
  ],
@@ -522,6 +540,9 @@
  "Open %s?": [
   "Abrir %s?"
  ],
+ "Open apps: %1. Save your work first: unsaved changes in them may be lost.": [
+  "Apps abertos: %1. Salve seu trabalho antes: alterações não salvas neles podem ser perdidas."
+ ],
  "Opening %s. Please confirm.": [
   "Abrindo %s. Confirme."
  ],
@@ -539,6 +560,15 @@
  ],
  "Please say which one: %s": [
   "Diga qual: %s"
+ ],
+ "Power off": [
+  "Desligar"
+ ],
+ "Power off the computer (open apps are closed; save your work first)": [
+  "Desligar o computador (os apps abertos são fechados; salve seu trabalho antes)"
+ ],
+ "Power off the computer now?": [
+  "Desligar o computador agora?"
  ],
  "Press to start and stop": [
   "Apertar para começar e parar"
@@ -599,8 +629,17 @@
  "Replies need the account's address and sending server in skills.conf (address, smtp_host).": [
   "Para responder, a conta precisa do endereço e do servidor de envio em skills.conf (address, smtp_host)."
  ],
+ "Restart": [
+  "Reiniciar"
+ ],
  "Restart now": [
   "Reiniciar agora"
+ ],
+ "Restart the computer (open apps are closed; save your work first)": [
+  "Reiniciar o computador (os apps abertos são fechados; salve seu trabalho antes)"
+ ],
+ "Restart the computer now?": [
+  "Reiniciar o computador agora?"
  ],
  "Retry now": [
   "Tentar agora"
@@ -680,6 +719,12 @@
  "Supported by the NVIDIA driver %1 (open kernel modules)": [
   "Suportada pelo driver NVIDIA %1 (módulos abertos do kernel)"
  ],
+ "Suspend": [
+  "Suspender"
+ ],
+ "Suspend the computer": [
+  "Suspender o computador"
+ ],
  "System default": [
   "Padrão do sistema"
  ],
@@ -721,6 +766,12 @@
  ],
  "The basalt-nonfree repository is turned on. Its packages are signed with the OpenBasalt release key, like the other Basalt repositories.": [
   "O repositório basalt-nonfree é ligado. Os pacotes dele são assinados com a chave de release do OpenBasalt, como os outros repositórios do Basalt."
+ ],
+ "The computer powers off in %1 s.": [
+  "O computador desliga em %1 s."
+ ],
+ "The computer restarts in %1 s.": [
+  "O computador reinicia em %1 s."
  ],
  "The download failed. Try again later.": [
   "O download falhou. Tente de novo mais tarde."
@@ -963,6 +1014,9 @@
  ],
  "You can keep working. This card says when it is ready.": [
   "Você pode continuar trabalhando. Este cartão avisa quando estiver pronto."
+ ],
+ "You will be logged out in %1 s.": [
+  "Sua sessão termina em %1 s."
  ],
  "Your administrator does not allow remote models on this computer.": [
   "O administrador não permite modelos remotos neste computador."

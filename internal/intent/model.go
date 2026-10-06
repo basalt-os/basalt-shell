@@ -191,6 +191,7 @@ var Intents = []string{
 	"more_spacing", "less_spacing", "reduce_motion", "full_motion",
 	"panel_top", "panel_bottom", "shadows_on", "shadows_off", "blur_on", "blur_off",
 	"accent", "use_theme", "theme_reset", "spoken_answers_off", "spoken_answers_on",
+	"lock_screen", "log_out", "suspend", "restart", "power_off",
 	"arrange", "switch_workspace", "move_window", "close_window", "focus_window", "float_window", "tile_window",
 	"open_app", "open_settings",
 	"system", "clarify", "none",
@@ -207,6 +208,9 @@ var fixed = map[string]string{
 	"theme_reset": "reset theme",
 	// The person's spoken answers (their voice settings, not the theme).
 	"spoken_answers_off": "stop speaking answers", "spoken_answers_on": "speak answers",
+	// The session and the computer (confirmed like every change).
+	"lock_screen": "lock screen", "log_out": "log out", "suspend": "suspend",
+	"restart": "restart the computer", "power_off": "power off",
 }
 
 var arrangeWords = map[string]string{
@@ -324,12 +328,13 @@ func WithLanguage(system, tag string) string {
 func prompt(c Context) string {
 	var b strings.Builder
 	b.WriteString(`You translate a request to the Basalt OS desktop into JSON desktop intents, one intent per change the person asks for. You never run anything; the person confirms every change.
-Intents with no fields: dark_mode light_mode toggle_mode darker lighter rounder_corners sharper_corners square_corners bigger_text smaller_text more_spacing less_spacing reduce_motion full_motion panel_top panel_bottom shadows_on shadows_off blur_on blur_off theme_reset spoken_answers_off spoken_answers_on.
+Intents with no fields: dark_mode light_mode toggle_mode darker lighter rounder_corners sharper_corners square_corners bigger_text smaller_text more_spacing less_spacing reduce_motion full_motion panel_top panel_bottom shadows_on shadows_off blur_on blur_off theme_reset spoken_answers_off spoken_answers_on lock_screen log_out suspend restart power_off.
 accent {color}, use_theme {theme}, arrange {layout}, switch_workspace {workspace}, move_window {window, workspace}, close_window / focus_window / float_window / tile_window {window: the app or window as written, or "focused"}, open_app {app: as written}, open_settings {page}.
 system: a question about the operating system itself (a service failing, disk space, SELinux denials, snapshots, updates, system status, a proposal like p-1a2b3c).
 clarify: a desktop request that misses something. none: anything else.
 Text too small to read means bigger_text; too big means smaller_text.
 spoken_answers_off: stop reading the assistant's answers aloud (they are still shown); spoken_answers_on: read them aloud again.
+lock_screen, log_out, suspend, restart, power_off: the person's session or the whole computer (restart and power_off are the computer, never a service or an app).
 `)
 	b.WriteString("Themes: ")
 	for _, t := range c.Themes {

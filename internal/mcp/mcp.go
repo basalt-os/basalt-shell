@@ -287,7 +287,10 @@ func (s *Server) tools() []tool {
 			Annotations: map[string]any{"readOnlyHint": false, "destructiveHint": false, "openWorldHint": false}},
 	)
 	for _, a := range shell.Actions {
-		if a.Agent {
+		// Person actions (dictation, mail, files, the voice settings,
+		// lock, log out, restart, power off) come only from the person's
+		// own words: they are not tools an agent could call.
+		if a.Agent || a.Person {
 			continue
 		}
 		destructive := a.Name == "window.close"

@@ -26,6 +26,7 @@ ShellRoot {
     Settings {}
     PolkitDialog {}
     WindowMenu {}
+    PowerMenu {}
     AgentFrame {}
     VoiceHud {}
     ModelCard {}

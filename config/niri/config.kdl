@@ -113,7 +113,9 @@ binds {
     XF86AudioLowerVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%-"; }
     XF86AudioMute allow-when-locked=true { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle"; }
 
-    Mod+Shift+E { quit; }
+    // The shell's power menu (lock, log out, suspend, restart, power off);
+    // without a running shell UI, niri's own quit confirmation.
+    Mod+Shift+E { spawn "sh" "-c" "basalt-shell-ui ipc call shell toggle power || niri msg action quit"; }
 }
 
 // Local additions (keybindings, window rules, outputs): kept across updates.

@@ -135,7 +135,10 @@ bindsym XF86AudioMute exec wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
 bindsym XF86MonBrightnessUp exec brightnessctl set 5%+
 bindsym XF86MonBrightnessDown exec brightnessctl set 5%-
 
-bindsym $mod+Shift+e exec swaymsg exit
+# Super+Shift+E: the shell's power menu (lock, log out, suspend,
+# restart, power off; log out, restart and power off ask first). Without
+# a running shell UI, sway's own exit prompt.
+bindsym $mod+Shift+e exec $ui toggle power || swaynag -t warning -m 'Exit sway? This ends your session.' -B 'Exit' 'swaymsg exit'
 
 # Local additions (not overwritten by updates).
 include ~/.config/basalt-shell/sway.d/*

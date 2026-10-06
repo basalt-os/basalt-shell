@@ -137,6 +137,14 @@ and runs only through the daemon:
 | `notification.show` | summary, body, urgency |
 | `settings.open` | page |
 | `shell.open` | surface: launcher, commandbar, quicksettings, activity, notifications, settings |
+| `session.power` | op: lock, logout, suspend, restart, poweroff (the person only: see Session) |
+
+Actions marked for the person only (`text.insert`, `mail.send`,
+`files.move`, `voice.answers.set`, `session.power`) are planned only from
+the person's own words in the command bar or by voice and confirmed in
+the shell; they are not MCP tools and an agent's proposal of them is
+refused. `session.power` may also be run by the shell UI's power menu,
+after its own confirmation.
 
 Read tools for MCP: `desktop_state`, `toplevels_list`, `theme_get`,
 `apps_list`, `activity_recent`, `proposal_status`, `agent_control_status`.
@@ -456,6 +464,29 @@ without which they refuse to start; niri needs no flag. The desktop profile of t
 installer uses greetd with tuigreet. Run inside another desktop (a nested
 window), the session does not export anything to the host's systemd user
 manager and does not change the host's application settings.
+
+### Power menu
+
+The power button at the right end of the panel, the one in quick
+settings and Super+Shift+E open a small menu: Lock screen, Log out,
+Suspend, Restart, Power off (icons, keyboard: Up, Down, Return, Escape).
+Log out, Restart and Power off ask first: a card counts down 60 seconds
+and then goes ahead by itself (as GNOME does), with the button to do it
+now and Cancel, and lists the open app windows so the person saves their
+work. Lock and Suspend run at once. Typed or spoken requests ("restart
+the computer", "reiniciar o computador", "shut down", "desligar", "log
+out", "sair da sessão", "lock", "bloquear a tela", "suspend") become the
+same action as a proposal the person confirms (the translator's intents
+are `lock_screen`, `log_out`, `suspend`, `restart`, `power_off`).
+
+Everything goes through logind from the person's session: `systemctl
+suspend|reboot|poweroff` and `loginctl terminate-session`, with the
+system's polkit rules (an active local session may restart or power off
+without a password when nobody else is logged in; otherwise polkit asks
+through the shell's dialog). Lock runs `basalt-lock`, as Super+L, and
+the idle lock (swayidle) also answers logind's lock request. Without a
+running shell UI, Super+Shift+E falls back to the compositor's own
+confirmation (swaynag on sway, niri's quit dialog).
 
 ## Packaging
 

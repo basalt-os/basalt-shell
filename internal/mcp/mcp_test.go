@@ -64,6 +64,13 @@ func TestMCPFlow(t *testing.T) {
 			t.Errorf("missing tool %s", n)
 		}
 	}
+	// The person's own actions are not tools: an agent cannot power off,
+	// restart, log out or lock, nor dictate, send mail or move files.
+	for _, n := range []string{"session_power", "text_insert", "mail_send", "files_move", "voice_answers_set"} {
+		if names[n] {
+			t.Errorf("tool %s offered to agents", n)
+		}
+	}
 	// A write: the UI confirms it while the tool waits.
 	go func() {
 		for i := 0; i < 50; i++ {
