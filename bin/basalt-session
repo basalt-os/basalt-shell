@@ -86,6 +86,15 @@ for d in /var/lib/flatpak/exports/share "${XDG_DATA_HOME:-$HOME/.local/share}/fl
 done
 export XDG_DATA_DIRS=$data
 unset data d
+# SSH keys: GCR's SSH agent (the one GNOME uses) holds them for the
+# session, asks for a key's passphrase in a dialog the first time it is
+# used and can keep it in the login keyring. Without an agent every ssh,
+# git push and virt-manager connection asked for the passphrase again.
+# basalt-session-init starts its socket.
+if [ -z "${SSH_AUTH_SOCK:-}" ] && [ -n "${XDG_RUNTIME_DIR:-}" ] &&
+  { [ -e /usr/lib/systemd/user/gcr-ssh-agent.socket ] || [ -e /etc/systemd/user/gcr-ssh-agent.socket ]; }; then
+  export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/gcr/ssh"
+fi
 export XCURSOR_THEME=${XCURSOR_THEME:-Adwaita}
 export XCURSOR_SIZE=${XCURSOR_SIZE:-24}
 # wlroots refuses a software EGL renderer (llvmpipe) unless this is set,

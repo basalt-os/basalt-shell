@@ -17,7 +17,7 @@ elif [ "${BASALT_NESTED:-0}" != 1 ]; then
   # service), so it needs the session's toolkit environment too.
   vars="WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP
         QT_QPA_PLATFORM QT_QPA_PLATFORMTHEME QT_WAYLAND_DECORATION QT_WAYLAND_DISABLE_WINDOWDECORATION GTK_CSD MOZ_ENABLE_WAYLAND
-        ELECTRON_OZONE_PLATFORM_HINT SDL_VIDEODRIVER _JAVA_AWT_WM_NONREPARENTING XCURSOR_THEME XCURSOR_SIZE XDG_DATA_DIRS
+        ELECTRON_OZONE_PLATFORM_HINT SDL_VIDEODRIVER _JAVA_AWT_WM_NONREPARENTING XCURSOR_THEME XCURSOR_SIZE XDG_DATA_DIRS SSH_AUTH_SOCK
         BASALT_NIRI_CONFIG"
   # niri starts xwayland-satellite on demand and sets DISPLAY for its
   # children; wait briefly so it can be exported as well.
@@ -36,6 +36,10 @@ elif [ "${BASALT_NESTED:-0}" != 1 ]; then
   # targets active and autostarted apps dead: restart them.
   systemctl --user stop basalt-session.target xdg-desktop-autostart.target 2>/dev/null
   systemctl --user start basalt-session.target
+  # The SSH agent basalt-session pointed SSH_AUTH_SOCK at (GCR's).
+  case ${SSH_AUTH_SOCK:-} in
+    "${XDG_RUNTIME_DIR:-/nonexistent}/gcr/ssh") systemctl --user start gcr-ssh-agent.socket 2>/dev/null ;;
+  esac
   # lock: logind's Lock signal (loginctl lock-session) locks too.
   swayidle -w timeout 900 basalt-lock before-sleep basalt-lock lock basalt-lock &
 fi
