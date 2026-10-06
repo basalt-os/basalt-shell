@@ -52,7 +52,11 @@ an English desktop can be spoken to, and answer, in Brazilian Portuguese.
   models understand English only: choosing another language with one of
   them is refused with a message, and the Settings page switches to an
   installed multilingual model the administrator allows in the same
-  step. Push to talk refuses to open the microphone when the settings
+  step: `ggml-base-q5_1` first (fast, and the one that heard short
+  requests best in the lab), else `ggml-small-q5_1`, else any other.
+  `ggml-small-q5_1` makes fewer mistakes on longer sentences and is the
+  better choice for long dictation; the person picks it in the same
+  page. Push to talk refuses to open the microphone when the settings
   were edited by hand into that combination, and the card says why.
 - The voice card shows the speech language in force while the key is
   held and when speech to text fails.
@@ -68,6 +72,17 @@ an English desktop can be spoken to, and answer, in Brazilian Portuguese.
   spoken, and the card says so once per language and session. The Piper
   voices allowed today are English only (the basalt-os documentation,
   `docs/voice.md`, says why), so Portuguese answers are shown, not spoken.
+- Turning spoken answers off: the "Spoken answers" tile of the quick
+  settings (Super+S), the On and Off buttons of the Settings page, or the
+  requests "stop speaking answers" and "pare de falar as respostas"
+  ("speak answers" and "fale as respostas" turn them on again), which
+  show the change for confirmation like other settings changes. All
+  three write the same `spoken` value through the same checked save
+  (`voice.settings.set`, or the action `voice.answers.set` after the
+  confirmation). With answers off nothing is synthesized: the daemon
+  sends the voice service no text to speak and ends its warm Piper
+  process (`unload`), push to talk and the answers on the screen work as
+  before, and the voice card says nothing about speaking.
 - Language model: the local model (the command bar's model settings), or
   a remote model only when the administrator offers one and allows
   remote models, and the person turns on "Allow a remote model".
@@ -91,7 +106,7 @@ hand:
 # ~/.config/basalt/voice-and-assistant.conf
 [speech]
 language = pt-BR          # auto, or a language tag; empty: the system's default
-model = ggml-small-q5_1   # an installed speech model; empty: the system's default
+model = ggml-base-q5_1    # an installed speech model; empty: the system's default
 
 [answers]
 language =                # empty: the speech language, then the session's language
@@ -138,7 +153,7 @@ basalt-voice` in the person's session.
 
 | Piece | What |
 |---|---|
-| `basalt-voiced` | the voice service (user unit `basalt-voice.service`, part of the session). Socket `$XDG_RUNTIME_DIR/basalt-voice/voice.sock`, open only to the shell daemon (SELinux context of the peer). `listen` opens a PipeWire capture stream named "Basalt voice"; `stop` closes it, runs whisper.cpp (`whisper-cli`, Silero VAD) on the utterance and returns the text; `speak` synthesizes sentence by sentence with a warm Piper process and plays them; `hush` stops speaking. A hold is cut at 30 s. |
+| `basalt-voiced` | the voice service (user unit `basalt-voice.service`, part of the session). Socket `$XDG_RUNTIME_DIR/basalt-voice/voice.sock`, open only to the shell daemon (SELinux context of the peer). `listen` opens a PipeWire capture stream named "Basalt voice"; `stop` closes it, runs whisper.cpp (`whisper-cli`, Silero VAD) on the utterance and returns the text; `speak` synthesizes sentence by sentence with a warm Piper process (started by the first `speak`) and plays them; `hush` stops speaking; `unload` also ends the Piper process (spoken answers turned off). A hold is cut at 30 s. |
 | skills engine (in the daemon) | `internal/skills`: routes a request by fixed rules, plans the search from the request (the model adds synonyms and kinds; the time range comes from fixed rules), checks the grants, runs a worker, summarizes with the model, filters the model's output, composes the answer and the spoken text. |
 | `basalt-skill-index` | builds the file index of the granted folders: metadata, text of PDFs (poppler), Office and OpenDocument files, HTML (visible and hidden text), plain text, with the guard's findings per file. No symlinks, no hidden files, never `~/.ssh`, `~/.gnupg`, keyrings, browser profiles. |
 | `basalt-skill` | searches the index (BM25 over name, title and text, with kind and time filters), reads a mailbox (read-only IMAP client: `EXAMINE` and `BODY.PEEK` only, the command set is closed), reads a page (headless Chromium over a DevTools pipe, throw-away profile, every request checked). |
@@ -224,7 +239,10 @@ basalt-voice` in the person's session.
     agent domain and the voice and skill domains from writing it. Only
     the shell UI may save new settings (`voice.settings.set`, like
     confirming), each change is checked against the policy and written
-    to the activity log.
+    to the activity log. The requests that turn spoken answers on or off
+    become the action `voice.answers.set`, planned only from the
+    person's own words (an agent cannot propose it) and confirmed in the
+    shell UI.
 
 ## Model
 

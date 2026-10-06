@@ -34,6 +34,11 @@
 // for another language, is refused with a coded error the shell shows on
 // the voice card. Changing the person's settings needs no restart; a
 // change of /etc/basalt/voice.conf needs a restart of the service.
+//
+// Text to speech starts only with the first "speak" (a warm Piper process
+// then stays for the next answers). When the person turns spoken answers
+// off the shell sends no "speak" at all and sends "unload", which ends
+// that process.
 package main
 
 import (
@@ -319,6 +324,13 @@ func (s *service) handle(ctx context.Context, req voice.Request) voice.Reply {
 		return voice.Reply{OK: true, Spoken: sp}
 	case "hush":
 		s.hush()
+		return voice.Reply{OK: true}
+	case "unload":
+		// The person turned spoken answers off: stop speaking and end the
+		// warm Piper process; the next "speak" (answers on again) starts
+		// a new one.
+		s.hush()
+		s.unloadTTS()
 		return voice.Reply{OK: true}
 	case "models":
 		// The installed models and voices with the policy's verdict, for
@@ -777,10 +789,19 @@ func (s *service) hush() {
 	s.mu.Unlock()
 }
 
+// unloadTTS ends the warm text-to-speech process, if any.
+func (s *service) unloadTTS() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.tts != nil && s.tts.cmd.Process != nil {
+		_ = s.tts.in.Close()
+		_ = s.tts.cmd.Process.Kill()
+	}
+	s.tts, s.ttsModel = nil, ""
+}
+
 func (s *service) shutdown() {
 	s.cancel()
 	s.hush()
-	if s.tts != nil && s.tts.cmd.Process != nil {
-		_ = s.tts.cmd.Process.Kill()
-	}
+	s.unloadTTS()
 }

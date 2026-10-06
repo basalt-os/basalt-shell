@@ -7,7 +7,7 @@
 //
 //	[speech]
 //	language = pt-BR            # auto, or a language tag; empty: the system's default
-//	model = ggml-small-q5_1     # an installed speech model; empty: the system's default
+//	model = ggml-base-q5_1      # an installed speech model; empty: the system's default
 //
 //	[answers]
 //	language = pt-BR            # empty: the speech language, then the session's language

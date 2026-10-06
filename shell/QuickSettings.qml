@@ -5,9 +5,9 @@ import Quickshell.Wayland
 import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
 
-// Quick settings: light/dark, theme, motion, volume, network, battery and
-// a door to the full settings page. Changes made here are the person's
-// own, so they apply at once (audited as "ui").
+// Quick settings: light/dark, theme, motion, spoken answers, volume,
+// network, battery and a door to the full settings page. Changes made
+// here are the person's own, so they apply at once (audited as "ui").
 PanelWindow {
     id: win
     visible: Ui.quickSettings || card.opacity > 0
@@ -21,6 +21,32 @@ PanelWindow {
     readonly property var st: Bus.themeState
     readonly property var sink: Pipewire.defaultAudioSink
     PwObjectTracker { objects: win.sink ? [win.sink] : [] }
+
+    // The person's voice and assistant settings, read when the panel
+    // opens and kept current by the daemon's "voice-settings" event; the
+    // spoken answers tile saves through the same path as the Settings
+    // page (Bus.saveVoiceSettings, voice.settings.set).
+    property var voiceInfo: null
+    property string voiceError: ""
+    readonly property bool spoken: voiceInfo !== null && voiceInfo.prefs.spoken !== "no"
+    function loadVoice() {
+        Bus.call("voice.settings", {}, (ok, res) => { if (ok) { win.voiceInfo = res; win.voiceError = ""; } });
+    }
+    function setSpoken(on) {
+        if (!win.voiceInfo) return;
+        Bus.saveVoiceSettings(win.voiceInfo.prefs, { spoken: on ? "yes" : "no" }, (ok, res) => {
+            if (ok) { win.voiceInfo = res; win.voiceError = ""; }
+            else win.voiceError = res;
+        });
+    }
+    Connections {
+        target: Ui
+        function onQuickSettingsChanged() { if (Ui.quickSettings) win.loadVoice(); }
+    }
+    Connections {
+        target: Bus
+        function onVoiceSettings(data) { win.voiceInfo = data; }
+    }
 
     MouseArea { anchors.fill: parent; onClicked: Ui.quickSettings = false }
 
@@ -70,12 +96,31 @@ PanelWindow {
                     onClicked: Bus.act("app.launch", { app: "nm-connection-editor" })
                 }
                 Tile {
+                    // Spoken answers: off means answers are only shown and
+                    // nothing is synthesized; push to talk keeps working.
+                    visible: win.voiceInfo !== null
+                    icon: win.spoken ? "volume" : "mute"
+                    label: Tr.t("Spoken answers")
+                    sub: win.spoken ? Tr.t("On") : Tr.t("Off")
+                    on: win.spoken
+                    e2e: "quick-spoken-answers"
+                    onClicked: win.setSpoken(!win.spoken)
+                }
+                Tile {
                     icon: "spark"
                     label: "Ask the system"
                     sub: Bus.translatorAvailable ? "Local model" : "Commands"
                     on: false
                     onClicked: Ui.open("commandbar", "")
                 }
+            }
+
+            Txt {
+                visible: win.voiceError !== ""
+                text: win.voiceError
+                color: Theme.danger
+                role: "small"
+                Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone
             }
 
             // Theme swatches.
@@ -138,6 +183,7 @@ PanelWindow {
         property string label
         property string sub
         property bool on
+        property string e2e: ""
         signal clicked()
         Layout.fillWidth: true
         implicitHeight: Theme.fontSize * 5

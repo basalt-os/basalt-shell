@@ -49,6 +49,10 @@ func TestRules(t *testing.T) {
 		{"aumente o texto", "theme.set_tokens"},
 		{"abra as configurações", "settings.open"},
 		{"abra o editor de texto", "app.launch"},
+		{"stop speaking answers", "voice.answers.set"},
+		{"Pare de falar as respostas.", "voice.answers.set"},
+		{"speak answers", "voice.answers.set"},
+		{"Fale as respostas.", "voice.answers.set"},
 	}
 	for _, c := range cases {
 		r := Rules(c.in, ctx)
@@ -77,6 +81,53 @@ func TestRules(t *testing.T) {
 	for _, q := range []string{"why nginx", "por que o nginx caiu", "disk space", "selinux denials"} {
 		if r := Rules(q, ctx); len(r.System) == 0 {
 			t.Errorf("%q: not routed to the assistant", q)
+		}
+	}
+}
+
+func TestRulesSpokenAnswers(t *testing.T) {
+	ctx := Context{Tokens: tokens()}
+	for in, want := range map[string]string{
+		"stop speaking answers":                  "off",
+		"Stop speaking the answers.":             "off",
+		"please stop reading my answers aloud":   "off",
+		"don’t speak the answers":                "off",
+		"turn off spoken answers":                "off",
+		"pare de falar as respostas":             "off",
+		"Por favor, pare de falar as respostas.": "off",
+		"não fale as respostas":                  "off",
+		"desligue as respostas faladas":          "off",
+		"speak answers":                          "on",
+		"read the answers aloud":                 "on",
+		"start speaking answers again":           "on",
+		"turn on spoken answers":                 "on",
+		"fale as respostas":                      "on",
+		"volte a falar as respostas":             "on",
+		"ligue as respostas faladas":             "on",
+		"fale as respostas de novo":              "on",
+		// Not about the setting.
+		"what did the answers say": "",
+		"fale com a ana":           "",
+	} {
+		r := Rules(in, ctx)
+		got := ""
+		for _, k := range r.Calls {
+			if k.Action == "voice.answers.set" {
+				got = k.Args["spoken"].(string)
+			}
+		}
+		if got != want {
+			t.Errorf("%q: spoken %q, want %q (calls %+v)", in, got, want, r.Calls)
+		}
+		if want != "" && (len(r.Calls) != 1 || len(r.Unknown) != 0) {
+			t.Errorf("%q: want exactly the setting, got %+v unknown %v", in, r.Calls, r.Unknown)
+		}
+	}
+	// The model's intents map to the same phrases.
+	for intent, want := range map[string]string{"spoken_answers_off": "off", "spoken_answers_on": "on"} {
+		r := Compose([]string{fixed[intent]}, ctx, "model")
+		if len(r.Calls) != 1 || r.Calls[0].Action != "voice.answers.set" || r.Calls[0].Args["spoken"] != want {
+			t.Errorf("%s: %+v", intent, r.Calls)
 		}
 	}
 }

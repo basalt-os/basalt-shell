@@ -22,7 +22,7 @@ import (
 // Request to basalt-voiced.
 type Request struct {
 	ID   int64  `json:"id"`
-	Op   string `json:"op"` // listen, stop, cancel, speak, hush, status, models
+	Op   string `json:"op"` // listen, stop, cancel, speak, hush, unload, status, models
 	Text string `json:"text,omitempty"`
 	// Lang (stop) is the person's speech language: "auto" or a language
 	// tag ("pt-BR"); empty means the system's default. Model (stop) is

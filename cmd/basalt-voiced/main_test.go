@@ -1,9 +1,56 @@
 package main
 
 import (
+	"context"
+	"os"
+	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
+	"time"
+
+	"github.com/basalt-os/basalt-shell/internal/voice"
 )
+
+// TestUnloadEndsTheWarmSynthesizer: "unload" (spoken answers turned off)
+// ends the warm text-to-speech process, and nothing starts one but a
+// "speak".
+func TestUnloadEndsTheWarmSynthesizer(t *testing.T) {
+	dir := t.TempDir()
+	piper := filepath.Join(dir, "piper")
+	// A stand-in for Piper: it waits on its input like the real one.
+	if err := os.WriteFile(piper, []byte("#!/bin/sh\nexec cat >/dev/null\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	s := &service{cfg: config{ttsBin: piper, runDir: dir}}
+	if s.tts != nil {
+		t.Fatal("a synthesizer runs before any speak")
+	}
+	s.mu.Lock()
+	tp, err := s.ttsProc(filepath.Join(dir, "voice.onnx"))
+	s.mu.Unlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep := s.handle(context.Background(), voice.Request{Op: "unload"}); !rep.OK {
+		t.Fatalf("unload: %+v", rep)
+	}
+	if s.tts != nil || s.ttsModel != "" {
+		t.Error("the warm synthesizer is still referenced")
+	}
+	// The process is gone (killed, then reaped by ttsProc's goroutine).
+	deadline := time.Now().Add(3 * time.Second)
+	for tp.cmd.Process.Signal(syscall.Signal(0)) == nil && time.Now().Before(deadline) {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if tp.cmd.Process.Signal(syscall.Signal(0)) == nil {
+		t.Error("the synthesizer process still runs after unload")
+	}
+	// A second unload with nothing running is fine.
+	if rep := s.handle(context.Background(), voice.Request{Op: "unload"}); !rep.OK {
+		t.Errorf("second unload: %+v", rep)
+	}
+}
 
 func TestWhisperArgs(t *testing.T) {
 	a := strings.Join(whisperArgs("/m/ggml-small-q5_1.bin", "/run/u.wav", "pt", 4, "/m/vad.bin", "  Encontre o PDF. ", 768), " ")

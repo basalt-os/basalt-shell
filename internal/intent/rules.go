@@ -210,9 +210,50 @@ func clampSpec(k string, v float64) float64 {
 	return math.Max(s.Min, math.Min(s.Max, v))
 }
 
+// Spoken answers off and on, in English and Brazilian Portuguese ("stop
+// speaking answers", "pare de falar as respostas", "speak answers", "fale
+// as respostas"). Whole clauses only, so a request that merely mentions
+// answers is not taken for one.
+var (
+	reSpokenOff = regexp.MustCompile(`^(?:` +
+		`(?:stop|don't|dont|do not|no more)\s+(?:speaking|reading|saying|speak|read|say)\s+(?:the\s+|my\s+)?answers(?:\s+(?:aloud|out loud))?` +
+		`|(?:turn off|switch off|disable|mute)\s+(?:the\s+)?(?:spoken|voice)\s+answers` +
+		`|(?:spoken|voice)\s+answers\s+off` +
+		`|(?:pare|parar|para)\s+de\s+(?:falar|ler|dizer)\s+(?:as\s+|minhas\s+)?respostas(?:\s+em\s+voz\s+alta)?` +
+		`|(?:não|nao)\s+(?:fale|fala|leia|diga)\s+(?:as\s+)?respostas(?:\s+em\s+voz\s+alta)?` +
+		`|(?:desligue|desliga|desligar|desative|desativa|desativar)\s+(?:as\s+)?respostas\s+(?:faladas|por\s+voz)` +
+		`|respostas\s+(?:faladas|por\s+voz)\s+desligadas` +
+		`)$`)
+	reSpokenOn = regexp.MustCompile(`^(?:` +
+		`(?:speak|read|say)\s+(?:the\s+|my\s+)?answers(?:\s+(?:aloud|out loud))?` +
+		`|(?:start|resume)\s+(?:speaking|reading)\s+(?:the\s+|my\s+)?answers(?:\s+(?:aloud|out loud))?` +
+		`|(?:turn on|switch on|enable|unmute)\s+(?:the\s+)?(?:spoken|voice)\s+answers` +
+		`|(?:spoken|voice)\s+answers\s+on` +
+		`|(?:fale|fala|falar|leia|diga)\s+(?:as\s+|minhas\s+)?respostas(?:\s+em\s+voz\s+alta)?` +
+		`|(?:volte|voltar|volta)\s+a\s+(?:falar|ler)\s+(?:as\s+)?respostas(?:\s+em\s+voz\s+alta)?` +
+		`|(?:ligue|liga|ligar|ative|ativa|ativar)\s+(?:as\s+)?respostas\s+(?:faladas|por\s+voz)` +
+		`|respostas\s+(?:faladas|por\s+voz)\s+ligadas` +
+		`)(?:\s+(?:again|de\s+novo|novamente))?$`)
+)
+
+func spokenAnswersClause(c string) ([]Call, []string, bool) {
+	c = strings.ReplaceAll(c, "’", "'")
+	switch {
+	case reSpokenOff.MatchString(c):
+		return []Call{{Action: "voice.answers.set", Args: map[string]any{"spoken": "off"}}}, []string{"spoken answers off"}, true
+	case reSpokenOn.MatchString(c):
+		return []Call{{Action: "voice.answers.set", Args: map[string]any{"spoken": "on"}}}, []string{"spoken answers on"}, true
+	}
+	return nil, nil, false
+}
+
 func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switched *string,
 	setTok func(mode, k string, v any)) ([]Call, []string, bool) {
 
+	// Spoken answers (the person's voice settings).
+	if calls, explain, ok := spokenAnswersClause(c); ok {
+		return calls, explain, true
+	}
 	// Mode.
 	switch {
 	case c == "escuro" || c == "escura" || c == "dark":

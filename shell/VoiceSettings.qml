@@ -30,23 +30,22 @@ ColumnLayout {
     // save sends the whole settings with one change.
     function save(change, note) {
         if (!vs.prefs) return;
-        const p = Object.assign({}, vs.prefs, change);
-        p.voices = Object.assign({}, vs.prefs.voices || {}, change.voices || {});
-        Bus.call("voice.settings.set", p, (ok, res) => {
+        Bus.saveVoiceSettings(vs.prefs, change, (ok, res) => {
             if (ok) { vs.info = res; vs.status = note || Tr.t("Saved. It applies to your next request."); vs.statusError = false; }
             else { vs.status = res; vs.statusError = true; }
         });
     }
     // A language other than English needs a multilingual model: when the
     // model in use understands English only, the same save switches to an
-    // installed multilingual model the administrator allows (the small
-    // quantized one first: the best balance measured in the lab).
+    // installed multilingual model the administrator allows: the base
+    // quantized one first (fast, and it heard short requests best in the
+    // lab), then the small quantized one (better for long dictation).
     function chooseLanguage(tag) {
         const change = { speech_language: tag };
         const english = tag === "" || tag.split("-")[0] === "en";
         if (!english && vs.speechModelInfo && !vs.speechModelInfo.multilingual) {
-            const ml = (vs.models.stt || []).filter(m => m.multilingual && m.allowed);
-            const pick = ml.find(m => m.name === "ggml-small-q5_1") || ml.find(m => m.name === "ggml-base-q5_1") || ml[0];
+            // The daemon picks it (multilingualPick in internal/shell).
+            const pick = (vs.models.stt || []).find(m => m.name === vs.info.multilingual_pick && m.multilingual && m.allowed);
             if (pick) {
                 change.speech_model = pick.name;
                 save(change, Tr.t("Saved. The multilingual speech model %1 is used for %2.").arg(pick.name).arg(tag === "auto" ? Tr.t("Automatic") : vs.langName(tag)));

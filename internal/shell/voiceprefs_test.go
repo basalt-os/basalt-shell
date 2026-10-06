@@ -1,10 +1,14 @@
 package shell
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -130,5 +134,208 @@ func TestAssistantPrefixPortuguese(t *testing.T) {
 	}
 	if _, ok := AssistantPrefix("assistentes sociais chegaram"); ok {
 		t.Error("a word that only starts with assistente")
+	}
+}
+
+// fakeVoice is a voice service on a Unix socket that records the
+// operations it gets and hears the same words at every "stop".
+type fakeVoice struct {
+	mu   sync.Mutex
+	ops  []string
+	text string
+}
+
+func (f *fakeVoice) take() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	o := f.ops
+	f.ops = nil
+	return o
+}
+
+func startFakeVoice(t *testing.T, dir string) (*fakeVoice, *voice.Client) {
+	t.Helper()
+	sock := filepath.Join(dir, "voice.sock")
+	l, err := net.Listen("unix", sock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { l.Close() })
+	f := &fakeVoice{}
+	models := voice.Models{
+		STT:      []voice.ModelInfo{{Name: "ggml-base.en", Kind: "stt", Lang: "en", Allowed: true, Default: true}},
+		Voices:   []voice.ModelInfo{{Name: "en_US-ljspeech-medium", Kind: "tts", Lang: "en-US", Allowed: true, Default: true}},
+		Language: "en", DefaultSTT: "ggml-base.en", DefaultVoice: "en_US-ljspeech-medium", TTS: true,
+	}
+	go func() {
+		for {
+			conn, err := l.Accept()
+			if err != nil {
+				return
+			}
+			go func(conn net.Conn) {
+				defer conn.Close()
+				r := bufio.NewReader(conn)
+				w := json.NewEncoder(conn)
+				for {
+					line, err := r.ReadBytes('\n')
+					if err != nil {
+						return
+					}
+					var req voice.Request
+					_ = json.Unmarshal(line, &req)
+					f.mu.Lock()
+					f.ops = append(f.ops, req.Op)
+					text := f.text
+					f.mu.Unlock()
+					rep := voice.Reply{ID: req.ID, OK: true}
+					switch req.Op {
+					case "stop":
+						rep.Transcript = &voice.Transcript{Text: text, Speech: true, Model: "ggml-base.en", Lang: "en"}
+					case "models":
+						m := models
+						rep.Models = &m
+					case "speak":
+						rep.Spoken = &voice.Spoken{Voice: req.Voice, Sentences: 1}
+					}
+					_ = w.Encode(rep)
+				}
+			}(conn)
+		}
+	}()
+	return f, &voice.Client{Path: sock}
+}
+
+func hasOp(ops []string, op string) bool {
+	for _, o := range ops {
+		if o == op {
+			return true
+		}
+	}
+	return false
+}
+
+// TestSpokenAnswersOff: "stop speaking answers" is a confirmed change of
+// the person's own setting; with it off push to talk still answers on
+// the screen, nothing is synthesized and the card says nothing about
+// speaking; "speak answers" turns it back on.
+func TestSpokenAnswersOff(t *testing.T) {
+	c, _, dir := newCore(t)
+	voiceLab(t, dir)
+	fv, cl := startFakeVoice(t, dir)
+	c.Voice = cl
+	c.ScreenLocked = func() bool { return false }
+	ctx := context.Background()
+	// English answers, so the English voice speaks them while on.
+	if err := c.SetVoiceSettings(ctx, voiceprefs.Prefs{AnswerLang: "en-US"}); err != nil {
+		t.Fatal(err)
+	}
+
+	// While on, a spoken request's answer is spoken.
+	fv.text = "make it darker"
+	fv.take()
+	c.voiceTurn(time.Now())
+	if ops := fv.take(); !hasOp(ops, "speak") {
+		t.Fatalf("spoken answers on: no speak (%v)", ops)
+	}
+
+	// The request: a proposal the person confirms, like other settings.
+	res := c.Ask(ctx, "stop speaking answers")
+	if res.Kind != "proposal" || res.Proposal == nil || len(res.Proposal.Calls) != 1 || res.Proposal.Calls[0].Action != "voice.answers.set" {
+		t.Fatalf("ask: %+v", res)
+	}
+	if b, _ := os.ReadFile(c.prefsPath()); strings.Contains(string(b), "spoken = no") {
+		t.Fatal("changed before the confirmation")
+	}
+	if _, err := c.Decide(ctx, res.Proposal.ID, true, "ui"); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(c.prefsPath())
+	if !strings.Contains(string(b), "spoken = no") || !strings.Contains(string(b), "language = en-US") {
+		t.Fatalf("settings file:\n%s", b)
+	}
+	// The voice service stopped speaking and ended its synthesizer.
+	if ops := fv.take(); !hasOp(ops, "hush") || !hasOp(ops, "unload") {
+		t.Errorf("turning off sent %v", ops)
+	}
+
+	// Push to talk with spoken answers off: answered on the screen, no
+	// voice looked up, nothing synthesized, no word about speaking.
+	events, stop := c.Subscribe()
+	defer stop()
+	c.voiceTurn(time.Now())
+	results := 0
+	for len(events) > 0 {
+		if ev := <-events; ev.Event == "voice-result" {
+			results++
+		}
+	}
+	ops := fv.take()
+	if hasOp(ops, "speak") || hasOp(ops, "models") {
+		t.Errorf("spoken answers off, the voice service got %v", ops)
+	}
+	if results != 1 {
+		t.Errorf("answer shown %d times", results)
+	}
+	st := c.VoiceStatus()
+	if st.State != "idle" || st.Error != "" {
+		t.Errorf("card: %+v", st)
+	}
+	if card, _ := json.Marshal(st); strings.Contains(strings.ToLower(string(card)), "spoken") || strings.Contains(strings.ToLower(string(card)), "speak") {
+		t.Errorf("the card mentions speaking: %s", card)
+	}
+
+	// "Fale as respostas": back on after the confirmation.
+	res = c.Ask(ctx, "fale as respostas")
+	if res.Kind != "proposal" || res.Proposal == nil {
+		t.Fatalf("ask: %+v", res)
+	}
+	if _, err := c.Decide(ctx, res.Proposal.ID, true, "ui"); err != nil {
+		t.Fatal(err)
+	}
+	if !c.refreshPrefs().Spoken {
+		t.Fatal("still off")
+	}
+	fv.take()
+	c.voiceTurn(time.Now())
+	if ops := fv.take(); !hasOp(ops, "speak") {
+		t.Errorf("spoken answers on again: no speak (%v)", ops)
+	}
+}
+
+// TestSpokenAnswersPersonOnly: an agent cannot propose the change.
+func TestSpokenAnswersPersonOnly(t *testing.T) {
+	c, _, _ := newCore(t)
+	_, err := c.Propose(context.Background(), Meta{Origin: "agent", Actor: "agent"}, []Call{{Action: "voice.answers.set", Args: map[string]any{"spoken": "off"}}})
+	if err == nil {
+		t.Fatal("an agent proposed a change of the person's voice settings")
+	}
+}
+
+// TestMultilingualPick: a language other than English switches to the
+// base quantized multilingual model first, then the small one.
+func TestMultilingualPick(t *testing.T) {
+	stt := func(names ...string) voice.Models {
+		var m voice.Models
+		for _, n := range names {
+			m.STT = append(m.STT, voice.ModelInfo{Name: n, Kind: "stt", Multilingual: !voice.EnglishOnly(n), Allowed: true})
+		}
+		return m
+	}
+	for want, m := range map[string]voice.Models{
+		"ggml-base-q5_1":           stt("ggml-base.en", "ggml-small-q5_1", "ggml-base-q5_1"),
+		"ggml-small-q5_1":          stt("ggml-base.en", "ggml-large-v3-turbo-q5_0", "ggml-small-q5_1"),
+		"ggml-large-v3-turbo-q5_0": stt("ggml-base.en", "ggml-large-v3-turbo-q5_0"),
+		"":                         stt("ggml-base.en", "ggml-small.en"),
+	} {
+		if got := multilingualPick(m); got != want {
+			t.Errorf("%+v: %q, want %q", m.STT, got, want)
+		}
+	}
+	// One the administrator does not allow is skipped.
+	m := stt("ggml-base-q5_1", "ggml-small-q5_1")
+	m.STT[0].Allowed = false
+	if got := multilingualPick(m); got != "ggml-small-q5_1" {
+		t.Errorf("not allowed base: %q", got)
 	}
 }

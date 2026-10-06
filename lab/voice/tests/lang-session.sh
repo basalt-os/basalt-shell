@@ -10,7 +10,7 @@
 # and the theme settings are put back at the end.
 #   lang-session.sh OUT.jsonl
 # ONLY=pt or ONLY=en runs one half; PT_MODEL picks the Portuguese speech
-# model (default ggml-small-q5_1).
+# model (default ggml-base-q5_1, the default multilingual model).
 set -u
 out=${1:?out.jsonl}
 here=$(cd "$(dirname "$0")" && pwd)
@@ -107,7 +107,7 @@ basalt-shell-ui ipc call shell settingsPage voice >/dev/null; sleep 1
 basalt-shell-ui ipc call shell toggle settings >/dev/null; sleep 1
 # 1. Brazilian Portuguese on the English desktop (session LANG=en_US).
 if [ "${ONLY:-pt}" = pt ] || [ -z "${ONLY:-}" ]; then
-prefs "[speech]" "language = pt-BR" "model = ${PT_MODEL:-ggml-small-q5_1}"
+prefs "[speech]" "language = pt-BR" "model = ${PT_MODEL:-ggml-base-q5_1}"
 say pt-darker pt_BR-faber-medium "Deixe mais escuro." confirm
 say pt-theme pt_BR-faber-medium "Use o tema lichen." confirm
 say pt-mail pt_BR-faber-medium "O que a Ana disse no último e-mail?" allow

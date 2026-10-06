@@ -392,6 +392,9 @@
  "Shown underlined in the field. Nothing is typed until you choose Insert (Super+Shift+Return).": [
   "Aparece sublinhado no campo. Nada é digitado até você escolher Inserir (Super+Shift+Return)."
  ],
+ "Speak the answers aloud": [
+  "Falar as respostas em voz alta"
+ ],
  "Speaking": [
   "Falando"
  ],
@@ -412,6 +415,9 @@
  ],
  "Spoken answers": [
   "Respostas faladas"
+ ],
+ "Stop speaking the answers (they are still shown on the screen)": [
+  "Parar de falar as respostas (elas continuam aparecendo na tela)"
  ],
  "System default": [
   "Padrão do sistema"

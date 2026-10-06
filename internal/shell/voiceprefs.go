@@ -156,11 +156,14 @@ func (c *Core) VoiceSettings(ctx context.Context) map[string]any {
 	return map[string]any{
 		"prefs": ps.prefs, "effective": eff, "problems": ps.problems,
 		"models": models, "languages": i18n.Languages, "session": i18n.SessionTag(),
-		"policy":   map[string]any{"allow_remote": ps.policy.AllowRemote, "remotes": remotes},
-		"local":    ps.local != nil,
-		"voice":    voiceName,
-		"path":     c.prefsPath(),
-		"language": i18n.EnglishName(eff.AnswerLang),
+		"policy": map[string]any{"allow_remote": ps.policy.AllowRemote, "remotes": remotes},
+		"local":  ps.local != nil,
+		"voice":  voiceName,
+		// The multilingual model the Settings page switches to when a
+		// language other than English is chosen with an English-only model.
+		"multilingual_pick": multilingualPick(models),
+		"path":              c.prefsPath(),
+		"language":          i18n.EnglishName(eff.AnswerLang),
 	}
 }
 
@@ -231,13 +234,104 @@ func (c *Core) SetVoiceSettings(ctx context.Context, p voiceprefs.Prefs) error {
 	c.prefs.mu.Lock()
 	c.prefs.loaded = false
 	c.prefs.mu.Unlock()
-	c.refreshPrefs()
+	if eff := c.refreshPrefs(); !eff.Spoken {
+		c.quietVoice(ctx)
+	}
 	c.Broadcast("voice-settings", c.VoiceSettings(ctx))
 	st := c.VoiceStatus()
 	if st.State == "idle" {
 		c.setVoice(VoiceState{State: "idle"})
 	}
 	return nil
+}
+
+// quietVoice stops an answer being spoken and ends the voice service's
+// warm text-to-speech process: with spoken answers off nothing is
+// synthesized, and no synthesizer keeps running. Best effort: an older
+// voice service without "unload" ends it when it stops.
+func (c *Core) quietVoice(ctx context.Context) {
+	if c.Voice == nil || !c.Voice.Available() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	_, _ = c.Voice.Do(ctx, voice.Request{Op: "hush"})
+	_, _ = c.Voice.Do(ctx, voice.Request{Op: "unload"})
+}
+
+// SetSpokenAnswers turns the person's spoken answers on or off through
+// the same checks and file as the Settings page and the quick settings
+// tile (SetVoiceSettings, which they reach by voice.settings.set): the
+// requests "stop speaking answers" and "speak answers" end here once the
+// person confirms them.
+func (c *Core) SetSpokenAnswers(ctx context.Context, on bool) error {
+	c.refreshPrefs()
+	c.prefs.mu.Lock()
+	p := c.prefs.prefs
+	p.Voices = make(map[string]string, len(c.prefs.prefs.Voices))
+	for k, v := range c.prefs.prefs.Voices {
+		p.Voices[k] = v
+	}
+	c.prefs.mu.Unlock()
+	p.Spoken = "no"
+	if on {
+		p.Spoken = "yes"
+	}
+	return c.SetVoiceSettings(ctx, p)
+}
+
+// voice.answers.set is the typed action behind "stop speaking answers"
+// and "speak answers" (English and Brazilian Portuguese fixed phrases).
+// Like every settings change it is a proposal the person confirms, and
+// like the Settings page it changes only the person's own settings: it
+// is planned only from the person's own words, never by an agent.
+func init() {
+	Actions = append(Actions, &ActionDef{
+		Name: "voice.answers.set", Title: "Spoken answers on or off",
+		Description: "Turn the person's spoken answers on or off (answers are always shown). Only from the person's own request.",
+		Person:      true,
+		Params:      []Param{{Name: "spoken", Type: "string", Required: true, Enum: []string{"on", "off"}, Description: "on: answers are also read aloud; off: shown only, nothing is synthesized"}},
+		plan: func(ctx context.Context, p *planner, a map[string]any) (step, error) {
+			v := argStr(a, "spoken")
+			if !oneOf(v, "on", "off") {
+				return step{}, errors.New("spoken must be on or off")
+			}
+			sum := i18n.G("Speak the answers aloud")
+			if v == "off" {
+				sum = i18n.G("Stop speaking the answers (they are still shown on the screen)")
+			}
+			return step{Summary: sum, run: func(ctx context.Context) (any, error) {
+				return nil, p.c.SetSpokenAnswers(ctx, v == "on")
+			}}, nil
+		},
+	})
+}
+
+// multilingualPick is the installed multilingual speech model the
+// administrator allows that a language other than English switches to:
+// ggml-base-q5_1 first (fast, and it heard short requests best in the
+// lab), then ggml-small-q5_1 (fewer mistakes on long dictation, about
+// three times slower), then any other one. "" when there is none.
+func multilingualPick(m voice.Models) string {
+	ok := func(name string) bool {
+		for _, s := range m.STT {
+			if s.Name == name && s.Multilingual && s.Allowed {
+				return true
+			}
+		}
+		return false
+	}
+	for _, n := range []string{"ggml-base-q5_1", "ggml-small-q5_1"} {
+		if ok(n) {
+			return n
+		}
+	}
+	for _, s := range m.STT {
+		if s.Multilingual && s.Allowed {
+			return s.Name
+		}
+	}
+	return ""
 }
 
 // voiceFor picks the voice for the answer language: the person's choice

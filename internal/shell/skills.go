@@ -395,6 +395,11 @@ func (c *Core) voiceTurn(release time.Time) {
 	speech := spokenAnswer(res)
 	timing["release_to_answer"] = time.Since(release).Milliseconds()
 	var sp *voice.Spoken
+	// The settings in force now (the request may have taken a while, or
+	// changed them). With spoken answers off nothing is synthesized: no
+	// voice is looked up, no "speak" reaches the voice service, and the
+	// card says nothing about speaking.
+	eff = c.refreshPrefs()
 	// The answer is spoken in the answer language with a voice for it
 	// (the person's, else an installed one), never by a voice of another
 	// language. Without one the answer is shown only, and the card says

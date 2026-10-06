@@ -18,7 +18,7 @@ basalt-os documentation, `docs/local-model.md`), it understands more.
 
    | Intents | Fields |
    |---|---|
-   | dark_mode, light_mode, toggle_mode, darker, lighter, rounder_corners, sharper_corners, square_corners, bigger_text, smaller_text, more_spacing, less_spacing, reduce_motion, full_motion, panel_top, panel_bottom, shadows_on, shadows_off, blur_on, blur_off, theme_reset | none |
+   | dark_mode, light_mode, toggle_mode, darker, lighter, rounder_corners, sharper_corners, square_corners, bigger_text, smaller_text, more_spacing, less_spacing, reduce_motion, full_motion, panel_top, panel_bottom, shadows_on, shadows_off, blur_on, blur_off, theme_reset, spoken_answers_off, spoken_answers_on | none |
    | accent | color, from a list |
    | use_theme | theme, from the installed themes |
    | arrange | layout, from a list |
@@ -57,8 +57,12 @@ shell and becomes a proposal.
 The fixed phrases cover the main requests in Brazilian Portuguese as
 speech recognition writes them ("deixe mais escuro", "modo escuro", "use
 o tema lichen" and the Portuguese names of the themes, "organize as
-janelas", "aumente o texto", "abra as configurações"); they map to the
-same English intents and actions. When the person's answer language is
+janelas", "aumente o texto", "abra as configurações", "pare de falar as
+respostas"); they map to the same English intents and actions. "Stop
+speaking answers" and "speak answers" (in Portuguese "pare de falar as
+respostas" and "fale as respostas") turn the person's spoken answers off
+and on (the action `voice.answers.set`, confirmed like the other changes;
+see `docs/voice.md`, Languages). When the person's answer language is
 not English, the translator's prompt gets one line asking for answers in
 that language while every identifier stays English (see `docs/voice.md`,
 Model); its schema and the checks above are the same in every language.

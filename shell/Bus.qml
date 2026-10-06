@@ -81,6 +81,15 @@ Singleton {
     function voicePress() { call("voice.press", { commandbar: Ui.commandBar }, (ok, res) => { if (!ok) bus.voice = { state: "error", error: res, enabled: bus.voice.enabled }; }); }
     function voiceRelease() { call("voice.release", {}); }
     function voiceCancel() { call("voice.cancel", {}); }
+    // The person's voice and assistant settings: the whole settings with
+    // one change, through voice.settings.set (shell UI only; the daemon
+    // checks it against the administrator's policy). The Settings page
+    // and the quick settings tile both save through here.
+    function saveVoiceSettings(prefs, change, cb) {
+        const p = Object.assign({}, prefs, change);
+        p.voices = Object.assign({}, prefs.voices || {}, change.voices || {});
+        call("voice.settings.set", p, cb);
+    }
     function revokeGrant(id) { call("grant.revoke", { id: id || "" }); }
     function setTokens(obj) { act("theme.set_tokens", { tokens: obj }); }
     function setToken(key, value) { const t = {}; t[key] = value; setTokens(t); }
