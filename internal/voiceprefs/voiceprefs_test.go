@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/basalt-os/basalt-shell/internal/intent"
 )
@@ -140,5 +141,44 @@ model = m
 	// Local is always allowed.
 	if m, err := ChooseModel(pol, Prefs{Model: "local"}, local); m != local || err != nil {
 		t.Error("local")
+	}
+}
+
+func TestPushToTalkSettings(t *testing.T) {
+	// The default keeps holding the key; toggle stops after 2 s of quiet.
+	e := Resolve(Prefs{}, "en", "en-US")
+	if e.PushToTalk != PushHold || e.AutoStopMS != 2000 {
+		t.Fatalf("defaults: %+v", e)
+	}
+	e = Resolve(Prefs{PushToTalk: "toggle", AutoStopSilence: "0"}, "en", "en-US")
+	if e.PushToTalk != PushToggle || e.AutoStopMS != 0 {
+		t.Fatalf("toggle, never: %+v", e)
+	}
+	for v, want := range map[string]time.Duration{"": 2 * time.Second, "3": 3 * time.Second, "1.5s": 1500 * time.Millisecond,
+		"800ms": 800 * time.Millisecond, "off": 0, "0s": 0} {
+		if d, err := ParseSilence(v); err != nil || d != want {
+			t.Errorf("ParseSilence(%q) = %v, %v; want %v", v, d, err, want)
+		}
+	}
+	for _, v := range []string{"0.1s", "11s", "soon", "-2s"} {
+		if _, err := ParseSilence(v); err == nil {
+			t.Errorf("ParseSilence(%q) accepted", v)
+		}
+	}
+	if err := (Prefs{PushToTalk: "press"}).Validate(); err == nil {
+		t.Error("push_to_talk = press accepted")
+	}
+	// Saved and read back, through the same file as the other settings.
+	path := Path(t.TempDir())
+	if err := Save(path, Prefs{PushToTalk: PushToggle, AutoStopSilence: "1.5s", Voices: map[string]string{}}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Load(path, "/home/x")
+	if err != nil || got.PushToTalk != PushToggle || got.AutoStopSilence != "1.5s" {
+		t.Fatalf("load: %+v %v", got, err)
+	}
+	b, _ := os.ReadFile(path)
+	if !strings.Contains(string(b), "push_to_talk = toggle") {
+		t.Errorf("file:\n%s", b)
 	}
 }

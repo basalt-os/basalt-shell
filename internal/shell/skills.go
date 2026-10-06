@@ -14,6 +14,7 @@ import (
 	"github.com/basalt-os/basalt-shell/internal/models"
 	"github.com/basalt-os/basalt-shell/internal/skills"
 	"github.com/basalt-os/basalt-shell/internal/voice"
+	"github.com/basalt-os/basalt-shell/internal/voiceprefs"
 )
 
 // The read-only skills add two typed actions, both confirmed by the
@@ -229,6 +230,14 @@ type VoiceState struct {
 	Answer string `json:"answer_lang,omitempty"`
 	// LangName is the speech language's own name ("" for auto).
 	LangName string `json:"lang_name,omitempty"`
+	// While listening: PushToTalk is hold or toggle (how this utterance
+	// ends), EscKey whether the compositor binds Escape to cancel it
+	// (sway; elsewhere the card offers Cancel), MaxHoldS the hold limit
+	// and AutoStopMS the silence that ends a toggle utterance (0: never).
+	PushToTalk string `json:"push_to_talk,omitempty"`
+	EscKey     bool   `json:"esc_key,omitempty"`
+	MaxHoldS   int    `json:"max_hold_s,omitempty"`
+	AutoStopMS int64  `json:"auto_stop_ms,omitempty"`
 	// Offer and Download: the speech model download (zero setup).
 	Offer    *models.Offer `json:"offer,omitempty"`
 	Download *models.Job   `json:"download,omitempty"`
@@ -263,11 +272,26 @@ func (c *Core) VoiceStatus() VoiceState {
 	return st
 }
 
-// VoicePress opens the microphone (the person pressed the key or the
-// panel button). Only the shell UI may call it.
+// VoicePress is the key or the panel button going down, with a release
+// to follow (sway, the panel button). Only the shell UI may call it.
 func (c *Core) VoicePress(ctx context.Context, commandBar bool) error {
+	return c.VoiceKeyDown(ctx, commandBar, false)
+}
+
+// VoiceKeyDown is the key or the panel button going down. latch says no
+// release will follow (niri has no key-release bindings): the utterance
+// then works as "press to start and stop" whatever the setting is. With
+// the microphone closed it opens it; with it open, in "press to start
+// and stop", it closes it and sends the words (ptt.go).
+func (c *Core) VoiceKeyDown(ctx context.Context, commandBar, latch bool) error {
 	if c.Voice == nil {
 		return errors.New(i18n.G("The voice service is not running."))
+	}
+	if listening, s, gen := c.voiceListening(); listening {
+		if act, why := pttDecide(pttPress, true, s, time.Now(), pttSignal{}); act == pttStop {
+			c.stopListening(gen, why)
+		}
+		return nil
 	}
 	if c.ScreenLocked != nil && c.ScreenLocked() {
 		_, _ = c.Audit.Append("refuse", "ui", "microphone refused: the screen is locked", nil)
@@ -312,16 +336,34 @@ func (c *Core) VoicePress(ctx context.Context, commandBar bool) error {
 		// The command bar is open: the words are a request to the assistant.
 		rt = voiceRoute{Mode: "assistant"}
 	}
+	// Hold or "press to start and stop" (ptt.go), fixed for this utterance.
+	sess := pttSession{Mode: pttModeFor(eff.PushToTalk, latch), Since: time.Now(), MaxHold: sys.MaxHold}
+	toggle := sess.Mode == voiceprefs.PushToggle
+	if toggle {
+		sess.AutoStop = time.Duration(eff.AutoStopMS) * time.Millisecond
+	}
 	c.mu.Lock()
-	c.voicePress = time.Now()
+	c.voicePress = sess.Since
 	c.voiceRoute = rt
 	c.voiceModel = model
+	c.voiceSession = sess
+	c.voiceGen++
+	gen := c.voiceGen
 	c.mu.Unlock()
 	if _, err := c.Voice.Do(ctx, voice.Request{Op: "listen"}); err != nil {
 		c.setVoice(VoiceState{State: "error", Error: err.Error()})
 		return err
 	}
-	c.setVoice(VoiceState{State: "listening", Mode: rt.Mode, Target: rt.Target, Note: rt.Note})
+	esc := false
+	if toggle {
+		// sway: Escape cancels while the microphone is open.
+		esc = c.voiceKeys(true)
+	}
+	c.setVoice(VoiceState{State: "listening", Mode: rt.Mode, Target: rt.Target, Note: rt.Note,
+		PushToTalk: sess.Mode, EscKey: esc, MaxHoldS: int(sess.MaxHold / time.Second), AutoStopMS: sess.AutoStop.Milliseconds()})
+	if toggle {
+		go c.watchToggle(gen)
+	}
 	if c.Skills != nil {
 		// Sender names for the next utterances (at most every ten minutes,
 		// only while a mailbox is granted).
@@ -331,7 +373,7 @@ func (c *Core) VoicePress(ctx context.Context, commandBar bool) error {
 			_ = c.Skills.RefreshSenders(ctx)
 		}()
 	}
-	_, _ = c.Audit.Append("voice", "ui", "microphone opened (push to talk, "+rt.Mode+")", map[string]any{"mode": rt.Mode, "target": rt.Target})
+	_, _ = c.Audit.Append("voice", "ui", "microphone opened (push to talk, "+rt.Mode+")", map[string]any{"mode": rt.Mode, "target": rt.Target, "push_to_talk": sess.Mode})
 	return nil
 }
 
@@ -342,14 +384,14 @@ func (c *Core) VoiceRelease(ctx context.Context) error {
 	if c.Voice == nil {
 		return errors.New("the voice service is not running")
 	}
-	if c.VoiceStatus().State != "listening" {
-		// A release without a press that opened the microphone (refused
-		// at the lock screen, or a stray key-up): nothing to close.
-		return nil
+	// In hold mode the release sends the words; in "press to start and
+	// stop" it is the up of a press and changes nothing; without an
+	// open microphone (refused at the lock screen, a stray key-up) there
+	// is nothing to close.
+	listening, s, gen := c.voiceListening()
+	if act, why := pttDecide(pttRelease, listening, s, time.Now(), pttSignal{}); act == pttStop {
+		c.stopListening(gen, why)
 	}
-	release := time.Now()
-	c.setVoice(VoiceState{State: "transcribing"})
-	go c.voiceTurn(release)
 	return nil
 }
 
@@ -565,8 +607,15 @@ func (c *Core) WatchVoice(ctx context.Context) {
 	}
 }
 
-// VoiceCancel drops the recording (the person pressed Escape).
+// VoiceCancel drops the recording (the person pressed Escape or the
+// card's Cancel): the microphone closes and nothing is transcribed.
 func (c *Core) VoiceCancel(ctx context.Context) {
+	if listening, s, gen := c.voiceListening(); listening {
+		if act, _ := pttDecide(pttCancel, true, s, time.Now(), pttSignal{}); act == pttDropWords && c.takeListening(gen) {
+			_, _ = c.Audit.Append("voice", "ui", "microphone closed, words dropped (cancel)", nil)
+		}
+	}
+	c.voiceKeys(false)
 	if c.Voice != nil {
 		_, _ = c.Voice.Do(ctx, voice.Request{Op: "cancel"})
 		_, _ = c.Voice.Do(ctx, voice.Request{Op: "hush"})

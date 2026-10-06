@@ -635,11 +635,14 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 			_, _ = c.Audit.Append("refuse", ss.actor(), "microphone refused: not the shell UI", map[string]any{"pid": ss.pid, "context": ss.peer.Context})
 			return nil, err
 		}
+		// latch: no release will follow (niri's key bindings), so this
+		// utterance is "press to start and stop".
 		var a struct {
 			CommandBar bool `json:"commandbar"`
+			Latch      bool `json:"latch"`
 		}
 		_ = decode(req.Args, &a)
-		return nil, c.VoicePress(ctx, a.CommandBar)
+		return nil, c.VoiceKeyDown(ctx, a.CommandBar, a.Latch)
 	case "voice.release":
 		if err := ss.requireUI(); err != nil {
 			return nil, err

@@ -50,6 +50,12 @@ func New() *Adapter {
 
 func (a *Adapter) rec(s string) { a.mu.Lock(); a.Calls = append(a.Calls, s); a.mu.Unlock() }
 
+// SetVoiceKeys records the voice key mode (sway's "basalt-voice").
+func (a *Adapter) SetVoiceKeys(_ context.Context, on bool) error {
+	a.rec(fmt.Sprintf("voicekeys %v", on))
+	return nil
+}
+
 func (a *Adapter) Name() string                   { return "fake" }
 func (a *Adapter) Version(context.Context) string { return "fake 1" }
 func (a *Adapter) Caps() compositor.Caps {

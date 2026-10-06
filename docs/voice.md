@@ -1,6 +1,7 @@
 # Voice and the skills
 
-Status: 0.6 (2026-10), pre-release. Push to talk, local speech in both
+Status: 0.6.2 (2026-10), pre-release. Push to talk (hold, or press to
+start and stop), local speech in both
 directions, three read-only skills (find files, read and summarize
 e-mail, read and summarize a web page) and three acting skills that are
 always previewed and confirmed (dictation into the focused text field,
@@ -31,8 +32,8 @@ downloaded before the person chooses Download.
 - Hold Super+V (or the microphone button in the panel), speak, release.
   A card under the panel says the microphone is open while the key is
   held, then shows what was heard; the answer appears in the command bar
-  and a short version is spoken. On niri (no key-release bindings)
-  Super+V toggles; the panel button is hold to talk everywhere.
+  and a short version is spoken. Or, with "Press to start and stop"
+  (Push to talk below), press Super+V once, speak, and press it again.
 - The same requests can be typed in the command bar (Super+A): "find the
   PDF the bank sent last month", "what did Ana say in her last email?",
   "summarize news.example.org", "open result 2".
@@ -56,6 +57,51 @@ downloaded before the person chooses Download.
   allow. Permissions end by themselves; the panel shows the ones in force
   and the bar lists them with End buttons. "Allow access to my Documents
   folder for 10 minutes" and "revoke access" work as requests too.
+
+## Push to talk
+
+Each person chooses, in Settings, Voice and assistant, Push to talk:
+
+- Hold to talk (the default): the microphone is open while Super+V or
+  the panel's microphone button is held; releasing it sends the words.
+- Press to start and stop: a press opens the microphone and the card
+  says "Listening, press Super+V again to stop", with the mode, how it
+  ends and a Cancel button; the next press (of the key or the button)
+  sends the words. Escape, or Cancel, drops them without sending. It
+  also ends by itself at the hold limit (`BASALT_VOICE_MAX_HOLD`, 30 s)
+  and, once the person has spoken, after a silence: 2 s by default,
+  chosen on the same page (Never, 1, 2, 3 or 5 s). A second press less
+  than 0.7 s after the first is ignored, so a long press does not start
+  and stop at once.
+
+The choice is saved in the person's settings file (`push_to_talk`,
+`auto_stop_silence`) through the same checked save as the other
+settings, and applies at the next press, without logging out.
+
+Every compositor sends the same events: a press when the key goes down
+and a release when it comes up; the daemon decides what they mean
+(`internal/shell/ptt.go`, a pure state machine with its tests). niri has
+no key-release bindings, so its Super+V is a press that says no release
+will follow, and that utterance works as press to start and stop
+whatever the setting is (the Settings page says so on niri); the panel
+button follows the setting there too.
+
+Escape: on sway the shell switches to the binding mode `basalt-voice`
+while the microphone is open in press to start and stop (Escape cancels,
+Super+V stops, every other key reaches the apps) and back to the default
+mode when it closes. niri cannot change its bindings at run time: there
+the card takes the keyboard while the words go to the assistant, so
+Escape works; while dictating into a field it does not take it (that
+would end the field's input method session) and Cancel is the way.
+
+The silence is measured by the voice service while it records, with a
+small energy detector (`internal/voice/Endpointer`: 20 ms frames, a noise
+floor that follows the room, speech as at least 80 ms over three times
+that floor). It only decides when to close the microphone; whether there
+was speech and what was said is still decided by whisper.cpp with Silero
+VAD on the whole utterance, so a stop on noise ends as "I did not hear
+anything", never as a request. Running Silero itself on the live stream
+would need a second inference runtime in the confined voice service.
 
 ## Languages
 
@@ -124,6 +170,8 @@ hand:
 [speech]
 language = pt-BR          # auto, or a language tag; empty: the system's default
 model = ggml-base-q5_1    # an installed speech model; empty: the system's default
+push_to_talk = hold       # hold, or toggle (press to start and stop)
+auto_stop_silence = 2s    # toggle only: stop after this much quiet once you spoke; 0: never
 
 [answers]
 language =                # empty: the speech language, then the session's language
@@ -170,7 +218,7 @@ For administrators).
 
 | Piece | What |
 |---|---|
-| `basalt-voiced` | the voice service (user unit `basalt-voice.service`, enabled for every person by the user preset `80-basalt-shell.preset` and started with the session; push to talk starts it when its socket is missing). Socket `$XDG_RUNTIME_DIR/basalt-voice/voice.sock`, open only to the shell daemon (SELinux context of the peer). `listen` opens a PipeWire capture stream named "Basalt voice"; `stop` closes it, runs whisper.cpp (`whisper-cli`, Silero VAD) on the utterance and returns the text; `speak` synthesizes sentence by sentence with a warm Piper process (started by the first `speak`) and plays them; `hush` stops speaking; `unload` also ends the Piper process (spoken answers turned off). A hold is cut at 30 s. |
+| `basalt-voiced` | the voice service (user unit `basalt-voice.service`, enabled for every person by the user preset `80-basalt-shell.preset` and started with the session; push to talk starts it when its socket is missing). Socket `$XDG_RUNTIME_DIR/basalt-voice/voice.sock`, open only to the shell daemon (SELinux context of the peer). `listen` opens a PipeWire capture stream named "Basalt voice"; `stop` closes it, runs whisper.cpp (`whisper-cli`, Silero VAD) on the utterance and returns the text; `speak` synthesizes sentence by sentence with a warm Piper process (started by the first `speak`) and plays them; `hush` stops speaking; `unload` also ends the Piper process (spoken answers turned off); `status` says, while listening, whether speech was heard and how long it has been quiet. A hold is cut at 30 s. |
 | skills engine (in the daemon) | `internal/skills`: routes a request by fixed rules, plans the search from the request (the model adds synonyms and kinds; the time range comes from fixed rules), checks the grants, runs a worker, summarizes with the model, filters the model's output, composes the answer and the spoken text. |
 | `basalt-skill-index` | builds the file index of the granted folders: metadata, text of PDFs (poppler), Office and OpenDocument files, HTML (visible and hidden text), plain text, with the guard's findings per file. No symlinks, no hidden files, never `~/.ssh`, `~/.gnupg`, keyrings, browser profiles. |
 | `basalt-skill` | searches the index (BM25 over name, title and text, with kind and time filters), reads a mailbox (read-only IMAP client: `EXAMINE` and `BODY.PEEK` only, the command set is closed), reads a page (headless Chromium over a DevTools pipe, throw-away profile, every request checked). |
@@ -335,7 +383,8 @@ service itself never downloads anything: it has no network.
 - `/etc/basalt/desktop-models.conf`: the language models a person may
   choose (Languages above).
 - `~/.config/basalt/voice-and-assistant.conf`: the person's own speech
-  and answer languages, speech model, voices and model choice.
+  and answer languages, speech model, push to talk mode, voices and
+  model choice.
 - `~/.config/basalt-shell/skills.conf`: mail accounts (password in a
   private file, mode 0600; `address`, `name`, `smtp_host`, `smtp_port`,
   `smtp_tls` for replies), named sites, the folders a file grant offers,

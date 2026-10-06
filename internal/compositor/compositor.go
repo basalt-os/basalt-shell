@@ -180,6 +180,15 @@ type Minimizer interface {
 	Unminimize(ctx context.Context, id string) error
 }
 
+// VoiceKeys is implemented by backends that can bind keys only while
+// the microphone is open in "press to start and stop": Escape cancels
+// the utterance, and Super+V keeps working. Outside of it Escape belongs
+// to the apps. sway does it with a binding mode ("basalt-voice" in the
+// shell's sway config); niri cannot change its bindings at run time.
+type VoiceKeys interface {
+	SetVoiceKeys(ctx context.Context, on bool) error
+}
+
 // ErrUnsupported is returned for an operation a backend cannot do.
 var ErrUnsupported = errors.New("not supported by this compositor")
 

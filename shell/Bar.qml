@@ -254,7 +254,9 @@ PanelWindow {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     property bool held: false
-                    onPressed: { held = true; Bus.voicePress(); }
+                    // Down and up, like the key: in "press to start and
+                    // stop" the daemon ignores the up and the next click stops.
+                    onPressed: { held = true; Bus.voicePress(false); }
                     onReleased: if (held) { held = false; Bus.voiceRelease(); }
                     onCanceled: if (held) { held = false; Bus.voiceRelease(); }
                 }

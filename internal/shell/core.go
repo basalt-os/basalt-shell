@@ -125,6 +125,9 @@ type Core struct {
 	// available); StartVoice starts the voice service (tests replace it).
 	Models     *models.Manager
 	StartVoice func(context.Context) error
+	// PTTTick is how often a "press to start and stop" utterance checks
+	// the hold limit and the silence (0: every 200 ms; tests shorten it).
+	PTTTick time.Duration
 
 	mu        sync.Mutex
 	proposals map[string]*Proposal
@@ -144,6 +147,8 @@ type Core struct {
 	voicePress       time.Time
 	voiceRoute       voiceRoute
 	voiceModel       string          // the speech model chosen when the key went down
+	voiceSession     pttSession      // how the open microphone was opened (ptt.go)
+	voiceGen         uint64          // the open utterance; bumped when it ends
 	llmDeclined      bool            // Not now on the local model offer, this session
 	voiceLangNoticed map[string]bool // answer languages told "shown, not spoken" this session
 	// prefs are the person's voice and assistant settings (voiceprefs.go).

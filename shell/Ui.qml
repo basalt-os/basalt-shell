@@ -110,11 +110,14 @@ Singleton {
         // minimize, maximize, left, right, restore, close, float, menu
         function window(op: string): void { ui.windowOp(op, ""); }
         // Push to talk from the key binding: press, release, cancel.
+        // "toggle" is a press with no release to follow (niri has no
+        // key-release bindings): the same path as press, and the daemon
+        // treats that utterance as "press to start and stop".
         function voice(op: string): void {
-            if (op === "press") Bus.voicePress();
+            if (op === "press") Bus.voicePress(false);
             else if (op === "release") Bus.voiceRelease();
             else if (op === "cancel") Bus.voiceCancel();
-            else if (op === "toggle") { if (Bus.voice.state === "listening") Bus.voiceRelease(); else Bus.voicePress(); }
+            else if (op === "toggle") Bus.voicePress(true);
             // Dictation waiting on the card: Super+Return types it, Super+BackSpace drops it.
             else if (op === "insert") Bus.dictationDecide(true);
             else if (op === "discard") Bus.dictationDecide(false);

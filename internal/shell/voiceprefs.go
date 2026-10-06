@@ -167,7 +167,10 @@ func (c *Core) VoiceSettings(ctx context.Context) map[string]any {
 		// language other than English is chosen with an English-only model.
 		"multilingual_pick": multilingualPick(models),
 		"path":              c.prefsPath(),
-		"language":          i18n.EnglishName(eff.AnswerLang),
+		// niri has no key-release bindings: Super+V always starts and
+		// stops there, whatever push_to_talk says (the page says so).
+		"key_release": c.Comp == nil || c.Comp.Name() != "niri",
+		"language":    i18n.EnglishName(eff.AnswerLang),
 	}
 }
 
@@ -236,7 +239,8 @@ func (c *Core) SetVoiceSettings(ctx context.Context, p voiceprefs.Prefs) error {
 	}
 	_, _ = c.Audit.Append("apply", "ui", "voice and assistant settings changed", map[string]any{
 		"speech_language": p.SpeechLang, "speech_model": p.SpeechModel, "answer_language": p.AnswerLang,
-		"spoken": p.Spoken, "voices": p.Voices, "model": p.Model, "allow_remote": p.AllowRemote})
+		"spoken": p.Spoken, "voices": p.Voices, "model": p.Model, "allow_remote": p.AllowRemote,
+		"push_to_talk": p.PushToTalk, "auto_stop_silence": p.AutoStopSilence})
 	c.prefs.mu.Lock()
 	c.prefs.loaded = false
 	c.prefs.mu.Unlock()

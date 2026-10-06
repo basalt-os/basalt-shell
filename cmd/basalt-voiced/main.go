@@ -7,7 +7,11 @@
 // The microphone is open only between "listen" and "stop", which only the
 // shell daemon may send (peer checked by SELinux context): the shell
 // sends them while the person holds the push-to-talk key or the panel's
-// microphone button. A hold longer than the limit (30 s) is cut. The
+// microphone button (or, in "press to start and stop", between two
+// presses). A hold longer than the limit (30 s) is cut. While listening,
+// "status" says whether speech was heard and for how long it has been
+// quiet (an energy endpointer, internal/voice.Endpointer), so the shell
+// can end a "press to start and stop" utterance after a silence. The
 // recording stays in memory; the speech-to-text program reads it from a
 // private file in the runtime directory (memory, not disk) that is
 // removed right after. Nothing is kept.
@@ -136,6 +140,7 @@ type service struct {
 	pcm      *bytes.Buffer
 	capDone  chan struct{}
 	holdTmr  *time.Timer
+	ep       *voice.Endpointer // loudness of the open capture (nil when closed)
 	started  time.Time
 	tts      *tts
 	ttsModel string // the voice the warm Piper process speaks with
@@ -342,6 +347,9 @@ func (s *service) handle(ctx context.Context, req voice.Request) voice.Reply {
 		s.mu.Lock()
 		st := &voice.Status{State: s.state, STT: filepath.Base(s.cfg.sttModel), TTS: filepath.Base(s.cfg.ttsBin),
 			Voice: filepath.Base(s.cfg.ttsModel), Mic: s.capture != nil, MaxHold: int(s.cfg.maxHold / time.Second)}
+		if s.capture != nil && s.ep != nil {
+			st.Heard, st.SilenceMS = s.ep.Heard(), s.ep.SilenceMS()
+		}
 		s.mu.Unlock()
 		return voice.Reply{OK: true, Status: st}
 	}
@@ -372,14 +380,34 @@ func (s *service) listen() error {
 	}
 	buf := &bytes.Buffer{}
 	done := make(chan struct{})
+	ep := &voice.Endpointer{Rate: s.cfg.rate}
 	go func() {
-		// At most max hold seconds of audio are kept.
+		// At most max hold seconds of audio are kept. The endpointer
+		// follows the loudness of what is kept, so the shell can end
+		// "press to start and stop" after a silence.
 		lim := int64(s.cfg.rate*2) * int64(s.cfg.maxHold/time.Second+1)
-		_, _ = io.Copy(buf, io.LimitReader(out, lim))
-		_, _ = io.Copy(io.Discard, out)
+		chunk := make([]byte, 4096)
+		var kept int64
+		for {
+			n, err := out.Read(chunk)
+			if n > 0 && kept < lim {
+				m := int64(n)
+				if kept+m > lim {
+					m = lim - kept
+				}
+				buf.Write(chunk[:m])
+				kept += m
+				s.mu.Lock()
+				ep.Feed(chunk[:m])
+				s.mu.Unlock()
+			}
+			if err != nil {
+				break
+			}
+		}
 		close(done)
 	}()
-	s.capture, s.pcm, s.capDone, s.started, s.state = cmd, buf, done, time.Now(), "listening"
+	s.capture, s.pcm, s.capDone, s.started, s.state, s.ep = cmd, buf, done, time.Now(), "listening", ep
 	// The hold limit closes the microphone by itself.
 	s.holdTmr = time.AfterFunc(s.cfg.maxHold, func() {
 		s.mu.Lock()
@@ -400,7 +428,7 @@ func (s *service) closeMic() (*bytes.Buffer, time.Duration, time.Duration) {
 	if s.holdTmr != nil {
 		s.holdTmr.Stop()
 	}
-	s.capture = nil
+	s.capture, s.ep = nil, nil
 	s.mu.Unlock()
 	if cmd == nil {
 		return nil, 0, 0

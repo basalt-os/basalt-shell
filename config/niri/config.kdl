@@ -57,10 +57,13 @@ binds {
     Mod+Space { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "launcher"; }
     Mod+D { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "launcher"; }
     Mod+A { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "commandbar"; }
-    // Push to talk: niri has no key-release bindings, so Mod+V toggles
-    // (press to start listening, press again to send); the panel's
-    // microphone button is hold to talk.
-    Mod+V { spawn "basalt-shell-ui" "ipc" "call" "shell" "voice" "toggle"; }
+    // Push to talk: niri has no key-release bindings, so Mod+V is a press
+    // with no release to follow ("toggle"): press to start listening,
+    // press again to send, whatever the person's push_to_talk setting is
+    // (the same code path as sway's press). No key repeat, so a long
+    // press does not stop at once. The panel's microphone button follows
+    // the setting. Escape cancels through the voice card.
+    Mod+V repeat=false { spawn "basalt-shell-ui" "ipc" "call" "shell" "voice" "toggle"; }
     Mod+Shift+Return { spawn "basalt-shell-ui" "ipc" "call" "shell" "voice" "insert"; }
     Mod+Shift+BackSpace { spawn "basalt-shell-ui" "ipc" "call" "shell" "voice" "discard"; }
     Mod+N { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "notifications"; }

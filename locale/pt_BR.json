@@ -20,6 +20,9 @@
  "%1 needs NVIDIA's 580 legacy driver, made for Maxwell, Pascal and Volta GPUs. Basalt OS does not package it: the system assistant will guide that install step by step in a later version. Until then nouveau drives this GPU.": [
   "%1 precisa do driver legado 580 da NVIDIA, feito para GPUs Maxwell, Pascal e Volta. O Basalt OS não empacota esse driver: o assistente do sistema vai guiar essa instalação passo a passo numa versão futura. Até lá, o nouveau cuida desta GPU."
  ],
+ "%1 s": [
+  "%1 s"
+ ],
  "%d %s %d": [
   "%d de %s de %d"
  ],
@@ -153,6 +156,9 @@
  "April": [
   "abril"
  ],
+ "Audio stays on this computer and is not kept.": [
+  "O áudio fica neste computador e não é guardado."
+ ],
  "August": [
   "agosto"
  ],
@@ -167,6 +173,9 @@
  ],
  "Cancel": [
   "Cancelar"
+ ],
+ "Cancel drops the words.": [
+  "Cancelar descarta as palavras."
  ],
  "Checking that the download is intact": [
   "Conferindo se o download está íntegro"
@@ -188,6 +197,9 @@
  ],
  "Deleting is not available to the assistant. I can move or rename files, and you can undo that.": [
   "Apagar não está disponível para o assistente. Posso mover ou renomear arquivos, e você pode desfazer isso."
+ ],
+ "Dictating into %1. Press Super+V again to stop (%2 s)": [
+  "Ditando em %1. Aperte Super+V de novo para parar (%2 s)"
  ],
  "Dictating into %1. Release to stop (%2 s)": [
   "Ditando em %1. Solte para parar (%2 s)"
@@ -232,6 +244,9 @@
  "English only": [
   "só inglês"
  ],
+ "Esc cancels.": [
+  "Esc cancela."
+ ],
  "February": [
   "fevereiro"
  ],
@@ -264,6 +279,12 @@
  ],
  "Hold Super+V, or the microphone button in the panel, and speak.": [
   "Segure Super+V, ou o botão do microfone no painel, e fale."
+ ],
+ "Hold to talk": [
+  "Segurar para falar"
+ ],
+ "How Super+V and the panel's microphone button open the microphone. Escape cancels without sending.": [
+  "Como Super+V e o botão do microfone no painel abrem o microfone. Esc cancela sem enviar."
  ],
  "I accept the NVIDIA Driver License Agreement": [
   "Aceito o NVIDIA Driver License Agreement"
@@ -340,8 +361,14 @@
  "Installed: %1. NVIDIA's software comes unmodified; the open kernel modules are built and signed by Basalt OS for each kernel, so Secure Boot stays on.": [
   "Instalados: %1. O software da NVIDIA vem sem modificações; os módulos abertos do kernel são compilados e assinados pelo Basalt OS para cada kernel, então o Secure Boot continua ligado."
  ],
+ "It also stops after %1 s of silence, and at %2 s.": [
+  "Também para depois de %1 s de silêncio, e em %2 s."
+ ],
  "It runs on this computer. Ask again: summaries and requests in your own words now use it.": [
   "Ele roda neste computador. Peça de novo: resumos e pedidos com as suas palavras agora usam esse modelo."
+ ],
+ "It stops at %1 s at the latest.": [
+  "Para no máximo em %1 s."
  ],
  "It writes the summaries and understands requests in your own words. What you ask stays on this computer. The file is checked before it is used: a damaged or altered download is never installed.": [
   "Ele escreve os resumos e entende pedidos com as suas palavras. O que você pede fica neste computador. O arquivo é conferido antes de ser usado: um download danificado ou alterado nunca é instalado."
@@ -382,6 +409,9 @@
  "Listening for the assistant. Release to send (%1 s)": [
   "Ouvindo para o assistente. Solte para enviar (%1 s)"
  ],
+ "Listening, press Super+V again to stop (%1 s)": [
+  "Ouvindo, aperte Super+V de novo para parar (%1 s)"
+ ],
  "Local model (none configured: fixed phrases only)": [
   "Modelo local (nenhum configurado: só frases fixas)"
  ],
@@ -400,6 +430,9 @@
  "Microphone open only while you hold the key. Audio stays on this computer and is not kept.": [
   "O microfone só fica aberto enquanto você segura a tecla. O áudio fica neste computador e não é guardado."
  ],
+ "Mode: press to start and stop.": [
+  "Modo: apertar para começar e parar."
+ ],
  "Model downloads are turned off on this computer. Your administrator decides which models are installed.": [
   "Downloads de modelos estão desligados neste computador. O seu administrador decide quais modelos ficam instalados."
  ],
@@ -416,6 +449,9 @@
  ],
  "Needs NVIDIA's 580 legacy driver (Maxwell, Pascal, Volta)": [
   "Precisa do driver legado 580 da NVIDIA (Maxwell, Pascal, Volta)"
+ ],
+ "Never": [
+  "Nunca"
  ],
  "No NVIDIA GPU: the drivers in use are the right ones.": [
   "Nenhuma GPU NVIDIA: os drivers em uso são os certos."
@@ -471,6 +507,9 @@
  "On": [
   "Ligado"
  ],
+ "On niri, Super+V always works as press to start and stop: niri has no key-release bindings. The panel's microphone button follows this setting.": [
+  "No niri, Super+V sempre funciona como apertar para começar e parar: o niri não tem atalhos ao soltar a tecla. O botão do microfone no painel segue esta configuração."
+ ],
  "Only NVIDIA's old %1 driver supports it; nouveau drives it": [
   "Só o antigo driver %1 da NVIDIA dá suporte; o nouveau cuida dela"
  ],
@@ -500,6 +539,12 @@
  ],
  "Please say which one: %s": [
   "Diga qual: %s"
+ ],
+ "Press to start and stop": [
+  "Apertar para começar e parar"
+ ],
+ "Push to talk": [
+  "Apertar para falar"
  ],
  "Put %d file back where it was": [
   "Devolver %d arquivo para onde estava",
@@ -625,6 +670,9 @@
  ],
  "Spoken answers": [
   "Respostas faladas"
+ ],
+ "Stop by itself after a silence, once you have spoken:": [
+  "Parar sozinho depois de um silêncio, quando você já tiver falado:"
  ],
  "Stop speaking the answers (they are still shown on the screen)": [
   "Parar de falar as respostas (elas continuam aparecendo na tela)"

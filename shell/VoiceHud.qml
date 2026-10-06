@@ -14,6 +14,15 @@ import Quickshell.Wayland
 // for a few seconds, a note after an answer (an answer shown and not
 // spoken, for example). Its texts go through the UI catalog (Tr).
 //
+// "Press to start and stop" (the person's push_to_talk = toggle, and
+// always on niri, which has no key-release bindings): the card says to
+// press Super+V again to stop, shows the mode, the limit and the silence
+// that ends it, and offers Cancel. Escape cancels too: on sway the
+// compositor binds it while the microphone is open (esc_key); elsewhere
+// the card takes the keyboard while the words go to the assistant (no
+// text field to keep focused), and only Cancel is offered while dictating
+// (taking the keyboard would end the field's input method session).
+//
 // Zero setup: when no speech model for the person's language is on the
 // computer, pressing the key shows the download offer here instead
 // (what, how big, from where; Download or Not now), then the download's
@@ -27,6 +36,12 @@ PanelWindow {
     readonly property bool waiting: st === "dictation" && !!v.proposal
     // The speech model download: the offer, then the download.
     readonly property bool asking: (st === "offer" && !!v.offer) || (st === "download" && !!v.download)
+    // "Press to start and stop" while the microphone is open.
+    readonly property bool toggleListening: st === "listening" && v.push_to_talk === "toggle"
+    // Escape through the card: no compositor binding, words for the
+    // assistant, and the command bar (which has its own Escape) closed.
+    readonly property bool grabEsc: toggleListening && !v.esc_key && !dictating && !Ui.commandBar
+    readonly property bool escWorks: toggleListening && (!!v.esc_key || grabEsc)
     property bool showError: false
     property bool showNote: false
     visible: st === "listening" || st === "transcribing" || st === "thinking" || st === "speaking" || waiting || asking || showError || showNote
@@ -36,10 +51,10 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "basalt-voice"
-    WlrLayershell.keyboardFocus: hud.asking ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
-    // Clicks pass through, except on the card while a dictation waits or
-    // a download is offered or running.
-    mask: Region { item: (hud.waiting || hud.asking) ? card : null }
+    WlrLayershell.keyboardFocus: hud.grabEsc ? WlrKeyboardFocus.Exclusive : (hud.asking ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None)
+    // Clicks pass through, except on the card while a dictation waits, a
+    // download is offered or running, or Cancel is offered.
+    mask: Region { item: (hud.waiting || hud.asking || hud.toggleListening) ? card : null }
 
     onStChanged: {
         if (st === "offer" || st === "download") { showError = false; showNote = false; return; }
@@ -64,6 +79,11 @@ PanelWindow {
     function title() {
         if (showError) return v.error || Tr.t("Voice error");
         if (showNote && st === "idle") return v.note;
+        if (toggleListening) {
+            const t = (held / 1000).toFixed(1);
+            return dictating ? Tr.t("Dictating into %1. Press Super+V again to stop (%2 s)").arg(v.target || "").arg(t)
+                             : Tr.t("Listening, press Super+V again to stop (%1 s)").arg(t);
+        }
         if (st === "listening") {
             const t = (held / 1000).toFixed(1);
             return dictating ? Tr.t("Dictating into %1. Release to stop (%2 s)").arg(v.target || "").arg(t)
@@ -74,6 +94,14 @@ PanelWindow {
         if (st === "dictation") return Tr.t("Type this into %1?").arg(v.target || "");
         return Tr.t("Speaking");
     }
+
+    // Escape while the card holds the keyboard (grabEsc).
+    Item {
+        id: escCatcher
+        focus: hud.grabEsc
+        Keys.onEscapePressed: Bus.voiceCancel()
+    }
+    onGrabEscChanged: if (grabEsc) escCatcher.forceActiveFocus()
 
     Surface {
         id: card
@@ -146,12 +174,37 @@ PanelWindow {
                     text: Tr.t("“%1”").arg(hud.v.text || "")
                 }
                 Txt {
-                    visible: hud.st === "listening"
+                    visible: hud.st === "listening" && !hud.toggleListening
                     width: parent.width
                     wrapMode: Text.Wrap
                     role: "small"
                     color: Theme.textMuted
                     text: Tr.t("Microphone open only while you hold the key. Audio stays on this computer and is not kept.")
+                }
+                // Press to start and stop: the mode, how it ends, Cancel.
+                Txt {
+                    visible: hud.toggleListening
+                    width: parent.width
+                    wrapMode: Text.Wrap
+                    role: "small"
+                    color: Theme.textMuted
+                    text: Tr.t("Mode: press to start and stop.") + " " +
+                          (hud.v.auto_stop_ms > 0 ? Tr.t("It also stops after %1 s of silence, and at %2 s.").arg((hud.v.auto_stop_ms / 1000).toLocaleString(Qt.locale(), "f", hud.v.auto_stop_ms % 1000 ? 1 : 0)).arg(hud.v.max_hold_s || 30)
+                                                  : Tr.t("It stops at %1 s at the latest.").arg(hud.v.max_hold_s || 30)) + " " +
+                          (hud.escWorks ? Tr.t("Esc cancels.") : Tr.t("Cancel drops the words."))
+                }
+                Txt {
+                    visible: hud.toggleListening
+                    width: parent.width
+                    wrapMode: Text.Wrap
+                    role: "small"
+                    color: Theme.textMuted
+                    text: Tr.t("Audio stays on this computer and is not kept.")
+                }
+                Btn {
+                    visible: hud.toggleListening
+                    text: Tr.t("Cancel"); variant: "outline"; e2e: "voice-cancel"
+                    onClicked: Bus.voiceCancel()
                 }
                 Txt {
                     visible: hud.waiting

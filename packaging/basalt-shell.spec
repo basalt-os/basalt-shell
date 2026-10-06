@@ -256,6 +256,20 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Tue Oct 06 2026 Basalt OS developers - 0.6.2-1
+- Push to talk: each person chooses Hold to talk (the default, as
+  before) or Press to start and stop in Settings, Voice and assistant
+  (push_to_talk in voice-and-assistant.conf), applied at the next press.
+  In press to start and stop, Super+V or the panel button starts
+  listening, the next press sends, Escape or the card's Cancel drops the
+  words, and it also ends at the hold limit (30 s) and after a silence
+  once the person spoke (auto_stop_silence, 2 s by default, 0 never).
+  The voice card says "Listening, press Super+V again to stop" and shows
+  the mode (English and Brazilian Portuguese). niri's Super+V goes
+  through the same code path as a press with no release to follow. sway
+  gets the binding mode basalt-voice (Escape) while it listens.
+  basalt-voiced reports whether speech was heard and the silence since.
+
 * Tue Oct 06 2026 Basalt OS developers - 0.6.1-1
 - Settings, Additional drivers: with a system assistant older than
   basalt drivers (0.9.0 and before), or while the basalt-nonfree

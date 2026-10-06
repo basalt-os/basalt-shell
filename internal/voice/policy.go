@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/basalt-os/basalt-shell/internal/i18n"
 )
@@ -28,6 +29,7 @@ import (
 //	                             (names, space separated; empty: every installed one)
 //	BASALT_VOICE_MAX_MODEL_MB    the largest speech model a person may choose (0: no limit)
 //	BASALT_VOICE_MODEL_DIRS      more directories with models (colon separated)
+//	BASALT_VOICE_MAX_HOLD        seconds the microphone may stay open (default 30)
 type System struct {
 	STTModel      string // path of the default speech model
 	VADModel      string // path of the voice activity detector (Silero)
@@ -37,6 +39,8 @@ type System struct {
 	AllowedModels []string
 	MaxModelMB    int
 	ModelDirs     []string
+	// MaxHold is how long the microphone may stay open (BASALT_VOICE_MAX_HOLD).
+	MaxHold time.Duration
 }
 
 // Error codes of the voice service, so the shell can say them in the
@@ -85,6 +89,10 @@ func SystemFromEnv(get func(string) string) System {
 	}
 	s.AllowedModels = strings.Fields(get("BASALT_VOICE_ALLOWED_MODELS"))
 	s.MaxModelMB, _ = strconv.Atoi(strings.TrimSpace(get("BASALT_VOICE_MAX_MODEL_MB")))
+	s.MaxHold = 30 * time.Second
+	if n, err := strconv.Atoi(strings.TrimSpace(get("BASALT_VOICE_MAX_HOLD"))); err == nil && n > 0 {
+		s.MaxHold = time.Duration(n) * time.Second
+	}
 	seen := map[string]bool{}
 	for _, d := range append([]string{filepath.Dir(s.STTModel), filepath.Dir(s.TTSModel)}, filepath.SplitList(get("BASALT_VOICE_MODEL_DIRS"))...) {
 		if d != "" && d != "." && !seen[d] {

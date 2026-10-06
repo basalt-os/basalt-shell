@@ -8,6 +8,8 @@
 //	[speech]
 //	language = pt-BR            # auto, or a language tag; empty: the system's default
 //	model = ggml-base-q5_1      # an installed speech model; empty: the system's default
+//	push_to_talk = hold         # hold (hold the key while speaking) or toggle (press to start, press again to stop)
+//	auto_stop_silence = 2s      # toggle only: stop after this much quiet once speech was heard; 0: never
 //
 //	[answers]
 //	language = pt-BR            # empty: the speech language, then the session's language
@@ -42,7 +44,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/basalt-os/basalt-shell/internal/i18n"
 	"github.com/basalt-os/basalt-shell/internal/intent"
@@ -64,6 +68,56 @@ type Prefs struct {
 	Model       string            `json:"model"`  // local, or a remote name from the policy
 	AllowRemote bool              `json:"allow_remote"`
 	APIKeyFile  string            `json:"api_key_file,omitempty"`
+	// PushToTalk is "hold" (hold the key while speaking, the default),
+	// "toggle" (press to start listening, press again to stop) or "".
+	PushToTalk string `json:"push_to_talk"`
+	// AutoStopSilence (toggle only) ends listening after this much quiet
+	// once speech was heard: a duration such as "2s" or "1.5s", "0" for
+	// never, "" for the default (DefaultAutoStop).
+	AutoStopSilence string `json:"auto_stop_silence"`
+}
+
+// Push-to-talk modes.
+const (
+	PushHold   = "hold"
+	PushToggle = "toggle"
+)
+
+// DefaultAutoStop is the silence that ends "press to start and stop"
+// when the person did not choose one.
+const DefaultAutoStop = 2 * time.Second
+
+// MaxAutoStop is the longest silence a person may choose (the hold
+// limit ends listening anyway).
+const MaxAutoStop = 10 * time.Second
+
+// ParseSilence reads an auto_stop_silence value: "" is the default,
+// "0" (or "off", "no") is never, else seconds ("2", "1.5s") or a Go
+// duration ("1500ms"). A value under 0.5 s (other than 0) or over
+// MaxAutoStop is refused.
+func ParseSilence(v string) (time.Duration, error) {
+	v = strings.ToLower(strings.TrimSpace(v))
+	switch v {
+	case "":
+		return DefaultAutoStop, nil
+	case "0", "0s", "off", "no", "never":
+		return 0, nil
+	}
+	var d time.Duration
+	if f, err := strconv.ParseFloat(strings.TrimSuffix(v, "s"), 64); err == nil && !strings.HasSuffix(v, "ms") {
+		d = time.Duration(f * float64(time.Second))
+	} else if pd, err := time.ParseDuration(v); err == nil {
+		d = pd
+	} else {
+		return 0, fmt.Errorf("auto_stop_silence %q is not a duration (for example 2s, or 0 for never)", v)
+	}
+	if d == 0 {
+		return 0, nil
+	}
+	if d < 500*time.Millisecond || d > MaxAutoStop {
+		return 0, fmt.Errorf("auto_stop_silence must be 0 or between 0.5s and %s", MaxAutoStop)
+	}
+	return d, nil
 }
 
 // Path is the person's settings file.
@@ -91,6 +145,14 @@ func (p Prefs) Validate() error {
 	case "", "yes", "no":
 	default:
 		return fmt.Errorf("spoken must be yes or no")
+	}
+	switch p.PushToTalk {
+	case "", PushHold, PushToggle:
+	default:
+		return fmt.Errorf("push_to_talk must be hold or toggle")
+	}
+	if _, err := ParseSilence(p.AutoStopSilence); err != nil {
+		return err
 	}
 	for l, v := range p.Voices {
 		if i18n.Base(l) == "" || !reName.MatchString(v) {
@@ -149,6 +211,10 @@ func Load(path, home string) (Prefs, error) {
 			p.SpeechLang = v
 		case "speech.model":
 			p.SpeechModel = v
+		case "speech.push_to_talk":
+			p.PushToTalk = strings.ToLower(v)
+		case "speech.auto_stop_silence":
+			p.AutoStopSilence = v
 		case "answers.language":
 			p.AnswerLang = v
 		case "answers.spoken":
@@ -190,7 +256,9 @@ func Save(path string, p Prefs) error {
 	b.WriteString("# Your voice and assistant settings (Basalt shell, Settings > Voice and assistant).\n")
 	b.WriteString("# They apply to you only, whatever the language of the desktop is. Empty values\n")
 	b.WriteString("# use the system's defaults; the administrator's policy always applies.\n\n")
-	fmt.Fprintf(&b, "[speech]\n# auto, or a language tag such as pt-BR or en-US\nlanguage = %s\nmodel = %s\n\n", p.SpeechLang, p.SpeechModel)
+	fmt.Fprintf(&b, "[speech]\n# auto, or a language tag such as pt-BR or en-US\nlanguage = %s\nmodel = %s\n", p.SpeechLang, p.SpeechModel)
+	fmt.Fprintf(&b, "# hold: hold Super+V while you speak; toggle: press it to start and again to stop\npush_to_talk = %s\n", p.PushToTalk)
+	fmt.Fprintf(&b, "# toggle only: stop by itself after this much quiet (empty: 2s; 0: never)\nauto_stop_silence = %s\n\n", p.AutoStopSilence)
 	fmt.Fprintf(&b, "[answers]\n# empty: the speech language, then the session's language\nlanguage = %s\nspoken = %s\n\n", p.AnswerLang, p.Spoken)
 	b.WriteString("[voices]\n")
 	langs := make([]string, 0, len(p.Voices))
@@ -237,6 +305,10 @@ type Effective struct {
 	AnswerSource string `json:"answer_source"`   // settings, speech or session
 	Spoken       bool   `json:"spoken"`
 	Model        string `json:"model"` // local or a remote name
+	// PushToTalk is hold or toggle; AutoStopMS the silence that ends a
+	// toggle utterance (0: never).
+	PushToTalk string `json:"push_to_talk"`
+	AutoStopMS int64  `json:"auto_stop_ms"`
 }
 
 // Resolve applies the precedence: the person's value, else the system's
@@ -275,6 +347,15 @@ func Resolve(p Prefs, systemLang, sessionTag string) Effective {
 	}
 	if p.Model != "" {
 		e.Model = p.Model
+	}
+	e.PushToTalk = PushHold
+	if p.PushToTalk == PushToggle {
+		e.PushToTalk = PushToggle
+	}
+	if d, err := ParseSilence(p.AutoStopSilence); err == nil {
+		e.AutoStopMS = d.Milliseconds()
+	} else {
+		e.AutoStopMS = DefaultAutoStop.Milliseconds()
 	}
 	return e
 }

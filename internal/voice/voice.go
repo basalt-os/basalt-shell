@@ -69,6 +69,12 @@ type Status struct {
 	Voice   string `json:"voice"`
 	Mic     bool   `json:"mic"` // a capture stream is open right now
 	MaxHold int    `json:"max_hold_s"`
+	// While listening: whether speech-like sound was heard and the audio
+	// time since it stopped (Endpointer), for "press to start and stop"
+	// ending by itself after a silence. An older service sends neither,
+	// and the shell then waits for the key or the limit.
+	Heard     bool  `json:"heard,omitempty"`
+	SilenceMS int64 `json:"silence_ms,omitempty"`
 }
 
 // Reply from basalt-voiced.

@@ -575,6 +575,17 @@ func fontWord(f string) string {
 	}, f)
 }
 
+// SetVoiceKeys switches to the shell's "basalt-voice" binding mode (Escape
+// cancels, Super+V stops) while the microphone is open in "press to start
+// and stop", and back to the default mode. A sway config without that
+// mode makes it fail, and the voice card then offers its Cancel button only.
+func (a *Adapter) SetVoiceKeys(_ context.Context, on bool) error {
+	if on {
+		return a.run(`mode "basalt-voice"`)
+	}
+	return a.run("mode default")
+}
+
 // Minimize hides a window in sway's scratchpad.
 func (a *Adapter) Minimize(_ context.Context, id string) error {
 	c, err := conID(id)

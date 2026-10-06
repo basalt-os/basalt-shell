@@ -174,6 +174,53 @@ ColumnLayout {
         }
     }
 
+    // Push to talk: hold Super+V, or press it to start and again to stop
+    // (push_to_talk), and the silence that ends the second way.
+    Section { title: Tr.t("Push to talk") }
+    Txt {
+        Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.textMuted; role: "small"
+        text: Tr.t("How Super+V and the panel's microphone button open the microphone. Escape cancels without sending.")
+    }
+    Flow {
+        Layout.fillWidth: true
+        spacing: Theme.s2
+        Btn {
+            text: Tr.t("Hold to talk"); variant: "outline"; focusable: true; e2e: "voice-ptt-hold"
+            active: vs.eff !== null && vs.eff.push_to_talk !== "toggle"
+            onClicked: vs.save({ push_to_talk: "hold" })
+        }
+        Btn {
+            text: Tr.t("Press to start and stop"); variant: "outline"; focusable: true; e2e: "voice-ptt-toggle"
+            active: vs.eff !== null && vs.eff.push_to_talk === "toggle"
+            onClicked: vs.save({ push_to_talk: "toggle" })
+        }
+    }
+    Txt {
+        visible: vs.info !== null && vs.info.key_release === false
+        Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.textMuted; role: "small"
+        text: Tr.t("On niri, Super+V always works as press to start and stop: niri has no key-release bindings. The panel's microphone button follows this setting.")
+    }
+    Txt {
+        visible: vs.eff !== null && vs.eff.push_to_talk === "toggle"
+        Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.textMuted; role: "small"
+        text: Tr.t("Stop by itself after a silence, once you have spoken:")
+    }
+    Flow {
+        visible: vs.eff !== null && vs.eff.push_to_talk === "toggle"
+        Layout.fillWidth: true
+        spacing: Theme.s2
+        Repeater {
+            model: [{ v: "0", ms: 0 }, { v: "1s", ms: 1000 }, { v: "2s", ms: 2000 }, { v: "3s", ms: 3000 }, { v: "5s", ms: 5000 }]
+            delegate: Btn {
+                required property var modelData
+                text: modelData.ms === 0 ? Tr.t("Never") : Tr.t("%1 s").arg(modelData.ms / 1000); variant: "outline"; focusable: true
+                e2e: "voice-autostop-" + modelData.v
+                active: vs.eff !== null && vs.eff.auto_stop_ms === modelData.ms
+                onClicked: vs.save({ auto_stop_silence: modelData.v })
+            }
+        }
+    }
+
     // Speech model.
     Section { title: Tr.t("Speech model") }
     Txt {

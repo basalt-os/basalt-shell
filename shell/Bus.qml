@@ -80,8 +80,10 @@ Singleton {
         if (id) call("decide", { id: id, approve: approve });
     }
     function ask(text, cb) { call("ask", { text: text }, cb); }
-    // Push to talk: only this UI may open the microphone.
-    function voicePress() { call("voice.press", { commandbar: Ui.commandBar }, (ok, res) => { if (!ok) bus.voice = { state: "error", error: res, enabled: bus.voice.enabled }; }); }
+    // Push to talk: only this UI may open the microphone. The daemon
+    // decides what a press means (open, or close in "press to start and
+    // stop"); latch says no release will follow (niri's key binding).
+    function voicePress(latch) { call("voice.press", { commandbar: Ui.commandBar, latch: !!latch }, (ok, res) => { if (!ok) bus.voice = { state: "error", error: res, enabled: bus.voice.enabled }; }); }
     function voiceRelease() { call("voice.release", {}); }
     function voiceCancel() { call("voice.cancel", {}); }
     // The person's voice and assistant settings: the whole settings with

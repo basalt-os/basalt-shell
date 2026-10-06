@@ -158,6 +158,9 @@ type fakeVoice struct {
 	mu   sync.Mutex
 	ops  []string
 	text string
+	// What "status" says while listening (the endpointer).
+	heard     bool
+	silenceMS int64
 }
 
 func (f *fakeVoice) take() []string {
@@ -201,7 +204,7 @@ func startFakeVoice(t *testing.T, dir string) (*fakeVoice, *voice.Client) {
 					_ = json.Unmarshal(line, &req)
 					f.mu.Lock()
 					f.ops = append(f.ops, req.Op)
-					text := f.text
+					text, heard, silence := f.text, f.heard, f.silenceMS
 					f.mu.Unlock()
 					rep := voice.Reply{ID: req.ID, OK: true}
 					switch req.Op {
@@ -212,6 +215,8 @@ func startFakeVoice(t *testing.T, dir string) (*fakeVoice, *voice.Client) {
 						rep.Models = &m
 					case "speak":
 						rep.Spoken = &voice.Spoken{Voice: req.Voice, Sentences: 1}
+					case "status":
+						rep.Status = &voice.Status{State: "listening", Mic: true, Heard: heard, SilenceMS: silence}
 					}
 					_ = w.Encode(rep)
 				}
