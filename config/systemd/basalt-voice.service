@@ -1,3 +1,10 @@
+# Enabled for every person by preset (80-basalt-shell.preset) and started
+# with the session (basalt-session.target); when its socket is missing
+# anyway, push to talk starts it. Not socket activated: the service
+# creates its runtime directory itself, so it gets its own SELinux type
+# (basalt_voice_runtime_t) and only the shell daemon can reach it, and it
+# is light when idle (no microphone open, no model loaded: whisper.cpp
+# runs per utterance, Piper only after the first spoken answer).
 [Unit]
 Description=Basalt voice: push to talk, local speech to text and text to speech
 Documentation=file:///usr/share/doc/basalt-shell/voice.md

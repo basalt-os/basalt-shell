@@ -11,6 +11,7 @@ import (
 
 	"github.com/basalt-os/basalt-shell/internal/docs"
 	"github.com/basalt-os/basalt-shell/internal/i18n"
+	"github.com/basalt-os/basalt-shell/internal/models"
 	"github.com/basalt-os/basalt-shell/internal/skills"
 	"github.com/basalt-os/basalt-shell/internal/voice"
 )
@@ -159,6 +160,12 @@ func (c *Core) skillAsk(ctx context.Context, text string) (AskResult, bool) {
 	if !ok {
 		return AskResult{}, false
 	}
+	if a.NeedModel {
+		// The answer is shown without a summary; the model card offers
+		// the assistant's local model (nothing is downloaded before the
+		// person chooses Download).
+		c.offerLocalModel(ctx, text)
+	}
 	res := AskResult{Kind: "skill", Request: text, Backend: "skill", Skill: &a}
 	if a.Error != "" && a.NeedGrant == nil && a.Grant == nil && a.Open == "" && a.Act == nil {
 		res.Kind, res.Error = "error", a.Error
@@ -200,7 +207,10 @@ func anySlice(s []string) []any {
 
 // VoiceState is what the UI shows while the person talks.
 type VoiceState struct {
-	State   string           `json:"state"` // idle, listening, transcribing, thinking, speaking, dictation, error
+	// idle, listening, transcribing, thinking, speaking, dictation, error;
+	// offer (no speech model yet: Offer asks to download it) and download
+	// (Download is the download the person agreed to).
+	State   string           `json:"state"`
 	Text    string           `json:"text,omitempty"`
 	Error   string           `json:"error,omitempty"`
 	Since   time.Time        `json:"since"`
@@ -219,11 +229,14 @@ type VoiceState struct {
 	Answer string `json:"answer_lang,omitempty"`
 	// LangName is the speech language's own name ("" for auto).
 	LangName string `json:"lang_name,omitempty"`
+	// Offer and Download: the speech model download (zero setup).
+	Offer    *models.Offer `json:"offer,omitempty"`
+	Download *models.Job   `json:"download,omitempty"`
 }
 
 func (c *Core) setVoice(st VoiceState) {
 	st.Since = time.Now().UTC()
-	st.Enabled = c.Voice != nil && c.Voice.Available()
+	st.Enabled = c.voiceInstalled()
 	if st.Lang == "" {
 		c.prefs.mu.Lock()
 		st.Lang, st.Answer = c.prefs.eff.SpeechLang, c.prefs.eff.AnswerLang
@@ -243,7 +256,7 @@ func (c *Core) VoiceStatus() VoiceState {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	st := c.voice
-	st.Enabled = c.Voice != nil && c.Voice.Available()
+	st.Enabled = c.voiceInstalled()
 	if st.State == "" {
 		st.State = "idle"
 	}
@@ -262,14 +275,25 @@ func (c *Core) VoicePress(ctx context.Context, commandBar bool) error {
 		c.setVoice(VoiceState{State: "error", Error: err.Error()})
 		return err
 	}
+	// Zero setup: the voice service starts when its socket is missing.
+	if err := c.ensureVoice(ctx); err != nil {
+		_, _ = c.Audit.Append("fail", "daemon", "voice service did not start: "+err.Error(), nil)
+		msg := i18n.G("The voice service could not start. Try again in a moment; if it keeps failing, log out and in again.")
+		c.setVoice(VoiceState{State: "error", Error: msg})
+		return errors.New(msg)
+	}
 	// The person's speech language and model; an English-only model for
 	// another language is refused before the microphone opens.
 	eff := c.refreshPrefs()
-	model := eff.SpeechModel
-	if model == "" {
-		c.prefs.mu.Lock()
-		model = voice.ModelName(c.prefs.system.STTModel)
-		c.prefs.mu.Unlock()
+	ms := c.voiceModels(ctx)
+	c.prefs.mu.Lock()
+	sys := c.prefs.system
+	c.prefs.mu.Unlock()
+	model := speechModelFor(eff, sys, ms)
+	if !voiceReady(model, sys, ms) {
+		// Not downloaded yet: the card offers it, in the person's
+		// language, with its size; nothing is downloaded before Download.
+		return c.offerVoice(ctx, eff, model, sys)
 	}
 	if _, err := voice.WhisperLanguage(eff.SpeechLang, model); err != nil {
 		msg := voiceError(err, model)
@@ -291,6 +315,7 @@ func (c *Core) VoicePress(ctx context.Context, commandBar bool) error {
 	c.mu.Lock()
 	c.voicePress = time.Now()
 	c.voiceRoute = rt
+	c.voiceModel = model
 	c.mu.Unlock()
 	if _, err := c.Voice.Do(ctx, voice.Request{Op: "listen"}); err != nil {
 		c.setVoice(VoiceState{State: "error", Error: err.Error()})
@@ -333,16 +358,18 @@ func (c *Core) voiceTurn(release time.Time) {
 	defer cancel()
 	timing := map[string]int64{}
 	c.mu.Lock()
-	rt := c.voiceRoute
+	rt, pressModel := c.voiceRoute, c.voiceModel
 	c.mu.Unlock()
 	eff := c.refreshPrefs()
+	// The model chosen when the key went down (the person's, or the one
+	// that understands their language).
 	rep, err := c.Voice.Do(ctx, voice.Request{Op: "stop", Prompt: c.speechPrompt(rt.Mode == "dictation"), Dictation: rt.Mode == "dictation",
-		Lang: eff.SpeechLang, Model: eff.SpeechModel})
+		Lang: eff.SpeechLang, Model: pressModel})
 	_, _ = c.Audit.Append("voice", "ui", "microphone closed", nil)
 	if err != nil || rep.Transcript == nil {
 		msg := i18n.G("Speech to text failed.")
 		if err != nil {
-			model := eff.SpeechModel
+			model := pressModel
 			if model == "" {
 				model = i18n.G("the default model")
 			}

@@ -25,12 +25,17 @@ func voiceLab(t *testing.T, dir string) {
 	t.Helper()
 	models := filepath.Join(dir, "models")
 	_ = os.MkdirAll(models, 0o755)
-	for _, n := range []string{"ggml-base.en.bin", "ggml-small-q5_1.bin", "en_US-ljspeech-medium.onnx", "en_US-ljspeech-medium.onnx.json"} {
+	for _, n := range []string{"ggml-base.en.bin", "ggml-small-q5_1.bin", "ggml-silero-v5.1.2.bin", "en_US-ljspeech-medium.onnx", "en_US-ljspeech-medium.onnx.json"} {
 		_ = os.WriteFile(filepath.Join(models, n), []byte("x"), 0o644)
 	}
 	conf := filepath.Join(dir, "voice.conf")
+	// The shipped voice.conf sets no speech language (the session's is
+	// used); the tests set the session to English.
+	t.Setenv("LANG", "en_US.UTF-8")
+	t.Setenv("LC_ALL", "")
+	t.Setenv("LC_MESSAGES", "")
 	_ = os.WriteFile(conf, []byte("BASALT_VOICE_STT_MODEL="+filepath.Join(models, "ggml-base.en.bin")+"\nBASALT_VOICE_TTS_MODEL="+
-		filepath.Join(models, "en_US-ljspeech-medium.onnx")+"\n"), 0o644)
+		filepath.Join(models, "en_US-ljspeech-medium.onnx")+"\nBASALT_VOICE_VAD_MODEL="+filepath.Join(models, "ggml-silero-v5.1.2.bin")+"\n"), 0o644)
 	oldConf, oldPol := SystemVoiceConf, voiceprefs.PolicyPath
 	SystemVoiceConf, voiceprefs.PolicyPath = conf, filepath.Join(dir, "desktop-models.conf")
 	t.Cleanup(func() { SystemVoiceConf, voiceprefs.PolicyPath = oldConf, oldPol; i18n.Load("en") })
@@ -43,8 +48,9 @@ func TestVoiceSettingsPolicy(t *testing.T) {
 	c.SetLocalModel(local)
 	ctx := context.Background()
 
-	// Portuguese with the English-only default model: refused, with the reason.
-	err := c.SetVoiceSettings(ctx, voiceprefs.Prefs{SpeechLang: "pt-BR"})
+	// Portuguese with an English-only model the person chose: refused,
+	// with the reason.
+	err := c.SetVoiceSettings(ctx, voiceprefs.Prefs{SpeechLang: "pt-BR", SpeechModel: "ggml-base.en"})
 	if err == nil || !strings.Contains(err.Error(), "English only") {
 		t.Fatalf("pt-BR on ggml-base.en: %v", err)
 	}
@@ -61,6 +67,14 @@ func TestVoiceSettingsPolicy(t *testing.T) {
 	// A voice of another language for Portuguese answers.
 	if err := c.SetVoiceSettings(ctx, voiceprefs.Prefs{Voices: map[string]string{"pt": "en_US-ljspeech-medium"}}); err == nil {
 		t.Error("an English voice accepted for Portuguese")
+	}
+	// Portuguese without a model of the person's: saved; push to talk uses
+	// an installed multilingual model (or offers to download one).
+	if err := c.SetVoiceSettings(ctx, voiceprefs.Prefs{SpeechLang: "pt-BR"}); err != nil {
+		t.Fatalf("pt-BR without a chosen model: %v", err)
+	}
+	if st := c.VoiceSettings(ctx); st["speech_model_in_use"] != "ggml-small-q5_1" || st["speech_model_ready"] != true {
+		t.Errorf("model in use for pt-BR: %v %v", st["speech_model_in_use"], st["speech_model_ready"])
 	}
 	// The owner's case: an English desktop, voice and answers in pt-BR.
 	if err := c.SetVoiceSettings(ctx, voiceprefs.Prefs{SpeechLang: "pt-BR", SpeechModel: "ggml-small-q5_1"}); err != nil {
@@ -106,11 +120,12 @@ func TestVoiceSettingsPolicy(t *testing.T) {
 func TestVoicePressRefusesEnglishOnlyModel(t *testing.T) {
 	c, _, dir := newCore(t)
 	voiceLab(t, dir)
-	c.Voice = &voice.Client{Path: filepath.Join(dir, "none.sock")}
+	_, cl := startFakeVoice(t, dir)
+	c.Voice = cl
 	c.ScreenLocked = func() bool { return false }
 	_ = os.MkdirAll(filepath.Dir(c.prefsPath()), 0o700)
-	// Written by hand: Portuguese with the English-only default model.
-	_ = os.WriteFile(c.prefsPath(), []byte("[speech]\nlanguage = pt-BR\n"), 0o644)
+	// Written by hand: Portuguese with an English-only model.
+	_ = os.WriteFile(c.prefsPath(), []byte("[speech]\nlanguage = pt-BR\nmodel = ggml-base.en\n"), 0o644)
 	err := c.VoicePress(context.Background(), false)
 	if err == nil || !strings.Contains(err.Error(), "ggml-base.en") {
 		t.Fatalf("press: %v", err)

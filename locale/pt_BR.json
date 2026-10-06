@@ -2,6 +2,15 @@
  " (%s)": [
   " (%s)"
  ],
+ "%1 (%2), on this computer": [
+  "%1 (%2), neste computador"
+ ],
+ "%1 GB": [
+  "%1 GB"
+ ],
+ "%1 MB": [
+  "%1 MB"
+ ],
  "%1 MB, English only": [
   "%1 MB, só inglês"
  ],
@@ -126,6 +135,12 @@
  "Allow the assistant to read pages of %s for %s, in a separate browser profile? It never submits forms.": [
   "Permitir que o assistente leia páginas de %s por %s, num perfil de navegador separado? Ele nunca envia formulários."
  ],
+ "An administrator must approve model downloads on this computer.": [
+  "Um administrador precisa aprovar downloads de modelos neste computador."
+ ],
+ "An administrator's password is needed for downloads on this computer.": [
+  "Downloads neste computador precisam da senha de um administrador."
+ ],
  "Answer language": [
   "Idioma das respostas"
  ],
@@ -146,6 +161,12 @@
  ],
  "Cancel": [
   "Cancelar"
+ ],
+ "Checking that the download is intact": [
+  "Conferindo se o download está íntegro"
+ ],
+ "Close": [
+  "Fechar"
  ],
  "Confirm and apply": [
   "Confirmar e aplicar"
@@ -174,6 +195,21 @@
  "Done. Restart the computer to finish: the first start checks the driver.": [
   "Pronto. Reinicie o computador para concluir: a primeira inicialização verifica o driver."
  ],
+ "Download": [
+  "Baixar"
+ ],
+ "Download the assistant's local model (%1 GB) from %2? It runs on this computer.": [
+  "Baixar o modelo local do assistente (%1 GB) de %2? Ele roda neste computador."
+ ],
+ "Download the local model": [
+  "Baixar o modelo local"
+ ],
+ "Downloading the assistant's local model: %1 of %2 MB": [
+  "Baixando o modelo local do assistente: %1 de %2 MB"
+ ],
+ "Downloading the speech model: %1 of %2 MB": [
+  "Baixando o modelo de fala: %1 de %2 MB"
+ ],
  "Driver in use: %1": [
   "Driver em uso: %1"
  ],
@@ -183,6 +219,9 @@
  "Ended %d permission. The assistant can no longer read your files, mail or sites until you allow it again.": [
   "Encerrei %d permissão. O assistente não pode mais ler seus arquivos, e-mails ou sites até você permitir de novo.",
   "Encerrei %d permissões. O assistente não pode mais ler seus arquivos, e-mails ou sites até você permitir de novo."
+ ],
+ "English only": [
+  "só inglês"
  ],
  "February": [
   "fevereiro"
@@ -213,6 +252,9 @@
  ],
  "Hide the license": [
   "Esconder a licença"
+ ],
+ "Hold Super+V, or the microphone button in the panel, and speak.": [
+  "Segure Super+V, ou o botão do microfone no painel, e fale."
  ],
  "I accept the NVIDIA Driver License Agreement": [
   "Aceito o NVIDIA Driver License Agreement"
@@ -289,6 +331,12 @@
  "Installed: %1. NVIDIA's software comes unmodified; the open kernel modules are built and signed by Basalt OS for each kernel, so Secure Boot stays on.": [
   "Instalados: %1. O software da NVIDIA vem sem modificações; os módulos abertos do kernel são compilados e assinados pelo Basalt OS para cada kernel, então o Secure Boot continua ligado."
  ],
+ "It runs on this computer. Ask again: summaries and requests in your own words now use it.": [
+  "Ele roda neste computador. Peça de novo: resumos e pedidos com as suas palavras agora usam esse modelo."
+ ],
+ "It writes the summaries and understands requests in your own words. What you ask stays on this computer. The file is checked before it is used: a damaged or altered download is never installed.": [
+  "Ele escreve os resumos e entende pedidos com as suas palavras. O que você pede fica neste computador. O arquivo é conferido antes de ser usado: um download danificado ou alterado nunca é instalado."
+ ],
  "January": [
   "janeiro"
  ],
@@ -343,6 +391,9 @@
  "Microphone open only while you hold the key. Audio stays on this computer and is not kept.": [
   "O microfone só fica aberto enquanto você segura a tecla. O áudio fica neste computador e não é guardado."
  ],
+ "Model downloads are turned off on this computer. Your administrator decides which models are installed.": [
+  "Downloads de modelos estão desligados neste computador. O seu administrador decide quais modelos ficam instalados."
+ ],
  "Move %d file to %s": [
   "Mover %d arquivo para %s",
   "Mover %d arquivos para %s"
@@ -366,6 +417,9 @@
  "No driver in use": [
   "Nenhum driver em uso"
  ],
+ "No internet connection. The download starts again by itself when the computer is back online.": [
+  "Sem conexão com a internet. O download recomeça sozinho quando o computador voltar a ficar online."
+ ],
  "No mail account is set up for the assistant (skills.conf).": [
   "Nenhuma conta de e-mail está configurada para o assistente (skills.conf)."
  ],
@@ -375,8 +429,11 @@
  "No messages match in %s mail%s.": [
   "Nenhuma mensagem corresponde no e-mail %s%s."
  ],
- "No speech model is installed. An administrator installs them with basalt-voice-fetch.": [
-  "Nenhum modelo de fala está instalado. Um administrador os instala com basalt-voice-fetch."
+ "No speech model for %s is installed, and this computer cannot download one. Ask your administrator.": [
+  "Nenhum modelo de fala para %s está instalado, e este computador não consegue baixar um. Fale com o seu administrador."
+ ],
+ "No speech model is on this computer yet. Download one below, or hold Super+V: the voice card offers the one for your language.": [
+  "Ainda não há modelo de fala neste computador. Baixe um abaixo, ou segure Super+V: o cartão de voz oferece o do seu idioma."
  ],
  "No voice for %1 is installed: answers in it are shown, not spoken.": [
   "Nenhuma voz para %1 está instalada: as respostas nesse idioma aparecem na tela, sem fala."
@@ -386,6 +443,9 @@
  ],
  "Not in the list of this NVIDIA driver version": [
   "Fora da lista desta versão do driver NVIDIA"
+ ],
+ "Not now": [
+  "Agora não"
  ],
  "Not sent: %s": [
   "Não enviado: %s"
@@ -470,6 +530,12 @@
  "Remote: %1": [
   "Remoto: %1"
  ],
+ "Remove": [
+  "Remover"
+ ],
+ "Removed %1.": [
+  "%1 removido."
+ ],
  "Rename %s to %s": [
   "Renomear %s para %s"
  ],
@@ -481,6 +547,9 @@
  ],
  "Restart now": [
   "Reiniciar agora"
+ ],
+ "Retry now": [
+  "Tentar agora"
  ],
  "Roll back to the snapshot": [
   "Voltar ao snapshot"
@@ -524,6 +593,9 @@
  "Speaking": [
   "Falando"
  ],
+ "Speech is turned into text on this computer; your voice never leaves it. The file is checked before it is used: a damaged or altered download is never installed.": [
+  "A fala vira texto neste computador; a sua voz nunca sai dele. O arquivo é conferido antes de ser usado: um download danificado ou alterado nunca é instalado."
+ ],
  "Speech language": [
   "Idioma de fala"
  ],
@@ -535,6 +607,9 @@
  ],
  "Speech model": [
   "Modelo de fala"
+ ],
+ "Speech models you can download": [
+  "Modelos de fala que você pode baixar"
  ],
  "Speech to text failed.": [
   "A transcrição da fala falhou."
@@ -575,11 +650,44 @@
  "The NVIDIA driver is proprietary software. You may use it with NVIDIA GPUs; it may not be modified, and it comes with this license, in English. Read it before you accept.": [
   "O driver NVIDIA é software proprietário. Você pode usá-lo com GPUs NVIDIA; ele não pode ser modificado e vem com esta licença, em inglês. Leia antes de aceitar."
  ],
+ "The administrator turned model downloads off on this computer.": [
+  "O administrador desligou os downloads de modelos neste computador."
+ ],
  "The assistant answers in %1.": [
   "O assistente responde em %1."
  ],
+ "The assistant's local model (%1 GB) is not on this computer, and model downloads are turned off: ask your administrator.": [
+  "O modelo local do assistente (%1 GB) não está neste computador, e os downloads de modelos estão desligados: fale com o seu administrador."
+ ],
+ "The assistant's local model is ready": [
+  "O modelo local do assistente está pronto"
+ ],
+ "The assistant's local model is ready.": [
+  "O modelo local do assistente está pronto."
+ ],
  "The basalt-nonfree repository is turned on. Its packages are signed with the OpenBasalt release key, like the other Basalt repositories.": [
   "O repositório basalt-nonfree é ligado. Os pacotes dele são assinados com a chave de release do OpenBasalt, como os outros repositórios do Basalt."
+ ],
+ "The download failed. Try again later.": [
+  "O download falhou. Tente de novo mais tarde."
+ ],
+ "The download is starting": [
+  "O download está começando"
+ ],
+ "The download started. It goes on in the background.": [
+  "O download começou. Ele continua em segundo plano."
+ ],
+ "The download tools are not installed on this computer.": [
+  "As ferramentas de download não estão instaladas neste computador."
+ ],
+ "The download was cancelled.": [
+  "O download foi cancelado."
+ ],
+ "The download was not approved.": [
+  "O download não foi aprovado."
+ ],
+ "The downloaded file arrived damaged or altered, so it was deleted. Nothing was installed.": [
+  "O arquivo baixado chegou danificado ou alterado e foi apagado. Nada foi instalado."
  ],
  "The focused field is for a password or code: it gets no dictation.": [
   "O campo em foco é de senha ou código: não recebe ditado."
@@ -593,6 +701,9 @@
  "The language you speak to the assistant. Automatic detection needs a multilingual model and is slower and less reliable on short requests.": [
   "O idioma em que você fala com o assistente. A detecção automática precisa de um modelo multilíngue e é mais lenta e menos confiável em pedidos curtos."
  ],
+ "The local model that fits this computer is %1 (%2). It runs on this computer: what you ask stays here.": [
+  "O modelo local que cabe neste computador é o %1 (%2). Ele roda neste computador: o que você pede fica aqui."
+ ],
  "The mail password file is missing or not private (0600).": [
   "O arquivo de senha do e-mail não existe ou não é privado (0600)."
  ],
@@ -604,6 +715,9 @@
  ],
  "The model %s is not one your administrator offers.": [
   "O modelo %s não é um dos oferecidos pelo administrador."
+ ],
+ "The model folder cannot be written. Ask your administrator.": [
+  "Não é possível gravar na pasta dos modelos. Fale com o seu administrador."
  ],
  "The model in use understands English only. Choose a multilingual model for %1.": [
   "O modelo em uso só entende inglês. Escolha um modelo multilíngue para %1."
@@ -635,6 +749,9 @@
  "The speech model %s understands English only. Choose a multilingual model or English as your speech language in Settings, Voice and assistant.": [
   "O modelo de fala %s só entende inglês. Escolha um modelo multilíngue, ou inglês como idioma de fala, em Configurações, Voz e assistente."
  ],
+ "The speech model for %s cannot be downloaded here.": [
+  "O modelo de fala para %s não pode ser baixado aqui."
+ ],
  "The suggested text was not used (%s); the draft has your own words.": [
   "O texto sugerido não foi usado (%s); o rascunho tem as suas próprias palavras."
  ],
@@ -652,6 +769,9 @@
  ],
  "The voice %s is not installed.": [
   "A voz %s não está instalada."
+ ],
+ "The voice service could not start. Try again in a moment; if it keeps failing, log out and in again.": [
+  "O serviço de voz não conseguiu iniciar. Tente de novo em um instante; se continuar falhando, saia da sessão e entre de novo."
  ],
  "The voice service is not running.": [
   "O serviço de voz não está rodando."
@@ -680,6 +800,9 @@
  ],
  "This NVIDIA GPU is supported only by an old NVIDIA driver that no longer gets updates. nouveau drives it.": [
   "Esta GPU NVIDIA só tem suporte de um driver NVIDIA antigo que não recebe mais atualizações. O nouveau cuida dela."
+ ],
+ "This download offer is no longer open.": [
+  "Esta oferta de download não está mais aberta."
  ],
  "This page contains %s. I ignored it and did nothing it asked.": [
   "Esta página contém %s. Ignorei e não fiz nada do que ela pede."
@@ -720,8 +843,14 @@
  "To try the NVIDIA driver again instead, run sudo basalt-nvidia retry in a terminal and restart.": [
   "Para tentar o driver NVIDIA de novo, rode sudo basalt-nvidia retry num terminal e reinicie."
  ],
+ "Try again": [
+  "Tentar de novo"
+ ],
  "Turning speech into text, on this computer": [
   "Transformando a fala em texto, neste computador"
+ ],
+ "Turning the assistant's local model on": [
+  "Ligando o modelo local do assistente"
  ],
  "Turns your speech into text, on this computer. Larger models understand better and take longer. English-only models do not understand other languages.": [
   "Transforma sua fala em texto, neste computador. Modelos maiores entendem melhor e demoram mais. Modelos só de inglês não entendem outros idiomas."
@@ -742,8 +871,26 @@
  "Voice error": [
   "Erro de voz"
  ],
+ "Voice is ready": [
+  "A voz está pronta"
+ ],
+ "Voice is ready. Hold Super+V and speak.": [
+  "A voz está pronta. Segure Super+V e fale."
+ ],
+ "Voice needs %1, which is not downloaded yet.": [
+  "A voz precisa de %1, que ainda não foi baixado."
+ ],
+ "Voice needs the speech model for %1 (%2 MB). Model downloads are turned off on this computer: ask your administrator.": [
+  "A voz precisa do modelo de fala para %1 (%2 MB). Downloads de modelos estão desligados neste computador: fale com o seu administrador."
+ ],
+ "Voice needs to download the speech model for %1 (%2 MB) from %3. Download now?": [
+  "A voz precisa baixar o modelo de fala para %1 (%2 MB) de %3. Baixar agora?"
+ ],
  "Waiting for authentication. Installing can take a few minutes.": [
   "Aguardando a autenticação. A instalação pode levar alguns minutos."
+ ],
+ "Waiting for the approval to download": [
+  "Aguardando a aprovação para baixar"
  ],
  "What changes": [
   "O que muda"
@@ -759,6 +906,9 @@
  ],
  "Working on it": [
   "Trabalhando nisso"
+ ],
+ "You can keep working. This card says when it is ready.": [
+  "Você pode continuar trabalhando. Este cartão avisa quando estiver pronto."
  ],
  "Your administrator does not allow remote models on this computer.": [
   "O administrador não permite modelos remotos neste computador."
@@ -781,8 +931,14 @@
  "Your voice settings have a mistake (%s); the defaults are used.": [
   "Suas configurações de voz têm um erro (%s); os valores padrão estão em uso."
  ],
+ "automatic language detection": [
+  "detecção automática do idioma"
+ ],
  "deceptive links": [
   "links enganosos"
+ ],
+ "downloading": [
+  "baixando"
  ],
  "hidden text": [
   "texto oculto"
@@ -808,8 +964,17 @@
  "look-alike letters": [
   "letras parecidas de outros alfabetos"
  ],
+ "multilingual": [
+  "multilíngue"
+ ],
+ "not downloaded": [
+  "não baixado"
+ ],
  "nouveau, the open driver in use now, is turned off from the next start.": [
   "O nouveau, o driver aberto em uso agora, é desligado a partir da próxima inicialização."
+ ],
+ "on this computer": [
+  "neste computador"
  ],
  "shows the boot screen": [
   "mostra a tela de inicialização"

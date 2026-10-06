@@ -22,13 +22,15 @@ import (
 // checks them against this policy on every request, so a person can never
 // widen it.
 //
-//	BASALT_VOICE_LANGUAGE        default speech language: auto or a tag (default en)
+//	BASALT_VOICE_LANGUAGE        default speech language: auto or a tag; empty (the
+//	                             default): each person's session language
 //	BASALT_VOICE_ALLOWED_MODELS  speech models and voices a person may choose
 //	                             (names, space separated; empty: every installed one)
 //	BASALT_VOICE_MAX_MODEL_MB    the largest speech model a person may choose (0: no limit)
 //	BASALT_VOICE_MODEL_DIRS      more directories with models (colon separated)
 type System struct {
 	STTModel      string // path of the default speech model
+	VADModel      string // path of the voice activity detector (Silero)
 	TTSModel      string // path of the default voice
 	TTSBin        string
 	Language      string
@@ -75,9 +77,11 @@ func SystemFromEnv(get func(string) string) System {
 	}
 	s := System{
 		STTModel: def("BASALT_VOICE_STT_MODEL", "/var/lib/basalt-voice/models/ggml-base.en.bin"),
+		VADModel: def("BASALT_VOICE_VAD_MODEL", "/var/lib/basalt-voice/models/ggml-silero-v5.1.2.bin"),
 		TTSModel: def("BASALT_VOICE_TTS_MODEL", "/var/lib/basalt-voice/models/en_US-ljspeech-medium.onnx"),
 		TTSBin:   def("BASALT_VOICE_TTS_BIN", "/usr/libexec/basalt-voice/piper/piper"),
-		Language: def("BASALT_VOICE_LANGUAGE", "en"),
+		// Empty: the speech language follows each person's session.
+		Language: strings.TrimSpace(get("BASALT_VOICE_LANGUAGE")),
 	}
 	s.AllowedModels = strings.Fields(get("BASALT_VOICE_ALLOWED_MODELS"))
 	s.MaxModelMB, _ = strconv.Atoi(strings.TrimSpace(get("BASALT_VOICE_MAX_MODEL_MB")))

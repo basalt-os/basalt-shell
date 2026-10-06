@@ -19,6 +19,7 @@ import (
 	"github.com/basalt-os/basalt-shell/internal/assistant"
 	"github.com/basalt-os/basalt-shell/internal/audit"
 	"github.com/basalt-os/basalt-shell/internal/i18n"
+	"github.com/basalt-os/basalt-shell/internal/models"
 	"github.com/basalt-os/basalt-shell/internal/voiceprefs"
 )
 
@@ -302,6 +303,7 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 			// texts); the voice and the answers have the person's own
 			// language settings.
 			"ui_lang": i18n.SessionTag(), "ui_catalog": uiCatalog(),
+			"models": modelsOf(c),
 		}, nil
 	case "desktop":
 		return c.Refresh(ctx), nil
@@ -668,6 +670,15 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 	case "voice.status":
 		st := c.VoiceStatus()
 		return map[string]any{"voice": st, "dictation": c.DictationState()}, nil
+	case "models", "models.list", "models.download", "models.dismiss", "models.retry", "models.cancel", "models.remove":
+		// The consented model downloads (zero setup): only the person, in
+		// the shell UI, agrees to a download or removes a model; an agent
+		// can neither start one nor see the offers.
+		if err := ss.requireUI(); err != nil {
+			_, _ = c.Audit.Append("refuse", ss.actor(), req.Op+" refused: not the shell UI", map[string]any{"pid": ss.pid})
+			return nil, err
+		}
+		return c.modelsOp(ctx, req.Op, req.Args)
 	case "grants":
 		if c.Skills == nil {
 			return []any{}, nil
@@ -716,4 +727,63 @@ func grantsOf(c *Core) any {
 		return []any{}
 	}
 	return c.Skills.Store.Active("")
+}
+
+func modelsOf(c *Core) any {
+	if c.Models == nil {
+		return nil
+	}
+	return c.Models.Snapshot()
+}
+
+// modelsOp serves the UI's model download requests (shell UI only).
+func (c *Core) modelsOp(ctx context.Context, op string, raw json.RawMessage) (any, error) {
+	if c.Models == nil {
+		return nil, errors.New("model downloads are not available")
+	}
+	var a struct {
+		ID     string `json:"id"`
+		Kind   string `json:"kind"`
+		Target string `json:"target"`
+	}
+	if err := decode(raw, &a); err != nil {
+		return nil, err
+	}
+	switch op {
+	case "models":
+		return c.Models.Snapshot(), nil
+	case "models.list":
+		return c.ModelsList(ctx), nil
+	case "models.download":
+		// An offer the person accepted (the voice card, the model card),
+		// or a model chosen in Settings.
+		if a.ID != "" {
+			return c.AcceptOffer(a.ID)
+		}
+		return c.StartDownload(ctx, a.Kind, a.Target)
+	case "models.dismiss":
+		c.DismissOffer(a.ID)
+		return nil, nil
+	case "models.retry":
+		return c.Models.Retry(a.ID)
+	case "models.cancel":
+		c.CloseDownload(a.ID)
+		return nil, nil
+	case "models.remove":
+		err := c.Models.Remove(ctx, a.Kind, a.Target)
+		data := map[string]any{"kind": a.Kind, "what": a.Target}
+		if err != nil {
+			data["error"] = err.Error()
+			_, _ = c.Audit.Append("refuse", "ui", "model not removed: "+a.Kind+" "+a.Target, data)
+			return nil, err
+		}
+		_, _ = c.Audit.Append("apply", "ui", "model removed: "+a.Kind+" "+a.Target, data)
+		c.Ledger.Append("model.remove.consent", "allowed", "", data)
+		if a.Kind == "llm" && !models.HasLLMModel() {
+			c.reloadLocalModel()
+		}
+		c.Broadcast("voice-settings", c.VoiceSettings(ctx))
+		return c.ModelsList(ctx), nil
+	}
+	return nil, fmt.Errorf("unknown op %q", op)
 }

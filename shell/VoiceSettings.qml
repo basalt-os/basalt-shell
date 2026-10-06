@@ -10,6 +10,11 @@ import QtQuick.Layouts
 // a refused change keeps the old value and says why. Everything here is
 // plain buttons in wrapping rows: usable with the keyboard (Tab, Return,
 // Space) and at narrow widths.
+//
+// Models are downloaded and removed here with one click (models.list,
+// models.download, models.remove; the download is the system's, after
+// polkit, from pinned URLs checked by SHA-256), and the downloads in
+// progress show at the top.
 ColumnLayout {
     id: vs
     spacing: Theme.s4
@@ -20,6 +25,41 @@ ColumnLayout {
     readonly property var models: info ? info.models : null
     property string status: ""
     property bool statusError: false
+    // The models of the manifests and what is downloaded (models.list).
+    property var mlist: null
+    readonly property var catalog: mlist && mlist.catalog ? mlist.catalog : ({ voice: [], llm: [] })
+    readonly property string ask: Bus.models ? (Bus.models.ask || "") : "person"
+    readonly property bool canDownload: mlist !== null && mlist.available && ask !== ""
+    readonly property var speechCatalog: (catalog.voice || []).filter(f => f.name.indexOf("ggml-") === 0 && f.name.indexOf("silero") < 0)
+    readonly property var llmInstalled: (catalog.llm || []).filter(f => f.present)
+    // Downloads in progress, waiting for the network, or failed.
+    readonly property var activeJobs: ((Bus.models && Bus.models.jobs) || []).filter(j => j.state !== "done" && j.state !== "cancelled")
+    // Reload the list when a download ends (not at every progress step).
+    readonly property string jobsKey: ((Bus.models && Bus.models.jobs) || []).map(j => j.id + ":" + j.state).join(",")
+    onJobsKeyChanged: if (visible) reloadModels.restart()
+    Timer { id: reloadModels; interval: 300; onTriggered: vs.loadModels() }
+
+    function loadModels() {
+        Bus.call("models.list", {}, (ok, res) => { if (ok) vs.mlist = res; });
+    }
+    function jobOf(kind, name) {
+        return ((Bus.models && Bus.models.jobs) || []).find(j => j.kind === kind && j.target === name && j.state !== "done" && j.state !== "cancelled") || null;
+    }
+    function download(kind, name) {
+        Bus.modelsStart(kind, name, (ok, res) => {
+            if (ok) { vs.status = Tr.t("The download started. It goes on in the background."); vs.statusError = false; }
+            else { vs.status = res; vs.statusError = true; }
+        });
+    }
+    function remove(kind, name) {
+        Bus.modelsRemove(kind, name, (ok, res) => {
+            if (ok) { vs.mlist = res; vs.status = Tr.t("Removed %1.").arg(name); vs.statusError = false; vs.load(); }
+            else { vs.status = res; vs.statusError = true; }
+        });
+    }
+    function sizeText(bytes) {
+        return bytes >= 1000000000 ? Tr.t("%1 GB").arg((Math.round(bytes / 100000000) / 10).toFixed(1)) : Tr.t("%1 MB").arg(Math.max(1, Math.round(bytes / 1000000)));
+    }
 
     function load() {
         Bus.call("voice.settings", {}, (ok, res) => {
@@ -63,7 +103,7 @@ ColumnLayout {
     readonly property var speechModelInfo: models ? (models.stt || []).find(m => m.name === vs.speechModel) : null
     readonly property var answerVoices: models && eff ? (models.voices || []).filter(v => vs.base(v.lang) === vs.base(eff.answer_language)) : []
 
-    onVisibleChanged: if (visible) load()
+    onVisibleChanged: if (visible) { load(); loadModels(); }
     Connections {
         target: Bus
         function onVoiceSettings(data) { vs.info = data; }
@@ -83,6 +123,25 @@ ColumnLayout {
         text: vs.status
         color: vs.statusError ? Theme.danger : Theme.success
         Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone
+    }
+    // Downloads in progress (from here, the voice card or a skill).
+    Repeater {
+        model: vs.activeJobs
+        delegate: DownloadView {
+            required property var modelData
+            Layout.fillWidth: true
+            job: modelData
+        }
+    }
+    Txt {
+        visible: vs.mlist !== null && vs.mlist.available && vs.ask === ""
+        Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.textMuted; role: "small"
+        text: Tr.t("Model downloads are turned off on this computer. Your administrator decides which models are installed.")
+    }
+    Txt {
+        visible: vs.mlist !== null && vs.mlist.available && vs.ask === "admin"
+        Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.textMuted; role: "small"
+        text: Tr.t("An administrator's password is needed for downloads on this computer.")
     }
 
     // Speech language.
@@ -153,7 +212,44 @@ ColumnLayout {
     Txt {
         visible: vs.models !== null && (vs.models.stt || []).length === 0
         Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.textMuted
-        text: Tr.t("No speech model is installed. An administrator installs them with basalt-voice-fetch.")
+        text: Tr.t("No speech model is on this computer yet. Download one below, or hold Super+V: the voice card offers the one for your language.")
+    }
+    Txt {
+        visible: vs.info !== null && vs.info.speech_model_in_use !== undefined && !vs.info.speech_model_ready
+        Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.warning
+        text: vs.info ? Tr.t("Voice needs %1, which is not downloaded yet.").arg(vs.info.speech_model_in_use) : ""
+    }
+    // Every speech model of the manifest: download or remove with one click.
+    Txt {
+        visible: vs.speechCatalog.length > 0
+        text: Tr.t("Speech models you can download")
+        font.weight: Font.DemiBold
+        topPadding: Theme.s2
+    }
+    Repeater {
+        model: vs.speechCatalog
+        delegate: RowLayout {
+            required property var modelData
+            readonly property var job: vs.jobOf("voice", modelData.name)
+            Layout.fillWidth: true
+            spacing: Theme.s3
+            Txt {
+                Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; role: "small"
+                text: modelData.name + "  " + vs.sizeText(modelData.size) + ", " +
+                      (modelData.name.indexOf(".en") >= 0 ? Tr.t("English only") : Tr.t("multilingual")) + ", " +
+                      (parent.job ? Tr.t("downloading") : (modelData.present ? Tr.t("on this computer") : Tr.t("not downloaded")))
+            }
+            Btn {
+                visible: vs.canDownload && !modelData.present && !parent.job
+                text: Tr.t("Download"); icon: "download"; variant: "outline"; focusable: true; e2e: "voice-download-" + modelData.name
+                onClicked: vs.download("voice", modelData.name)
+            }
+            Btn {
+                visible: vs.canDownload && modelData.present && !parent.job
+                text: Tr.t("Remove"); variant: "outline"; focusable: true; e2e: "voice-remove-" + modelData.name
+                onClicked: vs.remove("voice", modelData.name)
+            }
+        }
     }
 
     // Answer language.
@@ -234,6 +330,35 @@ ColumnLayout {
             opacity: usable ? 1 : 0.5
             active: vs.eff !== null && vs.eff.model === modelData.name
             onClicked: if (usable) vs.save({ model: modelData.name })
+        }
+    }
+    // The assistant's local model: one click to download the one that
+    // fits this computer, or to remove a downloaded one.
+    Txt {
+        visible: vs.mlist !== null && vs.mlist.llm && !!vs.catalog.recommended && !vs.catalog.recommended.present && vs.llmInstalled.length === 0
+        Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.textMuted; role: "small"
+        text: vs.catalog.recommended ? Tr.t("The local model that fits this computer is %1 (%2). It runs on this computer: what you ask stays here.").arg(vs.catalog.recommended.name).arg(vs.sizeText(vs.catalog.recommended.size)) : ""
+    }
+    Btn {
+        visible: vs.canDownload && vs.mlist.llm && !!vs.catalog.recommended && !vs.catalog.recommended.present && vs.llmInstalled.length === 0 && !vs.jobOf("llm", "recommended")
+        text: Tr.t("Download the local model"); icon: "download"; variant: "outline"; focusable: true; e2e: "llm-download"
+        onClicked: vs.download("llm", "recommended")
+    }
+    Repeater {
+        model: vs.llmInstalled
+        delegate: RowLayout {
+            required property var modelData
+            Layout.fillWidth: true
+            spacing: Theme.s3
+            Txt {
+                Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; role: "small"
+                text: Tr.t("%1 (%2), on this computer").arg(modelData.name).arg(vs.sizeText(modelData.size))
+            }
+            Btn {
+                visible: vs.canDownload
+                text: Tr.t("Remove"); variant: "outline"; focusable: true; e2e: "llm-remove-" + modelData.name
+                onClicked: vs.remove("llm", modelData.name)
+            }
         }
     }
     Txt {

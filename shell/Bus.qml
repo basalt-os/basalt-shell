@@ -29,6 +29,9 @@ Singleton {
     property var lastAgentActivity: null
     property var voice: ({ state: "idle", enabled: false })   // push to talk state
     property var grants: []           // scopes the person gave the read-only skills
+    // Model downloads (zero setup): offers waiting for Download or Not
+    // now, and the downloads the person agreed to.
+    property var models: ({ offers: [], jobs: [], ask: "person" })
     property bool skillsAvailable: false
     // The UI's language is the session's (uiCatalog translates it, see
     // Tr.qml); the voice and the answers follow the person's own
@@ -91,6 +94,14 @@ Singleton {
         call("voice.settings.set", p, cb);
     }
     function revokeGrant(id) { call("grant.revoke", { id: id || "" }); }
+    // Model downloads: only this UI agrees to one (models.download) or
+    // removes a model; the daemon refuses them from anyone else.
+    function modelsDownload(id, cb) { call("models.download", { id: id }, cb); }
+    function modelsStart(kind, target, cb) { call("models.download", { kind: kind, target: target }, cb); }
+    function modelsDismiss(id) { call("models.dismiss", { id: id }); }
+    function modelsRetry(id) { call("models.retry", { id: id }); }
+    function modelsCancel(id) { call("models.cancel", { id: id }); }
+    function modelsRemove(kind, name, cb) { call("models.remove", { kind: kind, target: name }, cb); }
     function setTokens(obj) { act("theme.set_tokens", { tokens: obj }); }
     function setToken(key, value) { const t = {}; t[key] = value; setTokens(t); }
     // Whether the person overrides a token (colors: in the current mode).
@@ -140,6 +151,8 @@ Singleton {
             case "voice-result": bus.voiceResult(m.data); break;
             case "grants": bus.grants = m.data || []; break;
             case "voice-settings": bus.voiceSettings(m.data); break;
+            case "models": bus.models = m.data || ({ offers: [], jobs: [], ask: "person" }); break;
+            case "translator": bus.translatorAvailable = !!(m.data && m.data.available); break;
             }
             return;
         }
@@ -174,6 +187,7 @@ Singleton {
             bus.agentIO = s.agent_io || ({});
             bus.voice = s.voice || ({ state: "idle", enabled: false });
             bus.grants = s.grants || [];
+            bus.models = s.models || ({ offers: [], jobs: [], ask: "person" });
             bus.skillsAvailable = !!s.skills;
             bus.uiLang = s.ui_lang || "en";
             bus.uiCatalog = s.ui_catalog || ({});

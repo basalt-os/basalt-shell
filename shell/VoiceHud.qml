@@ -13,26 +13,36 @@ import Quickshell.Wayland
 // (the person's own setting, independent of the desktop's language) and,
 // for a few seconds, a note after an answer (an answer shown and not
 // spoken, for example). Its texts go through the UI catalog (Tr).
+//
+// Zero setup: when no speech model for the person's language is on the
+// computer, pressing the key shows the download offer here instead
+// (what, how big, from where; Download or Not now), then the download's
+// progress; the card takes clicks (and the keyboard, on demand) while it
+// asks or shows a download.
 PanelWindow {
     id: hud
     readonly property var v: Bus.voice || ({ state: "idle" })
     readonly property string st: v.state || "idle"
     readonly property bool dictating: v.mode === "dictation"
     readonly property bool waiting: st === "dictation" && !!v.proposal
+    // The speech model download: the offer, then the download.
+    readonly property bool asking: (st === "offer" && !!v.offer) || (st === "download" && !!v.download)
     property bool showError: false
     property bool showNote: false
-    visible: st === "listening" || st === "transcribing" || st === "thinking" || st === "speaking" || waiting || showError || showNote
+    visible: st === "listening" || st === "transcribing" || st === "thinking" || st === "speaking" || waiting || asking || showError || showNote
     anchors { top: true; left: true; right: true }
     implicitHeight: card.y + card.height + Theme.s4
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "basalt-voice"
-    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-    // Clicks pass through, except on the card while a dictation waits.
-    mask: Region { item: hud.waiting ? card : null }
+    WlrLayershell.keyboardFocus: hud.asking ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    // Clicks pass through, except on the card while a dictation waits or
+    // a download is offered or running.
+    mask: Region { item: (hud.waiting || hud.asking) ? card : null }
 
     onStChanged: {
+        if (st === "offer" || st === "download") { showError = false; showNote = false; return; }
         if (st === "error" || (st === "idle" && v.error)) { showError = true; errTimer.restart(); }
         else if (st === "idle" && v.note) { showNote = true; noteTimer.restart(); }
     }
@@ -82,7 +92,7 @@ PanelWindow {
                 width: Theme.fontSize * 2.6; height: width; radius: width / 2
                 anchors.top: parent.top
                 color: hud.st === "listening" ? Theme.danger : Theme.accentSoft
-                Icon { anchors.centerIn: parent; name: (hud.showError || hud.showNote) ? "info" : (hud.waiting ? "list" : "mic"); size: Theme.fontSize * 1.5; color: hud.st === "listening" ? "#ffffff" : Theme.accent }
+                Icon { anchors.centerIn: parent; name: hud.asking ? "download" : ((hud.showError || hud.showNote) ? "info" : (hud.waiting ? "list" : "mic")); size: Theme.fontSize * 1.5; color: hud.st === "listening" ? "#ffffff" : Theme.accent }
                 SequentialAnimation on scale {
                     running: hud.st === "listening" && Theme.normal > 0
                     loops: Animation.Infinite
@@ -94,7 +104,16 @@ PanelWindow {
                 id: col
                 width: row.width - Theme.fontSize * 2.6 - row.spacing
                 spacing: Theme.s1
+                // The speech model download (offer or progress).
+                DownloadView {
+                    visible: hud.asking && !hud.showError
+                    width: parent.width
+                    offer: hud.st === "offer" ? (hud.v.offer || null) : null
+                    job: hud.st === "download" ? (hud.v.download || null) : null
+                    langName: hud.v.lang_name || hud.v.lang || ""
+                }
                 Txt {
+                    visible: !hud.asking || hud.showError
                     width: parent.width
                     wrapMode: Text.Wrap
                     font.weight: Font.DemiBold
@@ -112,7 +131,7 @@ PanelWindow {
                 // The speech language in force, while the key is held and
                 // when speech to text failed.
                 Txt {
-                    visible: hud.st === "listening" || hud.st === "transcribing" || hud.showError
+                    visible: !hud.asking && (hud.st === "listening" || hud.st === "transcribing" || hud.showError)
                     width: parent.width
                     wrapMode: Text.Wrap
                     role: "small"

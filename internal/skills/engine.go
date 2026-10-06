@@ -62,6 +62,10 @@ type Answer struct {
 	// Act is the typed action an acting skill prepared (the shell proposes
 	// it; only the person confirms it).
 	Act *Act `json:"act,omitempty"`
+	// NeedModel: a summary was skipped because no language model is
+	// there (none set up, or the local one is not downloaded or not
+	// running); the shell may offer the assistant's local model.
+	NeedModel bool `json:"need_model,omitempty"`
 }
 
 // Engine runs the skills.
@@ -742,7 +746,11 @@ func (e *Engine) mail(ctx context.Context, text string, a *Answer) {
 	}
 	// Summaries: one call for all messages, constrained to one line each
 	// and an overall answer.
-	if m := e.model(); m != nil {
+	m := e.model()
+	if m == nil {
+		a.NeedModel = true
+	}
+	if m != nil {
 		tag := nonce()
 		var b strings.Builder
 		for i, m := range msgs {
@@ -801,6 +809,7 @@ func (e *Engine) mail(ctx context.Context, text string, a *Answer) {
 			}
 		} else {
 			a.Model = append(a.Model, "summarize: model unavailable ("+err.Error()+")")
+			a.NeedModel = m.Local()
 		}
 	}
 	if a.Text == "" {
@@ -968,7 +977,11 @@ func (e *Engine) web(ctx context.Context, text string, r Route, a *Answer) {
 			it.Findings = append(it.Findings, f.Kind+": "+f.Detail)
 		}
 	}
-	if m := e.model(); m != nil && strings.TrimSpace(p.Visible) != "" {
+	m := e.model()
+	if m == nil && strings.TrimSpace(p.Visible) != "" {
+		a.NeedModel = true
+	}
+	if m != nil && strings.TrimSpace(p.Visible) != "" {
 		tag := nonce()
 		schema := map[string]any{"type": "object", "additionalProperties": false, "required": []string{"summary", "injection"},
 			"properties": map[string]any{
@@ -1001,6 +1014,7 @@ func (e *Engine) web(ctx context.Context, text string, r Route, a *Answer) {
 			}
 		} else {
 			a.Model = append(a.Model, "summarize: model unavailable ("+err.Error()+")")
+			a.NeedModel = m.Local()
 		}
 	}
 	if a.Text == "" {

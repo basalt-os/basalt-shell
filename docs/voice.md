@@ -1,6 +1,6 @@
 # Voice and the skills
 
-Status: 0.4 (2026-10), pre-release. Push to talk, local speech in both
+Status: 0.6 (2026-10), pre-release. Push to talk, local speech in both
 directions, three read-only skills (find files, read and summarize
 e-mail, read and summarize a web page) and three acting skills that are
 always previewed and confirmed (dictation into the focused text field,
@@ -11,6 +11,22 @@ independently of the desktop's language. The lab, the tests and the
 benchmarks are in `lab/voice/`.
 
 ## What the person does
+
+Nothing to set up. The voice service starts with the session, and the
+first time push to talk needs a speech model the voice card asks, in the
+person's language: "Voice needs to download the speech model for
+Português (Brasil) (60 MB) from huggingface.co. Download now?", with
+Download and Not now. English gets `ggml-base.en`; any other language
+gets the multilingual `ggml-base-q5_1`; both come with the Silero voice
+activity detector. After Download the card shows the progress (the person
+keeps working), a notification says when voice is ready, and push to
+talk works at once, without logging out. Without a network the card
+says so and the download starts again by itself when the computer is
+back online; a damaged or altered file is deleted and the card says
+nothing was installed. The skills that summarize offer the assistant's
+local model the same way (Models below), and Settings, Voice and
+assistant, downloads and removes models with one click. Nothing is
+downloaded before the person chooses Download.
 
 - Hold Super+V (or the microphone button in the panel), speak, release.
   A card under the panel says the microphone is open while the key is
@@ -47,8 +63,9 @@ Speech and answers have their own language, set per person in Settings,
 Voice and assistant (Super+Comma), independent of the desktop's language:
 an English desktop can be spoken to, and answer, in Brazilian Portuguese.
 
-- Speech language: Automatic (a multilingual model detects it; slower,
-  and less reliable on short requests) or a language. Whisper's `.en`
+- Speech language: the session's language until the person or the
+  administrator chooses one; Automatic (a multilingual model detects
+  it; slower, and less reliable on short requests) or a language. Whisper's `.en`
   models understand English only: choosing another language with one of
   them is refused with a message, and the Settings page switches to an
   installed multilingual model the administrator allows in the same
@@ -133,8 +150,8 @@ A value outside the policy is refused when the person saves it, with the
 reason; a hand-edited value outside it is not used (the defaults are) and
 the Settings page lists the reason. The daemon picks up the person's file
 at the next request (it checks the file's modification time): no restart.
-A change of `/etc/basalt/voice.conf` needs `systemctl --user restart
-basalt-voice` in the person's session.
+A change of `/etc/basalt/voice.conf` applies at the next session (see
+For administrators).
 
 ## Pieces
 
@@ -153,7 +170,7 @@ basalt-voice` in the person's session.
 
 | Piece | What |
 |---|---|
-| `basalt-voiced` | the voice service (user unit `basalt-voice.service`, part of the session). Socket `$XDG_RUNTIME_DIR/basalt-voice/voice.sock`, open only to the shell daemon (SELinux context of the peer). `listen` opens a PipeWire capture stream named "Basalt voice"; `stop` closes it, runs whisper.cpp (`whisper-cli`, Silero VAD) on the utterance and returns the text; `speak` synthesizes sentence by sentence with a warm Piper process (started by the first `speak`) and plays them; `hush` stops speaking; `unload` also ends the Piper process (spoken answers turned off). A hold is cut at 30 s. |
+| `basalt-voiced` | the voice service (user unit `basalt-voice.service`, enabled for every person by the user preset `80-basalt-shell.preset` and started with the session; push to talk starts it when its socket is missing). Socket `$XDG_RUNTIME_DIR/basalt-voice/voice.sock`, open only to the shell daemon (SELinux context of the peer). `listen` opens a PipeWire capture stream named "Basalt voice"; `stop` closes it, runs whisper.cpp (`whisper-cli`, Silero VAD) on the utterance and returns the text; `speak` synthesizes sentence by sentence with a warm Piper process (started by the first `speak`) and plays them; `hush` stops speaking; `unload` also ends the Piper process (spoken answers turned off). A hold is cut at 30 s. |
 | skills engine (in the daemon) | `internal/skills`: routes a request by fixed rules, plans the search from the request (the model adds synonyms and kinds; the time range comes from fixed rules), checks the grants, runs a worker, summarizes with the model, filters the model's output, composes the answer and the spoken text. |
 | `basalt-skill-index` | builds the file index of the granted folders: metadata, text of PDFs (poppler), Office and OpenDocument files, HTML (visible and hidden text), plain text, with the guard's findings per file. No symlinks, no hidden files, never `~/.ssh`, `~/.gnupg`, keyrings, browser profiles. |
 | `basalt-skill` | searches the index (BM25 over name, title and text, with kind and time filters), reads a mailbox (read-only IMAP client: `EXAMINE` and `BODY.PEEK` only, the command set is closed), reads a page (headless Chromium over a DevTools pipe, throw-away profile, every request checked). |
@@ -161,6 +178,7 @@ basalt-voice` in the person's session.
 | `basalt-skill-send` | sends one confirmed e-mail: a send-only SMTP client with a closed command set (no VRFY, EXPN, second recipient), TLS required unless the server has a reserved lab name. |
 | `basalt-skill-files` | renames and moves files inside a granted folder after confirmation: `openat2` beneath the folder with no symbolic links, `renameat2` with no replace, never a read or a delete. |
 | `internal/wlime` | the shell daemon as the session's input method (`zwp_input_method_v2`): knows when a text field has focus and of which kind, shows pre-edit text, commits confirmed text. |
+| `internal/models` | the consented model downloads: what a download would fetch (`basalt-voice-fetch --plan`, `basalt-llm-fetch --plan`), the offer on the voice card and the model card, and the download after Download: `pkexec` runs basalt-models' request program (polkit action `org.basalt-os.models.download`, a person in an active local session, no password), which records the consent in basalt-ledger and starts the confined system service that downloads and verifies the files; the shell follows its progress file in `/run/basalt-models`. |
 | `internal/ledger` | sends the acting records (with their exact previews), grants, refusals and skill sessions to basalt-ledger. |
 
 ## Security model
@@ -271,11 +289,44 @@ output filter keeps text in any script whole (accents, cedillas,
 decomposed characters) and still removes links, addresses, markup and
 commands.
 
+## Models
+
+Speech models (`/var/lib/basalt-voice/models`) and the assistant's local
+model (`/var/lib/basalt-llm/models`) are system files, shared by every
+person, and come only from the manifests of the basalt-voice and
+basalt-llm packages (pinned URLs, SHA-256 checked before use). The
+desktop downloads them only after a person chose Download:
+
+- push to talk with no speech model for the speech language: the voice
+  card (`ggml-base.en` for English, `ggml-base-q5_1` otherwise, with
+  Silero VAD);
+- a skill that would summarize (a mailbox, a page) with no language
+  model: the model card, at most once per session after Not now. The
+  model is the one basalt-llm picks for the computer (`basalt-llm-fetch
+  recommended`: the fine-tuned translator for its size, or the published
+  Qwen3 of the same size while the translators are not published). After
+  the download the model service is enabled and started and the
+  assistant's `[translator]` is turned on; the command bar and the
+  skills use the model at once;
+- Settings, Voice and assistant: every speech model of the manifest and
+  the local model, with Download and Remove.
+
+The person's consent goes to the activity log and to basalt-ledger
+(`model.download.consent`, from the shell), the request and the result
+come from basalt-models (`model.download.request`, `model.download`,
+`model.enable`, `model.remove`: what, how big, who agreed). The voice
+service itself never downloads anything: it has no network.
+
 ## Configuration
 
 - `/etc/basalt/voice.conf`: speech to text and text to speech programs and
   models, threads, hold limit, and the policy for the person's choices
   (Languages above).
+- `/etc/basalt/models.conf` (basalt-models): who may download models from
+  the desktop: `downloads = everyone` (the default: any person in an
+  active local session), `administrators` (members of `admin_group`,
+  `wheel` by default; anyone else is asked for an administrator's
+  password) or `nobody` (the cards say downloads are off).
 - `/etc/basalt/desktop-models.conf`: the language models a person may
   choose (Languages above).
 - `~/.config/basalt/voice-and-assistant.conf`: the person's own speech
@@ -358,3 +409,18 @@ goes down, and the card shows it while the person speaks:
 
 Only one input method can be bound on a seat; with another one running
 (IBus, Fcitx) dictation is off and every utterance goes to the assistant.
+
+## For administrators
+
+Nothing here is needed for voice to work; these are for changing the
+defaults or for machines without a desktop session.
+
+```sh
+systemctl --user restart basalt-voice      # in a person's session, after editing /etc/basalt/voice.conf
+sudoedit /etc/basalt/models.conf           # downloads = everyone | administrators | nobody
+sudo basalt-voice-fetch multilingual       # download speech models without the desktop
+sudo basalt-llm-fetch recommended          # the assistant's local model without the desktop
+```
+
+The download tools are described in the basalt-os repository
+(`docs/voice.md`, `docs/local-model.md`, `docs/models.md`).

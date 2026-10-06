@@ -22,7 +22,8 @@
 //	BASALT_VOICE_TTS_MODEL  voice model
 //	BASALT_VOICE_MAX_HOLD   seconds (default 30)
 //	BASALT_VOICE_PEER       selinux (default when the policy is loaded), exe, insecure
-//	BASALT_VOICE_LANGUAGE   default speech language: auto or a tag (default en)
+//	BASALT_VOICE_LANGUAGE   default speech language: auto or a tag; empty: the
+//	                        person's session language (the shell sends it), else en
 //	BASALT_VOICE_ALLOWED_MODELS, BASALT_VOICE_MAX_MODEL_MB, BASALT_VOICE_MODEL_DIRS
 //	                        what a person may choose (see internal/voice.System)
 //

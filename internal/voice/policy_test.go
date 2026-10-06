@@ -61,8 +61,8 @@ func TestPolicy(t *testing.T) {
 		"BASALT_VOICE_MAX_MODEL_MB":   "2",
 	}
 	s := SystemFromEnv(func(k string) string { return env[k] })
-	if s.Language != "en" {
-		t.Errorf("default language %q", s.Language)
+	if s.Language != "" {
+		t.Errorf("default language %q (empty: the session's)", s.Language)
 	}
 	// The defaults are always allowed; an allowed model in size; refusals.
 	if p, err := s.Find("", "stt"); err != nil || filepath.Base(p) != "ggml-base.en.bin" {

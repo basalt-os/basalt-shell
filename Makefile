@@ -47,6 +47,7 @@ install:
 	install -Dm755 $(BUILD)/basalt-skill $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-send
 	install -Dm755 $(BUILD)/basalt-skill $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-files
 	install -Dm644 config/systemd/basalt-voice.service $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-voice.service
+	install -Dm644 config/systemd/80-basalt-shell.preset $(DESTDIR)$(PREFIX)/lib/systemd/user-preset/80-basalt-shell.preset
 	install -Dm644 config/voice/voice.conf $(DESTDIR)$(SYSCONFDIR)/basalt/voice.conf
 	install -Dm644 config/voice/desktop-models.conf $(DESTDIR)$(SYSCONFDIR)/basalt/desktop-models.conf
 	install -Dm755 bin/basalt-shell-ui $(DESTDIR)$(PREFIX)/bin/basalt-shell-ui
@@ -79,6 +80,7 @@ uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-sway.desktop $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-niri.desktop
 	rm -f $(DESTDIR)$(SYSCONFDIR)/xdg/xdg-desktop-portal/sway-portals.conf $(DESTDIR)$(SYSCONFDIR)/xdg/xdg-desktop-portal/niri-portals.conf
 	rm -f $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-session.target $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-headless.service
+	rm -f $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-voice.service $(DESTDIR)$(PREFIX)/lib/systemd/user-preset/80-basalt-shell.preset
 	rm -f $(DESTDIR)$(POLKITDIR)/actions/org.openbasalt.shell.policy $(DESTDIR)$(POLKITDIR)/rules.d/50-basalt-shell.rules
 
 # SELinux module basalt_shell: needs selinux-policy-devel and the agent

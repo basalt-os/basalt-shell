@@ -240,13 +240,22 @@ type Effective struct {
 }
 
 // Resolve applies the precedence: the person's value, else the system's
-// default; the answer language is the person's answer language, else
+// default, else (for the speech language, when the system sets none) the
+// session's language, else English; the answer language is the person's answer language, else
 // their speech language (when it is not auto), else the session's
 // language (never the system-wide default locale), else English.
 func Resolve(p Prefs, systemLang, sessionTag string) Effective {
 	e := Effective{SpeechLang: systemLang, SpeechModel: p.SpeechModel, Spoken: p.Spoken != "no", Model: "local"}
 	if p.SpeechLang != "" {
 		e.SpeechLang = p.SpeechLang
+	} else if strings.TrimSpace(systemLang) == "" {
+		// No speech language set by the person or the administrator: the
+		// person's session language (a Portuguese desktop is spoken to in
+		// Portuguese), else English.
+		e.SpeechLang = "en"
+		if t := i18n.Tag(sessionTag); t != "" {
+			e.SpeechLang = t
+		}
 	}
 	if strings.EqualFold(e.SpeechLang, "auto") || i18n.Tag(e.SpeechLang) == "" {
 		e.SpeechLang = "auto"

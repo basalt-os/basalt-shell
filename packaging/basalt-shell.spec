@@ -119,6 +119,13 @@ Requires:       foot
 Requires:       nautilus
 Requires:       gnome-text-editor
 Requires:       firefox
+# Voice works out of the box: the speech-to-text program and the consented
+# model downloads (the desktop offers the speech model for the person's
+# language, and the assistant's local model when a skill needs it).
+Requires:       basalt-voice
+Requires:       basalt-models
+Recommends:     basalt-llm
+Recommends:     basalt-llm-selinux
 Requires(post): systemd
 
 %description -n basalt-desktop
@@ -164,6 +171,18 @@ for m in basalt_shell; do
     install -Dpm 0644 selinux/$m.if %{buildroot}%{_datadir}/selinux/devel/include/distributed/$m.if
 done
 
+%post
+# The voice service starts with every person's session (user preset).
+%systemd_user_post basalt-voice.service
+
+%preun
+%systemd_user_preun basalt-voice.service
+
+# Upgrades from versions without the user preset: enable the voice
+# service for every person once.
+%triggerun -- basalt-shell < 0.6.0
+systemctl --no-reload --global preset basalt-voice.service >/dev/null 2>&1 || :
+
 %post -n basalt-desktop
 # greetd may be installed in the same transaction, before this preset.
 if [ $1 -eq 1 ]; then
@@ -201,6 +220,7 @@ fi
 %{_userunitdir}/basalt-session.target
 %{_userunitdir}/basalt-headless.service
 %{_userunitdir}/basalt-voice.service
+%{_userpresetdir}/80-basalt-shell.preset
 %dir %{_sysconfdir}/basalt
 %config(noreplace) %{_sysconfdir}/basalt/voice.conf
 %config(noreplace) %{_sysconfdir}/basalt/desktop-models.conf
@@ -225,6 +245,33 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Tue Oct 06 2026 Basalt OS developers - 0.6.0-1
+- Zero setup for voice and the local model (Basalt OS rule: no feature
+  asks the person to run a command):
+- The voice service is enabled for every person by a user preset and
+  starts with the session; push to talk starts it when its socket is
+  missing, and the card never shows a socket error.
+- Push to talk without a speech model for the person's language offers
+  the download on the voice card (Download, Not now), with its size and
+  where it comes from: ggml-base.en for English, ggml-base-q5_1 with
+  Silero VAD for any other language. The download (basalt-models:
+  polkit, a confined system service, pinned URLs and SHA-256) shows its
+  progress on the card, waits for the network and starts again by
+  itself, says when a file was damaged, and a notification says when
+  voice is ready; push to talk works at once, without logging out.
+- The speech language follows the person's session language when
+  neither they nor the administrator set one (voice.conf ships
+  BASALT_VOICE_LANGUAGE empty).
+- A skill that needs the assistant's local model when none is
+  downloaded offers it on a card (the model basalt-llm picks for this
+  computer, its size); after the download the model service runs it and
+  the command bar and skills use it at once.
+- Settings, Voice and assistant: download and remove speech models and
+  the local model with one click, downloads in progress at the top.
+- Consents are written to the activity log and to basalt-ledger.
+- basalt-desktop requires basalt-voice and basalt-models and recommends
+  basalt-llm.
+
 * Tue Oct 06 2026 Basalt OS developers - 0.5.1-1
 - basalt-session: in a virtual machine (virtio-gpu, QXL, bochs, Cirrus,
   VMware SVGA, VirtualBox, Hyper-V, or the firmware framebuffer under a

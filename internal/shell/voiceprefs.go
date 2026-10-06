@@ -153,8 +153,12 @@ func (c *Core) VoiceSettings(ctx context.Context) map[string]any {
 		remotes = append(remotes, map[string]string{"name": r.Name, "label": r.Label})
 	}
 	voiceName, _ := voiceFor(eff, ps.prefs.Voices, models)
+	inUse := speechModelFor(eff, ps.system, models)
 	return map[string]any{
-		"prefs": ps.prefs, "effective": eff, "problems": ps.problems,
+		// The speech model push to talk uses now, and whether it is there.
+		"speech_model_in_use": inUse,
+		"speech_model_ready":  voiceReady(inUse, ps.system, models),
+		"prefs":               ps.prefs, "effective": eff, "problems": ps.problems,
 		"models": models, "languages": i18n.Languages, "session": i18n.SessionTag(),
 		"policy": map[string]any{"allow_remote": ps.policy.AllowRemote, "remotes": remotes},
 		"local":  ps.local != nil,
@@ -186,7 +190,7 @@ func (c *Core) SetVoiceSettings(ctx context.Context, p voiceprefs.Prefs) error {
 		return err
 	}
 	models := c.voiceModels(ctx)
-	model := models.DefaultSTT
+	model := ""
 	if p.SpeechModel != "" {
 		var found *voice.ModelInfo
 		for i := range models.STT {
@@ -202,12 +206,14 @@ func (c *Core) SetVoiceSettings(ctx context.Context, p voiceprefs.Prefs) error {
 		}
 		model = p.SpeechModel
 	}
-	lang := p.SpeechLang
-	if lang == "" {
-		lang = sysLang
-	}
-	if _, err := voice.WhisperLanguage(lang, model); voice.ErrorCode(err) == voice.CodeEnglishOnly {
-		return errors.New(i18n.G("The speech model %s understands English only. Choose a multilingual model for %s.", model, i18n.EnglishName(lang)))
+	// A model the person chose must understand their speech language.
+	// Without a choice push to talk uses one that does (and offers to
+	// download it when it is not there), so any language may be saved.
+	lang := voiceprefs.Resolve(p, sysLang, i18n.SessionTag()).SpeechLang
+	if model != "" {
+		if _, err := voice.WhisperLanguage(lang, model); voice.ErrorCode(err) == voice.CodeEnglishOnly {
+			return errors.New(i18n.G("The speech model %s understands English only. Choose a multilingual model for %s.", model, i18n.EnglishName(lang)))
+		}
 	}
 	for l, v := range p.Voices {
 		var found *voice.ModelInfo

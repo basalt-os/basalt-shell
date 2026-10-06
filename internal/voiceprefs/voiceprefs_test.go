@@ -29,6 +29,13 @@ func TestResolvePrecedence(t *testing.T) {
 		// The system default is auto; the person's session is Spanish.
 		{"system auto", Prefs{Spoken: "no"}, "auto", "es_ES", "auto", "es-ES", "session", false},
 		{"no session", Prefs{}, "en", "", "en", "en", "session", true},
+		// No system speech language (the default voice.conf): the speech
+		// language follows the session, so a Portuguese desktop is spoken
+		// to in Portuguese without any setting.
+		{"session pt-BR", Prefs{}, "", "pt_BR.UTF-8", "pt-BR", "pt-BR", "session", true},
+		{"session en-US", Prefs{}, "", "en_US.UTF-8", "en-US", "en-US", "session", true},
+		{"no system, no session", Prefs{}, "", "", "en", "en", "session", true},
+		{"no system, person's choice", Prefs{SpeechLang: "es-ES"}, "", "pt_BR", "es-ES", "es-ES", "speech", true},
 	}
 	for _, c := range cases {
 		e := Resolve(c.p, c.system, c.session)

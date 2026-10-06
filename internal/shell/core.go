@@ -27,6 +27,7 @@ import (
 	"github.com/basalt-os/basalt-shell/internal/hw"
 	"github.com/basalt-os/basalt-shell/internal/intent"
 	"github.com/basalt-os/basalt-shell/internal/ledger"
+	"github.com/basalt-os/basalt-shell/internal/models"
 	"github.com/basalt-os/basalt-shell/internal/skills"
 	"github.com/basalt-os/basalt-shell/internal/theme"
 	"github.com/basalt-os/basalt-shell/internal/voice"
@@ -120,6 +121,10 @@ type Core struct {
 	ScreenLocked func() bool
 	// Ledger receives the security-relevant records (nil: not running).
 	Ledger *ledger.Sink
+	// Models offers and follows the consented model downloads (nil: not
+	// available); StartVoice starts the voice service (tests replace it).
+	Models     *models.Manager
+	StartVoice func(context.Context) error
 
 	mu        sync.Mutex
 	proposals map[string]*Proposal
@@ -138,6 +143,8 @@ type Core struct {
 	voice            VoiceState
 	voicePress       time.Time
 	voiceRoute       voiceRoute
+	voiceModel       string          // the speech model chosen when the key went down
+	llmDeclined      bool            // Not now on the local model offer, this session
 	voiceLangNoticed map[string]bool // answer languages told "shown, not spoken" this session
 	// prefs are the person's voice and assistant settings (voiceprefs.go).
 	prefs prefsState

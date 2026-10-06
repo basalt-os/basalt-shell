@@ -29,6 +29,7 @@ import (
 	"github.com/basalt-os/basalt-shell/internal/hw"
 	"github.com/basalt-os/basalt-shell/internal/intent"
 	"github.com/basalt-os/basalt-shell/internal/ledger"
+	"github.com/basalt-os/basalt-shell/internal/models"
 	"github.com/basalt-os/basalt-shell/internal/paths"
 	"github.com/basalt-os/basalt-shell/internal/shell"
 	"github.com/basalt-os/basalt-shell/internal/skills"
@@ -104,6 +105,13 @@ func run(ctx context.Context) error {
 	core.SetLocalModel(core.Translator)
 	if os.Getenv("BASALT_SHELL_VOICE") != "0" {
 		core.Voice = &voice.Client{Path: voice.DefaultSocket()}
+	}
+	// The consented model downloads (Basalt OS package basalt-models):
+	// speech models for push to talk and the assistant's local model,
+	// offered when they are missing, never downloaded without consent.
+	if os.Getenv("BASALT_SHELL_MODELS") != "0" {
+		core.Models = models.New()
+		core.WireModels()
 	}
 	// The audit trail the shell cannot rewrite (ADR 0010), when installed.
 	if os.Getenv("BASALT_SHELL_LEDGER") != "0" {

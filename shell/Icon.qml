@@ -28,6 +28,7 @@ Item {
         "sliders": '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
         "close": '<path d="M6 6l12 12M18 6L6 18"/>',
         "check": '<path d="M5 12.5l4.5 4.5L19 7"/>',
+        "download": '<path d="M12 4v11"/><path d="M7 10.5l5 5 5-5"/><path d="M5 20h14"/>',
         "list": '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="0.9"/><circle cx="4.5" cy="12" r="0.9"/><circle cx="4.5" cy="18" r="0.9"/>',
         "search": '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.3-4.3"/>',
         "power": '<path d="M12 3v8"/><path d="M7 6.5a7 7 0 1 0 10 0"/>',
