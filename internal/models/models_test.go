@@ -354,7 +354,7 @@ func TestManagerOfflineThenOnline(t *testing.T) {
 	if _, err := m.Start(Voice, "english", "push-to-talk", "en", 4000); err != nil {
 		t.Fatal(err)
 	}
-	// It waits while there is no network...
+	// It waits while there is no network,
 	deadline := time.Now().Add(5 * time.Second)
 	for {
 		j, _ := m.Job("voice-english")
@@ -370,7 +370,7 @@ func TestManagerOfflineThenOnline(t *testing.T) {
 	if j, _ := m.Job("voice-english"); j.State != StateWaiting || j.Attempts != 1 || j.Error != ErrNetwork {
 		t.Errorf("offline: %+v", j)
 	}
-	// ...and starts again by itself when the network is back.
+	// and starts again by itself when the network is back.
 	f.mu.Lock()
 	f.online = true
 	f.mu.Unlock()

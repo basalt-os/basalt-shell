@@ -773,7 +773,7 @@ func HasRoute() bool {
 		sc := bufio.NewScanner(f)
 		for sc.Scan() {
 			fs := strings.Fields(sc.Text())
-			// Iface Destination Gateway Flags ...: destination 0, route up.
+			// Columns Iface, Destination, Gateway, Flags: destination 0, route up.
 			if len(fs) > 3 && fs[1] == "00000000" {
 				if fl, err := strconv.ParseUint(fs[3], 16, 32); err == nil && fl&1 == 1 {
 					return true
