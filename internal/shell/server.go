@@ -607,6 +607,84 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 			return nil, err
 		}
 		return p, nil
+	case "updates.progress":
+		// An update being applied: its step (no dnf query).
+		if c.Assistant == nil || !c.Assistant.Available() {
+			return nil, errors.New(i18n.G("The system assistant (basalt) is not installed: Updates and channels needs it."))
+		}
+		return c.Assistant.UpdatesProgress(ctx)
+	case "updates.state", "channels.state":
+		// Settings, Updates and channels: the assistant's reports (no change).
+		if c.Assistant == nil || !c.Assistant.Available() {
+			return nil, errors.New(i18n.G("The system assistant (basalt) is not installed: Updates and channels needs it."))
+		}
+		var raw json.RawMessage
+		var err error
+		if req.Op == "updates.state" {
+			raw, err = c.Assistant.Updates(ctx)
+		} else {
+			raw, err = c.Assistant.Channels(ctx)
+		}
+		if errors.Is(err, assistant.ErrUpdatesUnsupported) {
+			return map[string]any{"coming_soon": true}, nil
+		}
+		return raw, err
+	case "updates.check":
+		// update.check: refresh the package lists (nothing is installed).
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		if c.Assistant == nil || !c.Assistant.Available() {
+			return nil, errors.New(i18n.G("The system assistant (basalt) is not installed: Updates and channels needs it."))
+		}
+		raw, err := c.Assistant.UpdatesCheck(ctx)
+		data := map[string]any{"action": "update.check"}
+		if err != nil {
+			data["error"] = err.Error()
+		}
+		_, _ = c.Audit.Append("ask", "ui", "check for updates", data)
+		return raw, err
+	case "updates.propose", "updates.rollback", "channels.propose":
+		// Store the assistant's proposal (update.install, update.rollback,
+		// repo.enable, repo.disable, source.add, source.remove); the page
+		// shows it and applies it with assistant.apply, or the approval
+		// gate decides it, like any other proposal.
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		if c.recentInput() {
+			return nil, errors.New("a request right after agent input is not accepted; ask again")
+		}
+		if c.Assistant == nil || !c.Assistant.Available() {
+			return nil, errors.New(i18n.G("The system assistant (basalt) is not installed: Updates and channels needs it."))
+		}
+		var a struct {
+			Security bool `json:"security"`
+			assistant.ChannelRequest
+		}
+		_ = decode(req.Args, &a)
+		var p assistant.Proposal
+		var err error
+		data := map[string]any{}
+		switch req.Op {
+		case "updates.propose":
+			p, err = c.Assistant.UpdatesPropose(ctx, a.Security)
+			data["security"] = a.Security
+		case "updates.rollback":
+			p, err = c.Assistant.UpdatesRollback(ctx)
+		default:
+			p, err = c.Assistant.ChannelsPropose(ctx, a.ChannelRequest)
+			data["request"] = a.ChannelRequest
+		}
+		data["assistant_proposal"] = p.ID
+		if err != nil {
+			data["error"] = err.Error()
+		}
+		_, _ = c.Audit.Append("propose", "ui", req.Op, data)
+		if err != nil {
+			return nil, err
+		}
+		return p, nil
 	case "toplevels":
 		d := c.Refresh(ctx)
 		return d.Windows, nil

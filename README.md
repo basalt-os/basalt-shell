@@ -30,6 +30,12 @@ first, goes through the system assistant's confirmation, and after a
 failed first start explains why and offers the rollback
 ([docs/design.md](docs/design.md#additional-drivers)).
 
+Settings, Updates and channels checks for updates and installs them with
+a snapshot first, undoes the last update, and turns Basalt OS's channels
+(testing ones with a clear consent) and other software sources on and
+off, each one through the system assistant's confirmation and with its
+signing key shown ([docs/design.md](docs/design.md#updates-and-channels)).
+
 The shell runs on sway (the default; on SwayFX, when installed, with
 rounded corners, shadows, blur and dimmed inactive windows from the
 theme's tokens, turned off on weak hardware; also headless, without a

@@ -8,16 +8,20 @@
 # change) and translate (the desktop command bar's request to the same
 # local model: a chat completions body on stdin, forwarded to the model's
 # Unix socket, which only the assistant and administrators may open; the
-# model has no power, its answer is validated by the shell). Anything
-# else is refused.
+# model has no power, its answer is validated by the shell), drivers,
+# updates and channels (their reports; storing a proposal, which changes
+# nothing until the person applies it with pkexec; `updates check`, which
+# refreshes the package lists and installs nothing). Anything else is
+# refused.
 set -eu
 PATH=/usr/sbin:/usr/bin
 word='^[A-Za-z0-9@._:-]{1,100}$'
 [ $# -ge 1 ] || { echo "usage: assistant-read COMMAND [ARGS]" >&2; exit 2; }
 for a in "$@"; do
   case "$a" in --apply|--yes|--confirm|--confirm=*) echo "refused: $a is a change" >&2; exit 3 ;; esac
-  # A rollback proposal is stored only by `drivers rollback --json` below.
-  if [ "$a" = rollback ] && [ "$1" != drivers ]; then echo "refused: $a is a change" >&2; exit 3; fi
+  # A rollback proposal is stored only by `drivers rollback --json` and
+  # `updates rollback --json` below.
+  if [ "$a" = rollback ] && [ "$1" != drivers ] && [ "$1" != updates ]; then echo "refused: $a is a change" >&2; exit 3; fi
 done
 cmd=$1; shift
 case "$cmd" in
@@ -71,5 +75,31 @@ case "$cmd" in
         exec basalt drivers "$@" ;;
       *) echo "refused argument" >&2; exit 3 ;;
     esac ;;
+  updates)
+    case "$*" in
+      "" | "--json" | "status --json" | "check --json" | "install --json" | "install --security --json" | "rollback --json")
+        exec basalt updates "$@" ;;
+      *) echo "refused argument" >&2; exit 3 ;;
+    esac ;;
+  channels)
+    repo='^[a-z][a-z0-9._-]{1,62}$'
+    entry='^[a-z][a-z0-9-]{1,40}$'
+    copr='^@?[A-Za-z0-9][A-Za-z0-9_.-]{0,63}/[A-Za-z0-9][A-Za-z0-9_.+-]{0,99}$'
+    https='^https://[A-Za-z0-9.-]{1,253}(:[0-9]{1,5})?(/[A-Za-z0-9._~%/:?&=+,@$-]*)?$'
+    name='^[A-Za-z0-9 ._()+-]{1,80}$'
+    ok=no
+    case $# in
+      0) ok=yes ;;
+      1) [ "$1" = --json ] && ok=yes ;;
+      3) case "$1" in enable|disable|remove) [[ $2 =~ $repo ]] && [ "$3" = --json ] && ok=yes ;;
+           add) [[ $2 =~ $entry ]] && [ "$2" != copr ] && [ "$2" != custom ] && [ "$3" = --json ] && ok=yes ;; esac ;;
+      5) if [ "$1" = enable ] && [[ $2 =~ $repo ]] && [ "$3" = --consent ] && [ "$4" = preview-builds-1 ] && [ "$5" = --json ]; then ok=yes; fi
+         if [ "$1" = add ] && [ "$2" = copr ] && [ "$3" = --id ] && [[ $4 =~ $copr ]] && [ "$5" = --json ]; then ok=yes; fi
+         if [ "$1" = add ] && [ "$2" = custom ] && [ "$3" = --repo-url ] && [[ $4 =~ $https ]] && [ "$5" = --json ]; then ok=yes; fi ;;
+      9) if [ "$1" = add ] && [ "$2" = custom ] && [ "$3" = --baseurl ] && [[ $4 =~ $https ]] && [ "$5" = --key-url ] &&
+            [[ $6 =~ $https ]] && [ "$7" = --name ] && [[ $8 =~ $name ]] && [ "$9" = --json ]; then ok=yes; fi ;;
+    esac
+    [ "$ok" = yes ] || { echo "refused argument" >&2; exit 3; }
+    exec basalt channels "$@" ;;
   *) echo "refused: $cmd is not a read command" >&2; exit 3 ;;
 esac

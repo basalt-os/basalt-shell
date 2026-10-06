@@ -17,11 +17,44 @@
  "%1 MB, multilingual": [
   "%1 MB, multilíngue"
  ],
+ "%1 is off.": [
+  "%1 está desligado."
+ ],
+ "%1 is on. Check for updates to see what it offers.": [
+  "%1 está ligado. Procure atualizações para ver o que ele oferece."
+ ],
+ "%1 kB": [
+  "%1 kB"
+ ],
  "%1 needs NVIDIA's 580 legacy driver, made for Maxwell, Pascal and Volta GPUs. Basalt OS does not package it: the system assistant will guide that install step by step in a later version. Until then nouveau drives this GPU.": [
   "%1 precisa do driver legado 580 da NVIDIA, feito para GPUs Maxwell, Pascal e Volta. O Basalt OS não empacota esse driver: o assistente do sistema vai guiar essa instalação passo a passo numa versão futura. Até lá, o nouveau cuida desta GPU."
  ],
  "%1 s": [
   "%1 s"
+ ],
+ "%1 security update": [
+  "%1 atualização de segurança",
+  "%1 atualizações de segurança"
+ ],
+ "%1 to %2": [
+  "%1 para %2"
+ ],
+ "%1 to download.": [
+  "%1 para baixar."
+ ],
+ "%1 update": [
+  "%1 atualização",
+  "%1 atualizações"
+ ],
+ "%1 update is ready": [
+  "%1 atualização está pronta",
+  "%1 atualizações estão prontas"
+ ],
+ "%1 was added outside these settings (%2); it is shown, not changed here.": [
+  "%1 foi adicionada fora destes ajustes (%2); ela aparece aqui, mas não é alterada aqui."
+ ],
+ "%1, from %2": [
+  "%1, de %2"
  ],
  "%1, notifications": [
   "%1, notificações"
@@ -105,6 +138,9 @@
  ", ": [
   ", "
  ],
+ "A COPR project": [
+  "Um projeto do COPR"
+ ],
  "A coming update of Basalt OS installs drivers such as NVIDIA's from this page. Until then the open drivers in use keep your hardware working, and nothing needs to be done.": [
   "Uma próxima atualização do Basalt OS instala drivers como o da NVIDIA por esta página. Até lá, os drivers abertos em uso mantêm o seu hardware funcionando, e não é preciso fazer nada."
  ],
@@ -113,6 +149,9 @@
  ],
  "A message dictates what the assistant should say. Its summary was withheld; read the message yourself.": [
   "Uma mensagem dita o que o assistente deve falar. O resumo foi retido; leia a mensagem você mesmo."
+ ],
+ "A name for it": [
+  "Um nome para ela"
  ],
  "A remote model needs your own permission: turn on \"Allow a remote model\" first.": [
   "Um modelo remoto precisa da sua própria permissão: ative \"Permitir um modelo remoto\" primeiro."
@@ -126,14 +165,53 @@
  "A snapshot is taken first. The next start checks the driver; if it fails, the start after it uses nouveau again and you can return to the snapshot.": [
   "Primeiro é tirado um snapshot. A próxima inicialização verifica o driver; se ele falhar, a inicialização seguinte volta a usar o nouveau e você pode voltar ao snapshot."
  ],
+ "A snapshot is taken first. You can undo the update from this page.": [
+  "Um snapshot é feito antes. Você pode desfazer a atualização por esta página."
+ ],
+ "A snapshot of the system is taken first, so you can undo the update from this page. Some updates need a restart to take effect.": [
+  "Antes, é feito um snapshot do sistema, então você pode desfazer a atualização por esta página. Algumas atualizações só valem depois de reiniciar."
+ ],
  "Accent color": [
   "Cor de destaque"
  ],
  "Activity": [
   "Atividade"
  ],
+ "Add": [
+  "Adicionar"
+ ],
+ "Add a software source": [
+  "Adicionar uma fonte de software"
+ ],
+ "Add a source": [
+  "Adicionar uma fonte"
+ ],
+ "Add this software source?": [
+  "Adicionar esta fonte de software?"
+ ],
+ "Added": [
+  "Adicionada"
+ ],
+ "Added %1": [
+  "Adicionada em %1"
+ ],
+ "Adding a source needs an administrator's password.": [
+  "Adicionar uma fonte pede a senha de um administrador."
+ ],
  "Additional drivers": [
   "Drivers adicionais"
+ ],
+ "Additional drivers testing": [
+  "Drivers adicionais em teste"
+ ],
+ "Address of its signing key (https)": [
+  "Endereço da chave de assinatura (https)"
+ ],
+ "Address of the .repo file": [
+  "Endereço do arquivo .repo"
+ ],
+ "Address of the repository (https)": [
+  "Endereço do repositório (https)"
  ],
  "Agent in control: stop it": [
   "Agente no controle: parar"
@@ -153,11 +231,17 @@
  "Allow the assistant to read pages of %s for %s, in a separate browser profile? It never submits forms.": [
   "Permitir que o assistente leia páginas de %s por %s, num perfil de navegador separado? Ele nunca envia formulários."
  ],
+ "Always on": [
+  "Sempre ligado"
+ ],
  "An administrator must approve model downloads on this computer.": [
   "Um administrador precisa aprovar downloads de modelos neste computador."
  ],
  "An administrator's password is needed for downloads on this computer.": [
   "Downloads neste computador precisam da senha de um administrador."
+ ],
+ "Another source": [
+  "Outra fonte"
  ],
  "Answer language": [
   "Idioma das respostas"
@@ -170,6 +254,12 @@
  ],
  "Approve and remember (%1)": [
   "Aprovar e lembrar (%1)"
+ ],
+ "Apps": [
+  "Apps"
+ ],
+ "Apps and tools from other publishers. Each source is checked with its own signing key.": [
+  "Apps e ferramentas de outros publicadores. Cada fonte é conferida com a própria chave de assinatura."
  ],
  "April": [
   "abril"
@@ -196,6 +286,27 @@
  "Automatic for my language (%1)": [
   "Automático para o meu idioma (%1)"
  ],
+ "Basalt OS": [
+  "Basalt OS"
+ ],
+ "Basalt OS checked this key with its publisher, and checks it again when the source is added.": [
+  "O Basalt OS conferiu esta chave com quem publica a fonte e confere de novo quando a fonte é adicionada."
+ ],
+ "Basalt OS components": [
+  "Componentes do Basalt OS"
+ ],
+ "Basalt OS does not know this source. Compare the fingerprint with the one its publisher shows before you trust it.": [
+  "O Basalt OS não conhece esta fonte. Compare a impressão digital com a que quem publica mostra antes de confiar nela."
+ ],
+ "Basalt OS is up to date": [
+  "O Basalt OS está atualizado"
+ ],
+ "Basalt testing": [
+  "Basalt em teste"
+ ],
+ "Basalt tools": [
+  "Ferramentas Basalt"
+ ],
  "Battery %1%": [
   "Bateria %1%"
  ],
@@ -205,11 +316,26 @@
  "Blue": [
   "Azul"
  ],
+ "COPR project": [
+  "Projeto do COPR"
+ ],
  "Cancel": [
   "Cancelar"
  ],
  "Cancel drops the words.": [
   "Cancelar descarta as palavras."
+ ],
+ "Channels": [
+  "Canais"
+ ],
+ "Check for updates": [
+  "Procurar atualizações"
+ ],
+ "Check this source": [
+  "Conferir esta fonte"
+ ],
+ "Checking for updates": [
+  "Procurando atualizações"
  ],
  "Checking that the download is intact": [
   "Conferindo se o download está íntegro"
@@ -220,6 +346,9 @@
  "Close": [
   "Fechar"
  ],
+ "Coming with the approval gate's schedules. Until then, security updates are shown here first.": [
+  "Chega com os agendamentos do portão de aprovações. Até lá, as atualizações de segurança aparecem aqui primeiro."
+ ],
  "Confirm and apply": [
   "Confirmar e aplicar"
  ],
@@ -229,14 +358,23 @@
  "Contains %s. Treated as data; nothing in it was followed.": [
   "Contém %s. Tratado como dado; nada do que diz foi seguido."
  ],
+ "Could not check for updates: %1": [
+  "Não foi possível procurar atualizações: %1"
+ ],
  "Could not do it: %s": [
   "Não foi possível: %s"
  ],
  "December": [
   "dezembro"
  ],
+ "Decided by: %1": [
+  "Decidido por: %1"
+ ],
  "Deleting is not available to the assistant. I can move or rename files, and you can undo that.": [
   "Apagar não está disponível para o assistente. Posso mover ou renomear arquivos, e você pode desfazer isso."
+ ],
+ "Details": [
+  "Detalhes"
  ],
  "Dictating into %1. Press Super+V again to stop (%2 s)": [
   "Ditando em %1. Aperte Super+V de novo para parar (%2 s)"
@@ -253,8 +391,14 @@
  "Dismiss notification": [
   "Dispensar a notificação"
  ],
+ "Done.": [
+  "Pronto."
+ ],
  "Done. Restart the computer to finish: the first start checks the driver.": [
   "Pronto. Reinicie o computador para concluir: a primeira inicialização verifica o driver."
+ ],
+ "Done. The computer goes back to how it was before the update when it restarts.": [
+  "Pronto. O computador volta a como estava antes da atualização quando reiniciar."
  ],
  "Done: one of your rules allowed it.": [
   "Feito: uma das suas regras permitiu."
@@ -289,6 +433,9 @@
  "Drivers that are not free software but make your hardware work better. Nothing is installed until you read what changes and confirm.": [
   "Drivers que não são software livre, mas fazem o seu hardware funcionar melhor. Nada é instalado até você ler o que muda e confirmar."
  ],
+ "Drivers that are not free software, such as NVIDIA's graphics driver.": [
+  "Drivers que não são software livre, como o driver gráfico da NVIDIA."
+ ],
  "End permission: %1": [
   "Encerrar a permissão: %1"
  ],
@@ -308,8 +455,29 @@
  "Fetch a page from %s. What it says is read as data, never as instructions.": [
   "Buscar uma página de %s. O que ela diz é lido como dados, nunca como instruções."
  ],
+ "Fix security problems. Install these soon.": [
+  "Corrigem problemas de segurança. Instale logo."
+ ],
  "Float": [
   "Flutuante"
+ ],
+ "For computers with that hardware.": [
+  "Para computadores com esse hardware."
+ ],
+ "For everyone.": [
+  "Para todo mundo."
+ ],
+ "For people who use those tools.": [
+  "Para quem usa essas ferramentas."
+ ],
+ "For testers who want to help find problems early.": [
+  "Para quem testa e quer ajudar a achar problemas cedo."
+ ],
+ "For testers with supported hardware.": [
+  "Para quem testa e tem hardware compatível."
+ ],
+ "From %1, key %2": [
+  "De %1, chave %2"
  ],
  "GeForce and Titan software is not licensed for datacenter deployment (NVIDIA Driver License Agreement, section 2.8).": [
   "O software para GeForce e Titan não é licenciado para uso em datacenter (NVIDIA Driver License Agreement, seção 2.8)."
@@ -338,8 +506,17 @@
  "Hidden folders cannot be used by the assistant.": [
   "Pastas ocultas não podem ser usadas pelo assistente."
  ],
+ "Hide details": [
+  "Ocultar detalhes"
+ ],
+ "Hide the assistant's report": [
+  "Ocultar o relatório do assistente"
+ ],
  "Hide the license": [
   "Esconder a licença"
+ ],
+ "Hide the list": [
+  "Ocultar a lista"
  ],
  "Hold Super+V, or the microphone button in the panel, and speak.": [
   "Segure Super+V, ou o botão do microfone no painel, e fale."
@@ -352,6 +529,9 @@
  ],
  "How Super+V and the panel's microphone button open the microphone. Escape cancels without sending.": [
   "Como Super+V e o botão do microfone no painel abrem o microfone. Esc cancela sem enviar."
+ ],
+ "How updates are verified": [
+  "Como as atualizações são conferidas"
  ],
  "I accept the NVIDIA Driver License Agreement": [
   "Aceito o NVIDIA Driver License Agreement"
@@ -422,14 +602,40 @@
  "Insert": [
   "Inserir"
  ],
+ "Install %1 security update": [
+  "Instalar %1 atualização de segurança",
+  "Instalar %1 atualizações de segurança"
+ ],
+ "Install %1 update": [
+  "Instalar %1 atualização",
+  "Instalar %1 atualizações"
+ ],
+ "Install security updates automatically": [
+  "Instalar atualizações de segurança automaticamente"
+ ],
  "Install the NVIDIA driver": [
   "Instalar o driver NVIDIA"
+ ],
+ "Install the security updates?": [
+  "Instalar as atualizações de segurança?"
+ ],
+ "Install the updates?": [
+  "Instalar as atualizações?"
+ ],
+ "Install updates": [
+  "Instalar atualizações"
  ],
  "Installed: %1. NVIDIA's software comes unmodified; the open kernel modules are built and signed by Basalt OS for each kernel, so Secure Boot stays on.": [
   "Instalados: %1. O software da NVIDIA vem sem modificações; os módulos abertos do kernel são compilados e assinados pelo Basalt OS para cada kernel, então o Secure Boot continua ligado."
  ],
+ "Installing updates": [
+  "Instalando atualizações"
+ ],
  "It also stops after %1 s of silence, and at %2 s.": [
   "Também para depois de %1 s de silêncio, e em %2 s."
+ ],
+ "It belongs to: %1": [
+  "Ela pertence a: %1"
  ],
  "It runs on this computer. Ask again: summaries and requests in your own words now use it.": [
   "Ele roda neste computador. Peça de novo: resumos e pedidos com as suas palavras agora usam esse modelo."
@@ -449,6 +655,9 @@
  "June": [
   "junho"
  ],
+ "Keep Basalt OS up to date and choose where its software comes from. Every update starts with a snapshot, so you can go back.": [
+  "Mantenha o Basalt OS atualizado e escolha de onde vem o software. Toda atualização começa com um snapshot, então dá para voltar."
+ ],
  "Kernel %1 waits for its signed NVIDIA module; the computer keeps starting the previous kernel until it is published.": [
   "O kernel %1 aguarda o seu módulo NVIDIA assinado; o computador continua iniciando o kernel anterior até ele ser publicado."
  ],
@@ -458,11 +667,17 @@
  "Kernel updates wait until their signed NVIDIA module is published, so the computer never starts a kernel without it.": [
   "Atualizações do kernel aguardam até o módulo NVIDIA assinado delas ser publicado, então o computador nunca inicia um kernel sem ele."
  ],
+ "Key %1, %2": [
+  "Chave %1, %2"
+ ],
  "Language model": [
   "Modelo de linguagem"
  ],
  "Laptop with two GPUs: %1 stays the display GPU and saves power. Programs run on %2 when they ask for it (PRIME offload, basalt-nvidia-run PROGRAM), and CUDA works on it.": [
   "Notebook com duas GPUs: %1 continua cuidando da tela e economiza energia. Os programas rodam na %2 quando pedem (PRIME offload, basalt-nvidia-run PROGRAMA), e o CUDA funciona nela."
+ ],
+ "Last checked: %1": [
+  "Última procura: %1"
  ],
  "Let the assistant read and search the files in %s (and below; hidden files, keys and browser data stay closed) for %s": [
   "Deixar o assistente ler e pesquisar os arquivos em %s (e subpastas; arquivos ocultos, chaves e dados do navegador continuam fechados) por %s"
@@ -472,6 +687,9 @@
  ],
  "Let the assistant read pages of %s in a separate browser profile (no forms are submitted; other sites stay blocked) for %s": [
   "Deixar o assistente ler páginas de %s num perfil de navegador separado (nenhum formulário é enviado; os outros sites continuam bloqueados) por %s"
+ ],
+ "Libraries, drivers and services that everything else runs on.": [
+  "Bibliotecas, drivers e serviços sobre os quais todo o resto roda."
  ],
  "Listening for the assistant. Release to send (%1 s)": [
   "Ouvindo para o assistente. Solte para enviar (%1 s)"
@@ -502,6 +720,9 @@
  ],
  "Looking at the hardware.": [
   "Olhando o hardware."
+ ],
+ "Looking for what is installed.": [
+  "Vendo o que está instalado."
  ],
  "March": [
   "março"
@@ -550,6 +771,9 @@
  "NVIDIA Driver License Agreement": [
   "NVIDIA Driver License Agreement"
  ],
+ "Needs Flatpak": [
+  "Precisa do Flatpak"
+ ],
  "Needs NVIDIA's 580 legacy driver (Maxwell, Pascal, Volta)": [
   "Precisa do driver legado 580 da NVIDIA (Maxwell, Pascal, Volta)"
  ],
@@ -577,6 +801,12 @@
  "No messages match in %s mail%s.": [
   "Nenhuma mensagem corresponde no e-mail %s%s."
  ],
+ "No more software comes from it and its key is no longer trusted. Programs already installed from it stay, without updates.": [
+  "Nenhum software vem mais dela e a chave dela deixa de ser confiável. Os programas já instalados dela ficam, sem atualizações."
+ ],
+ "No more updates come from it. What is already installed stays.": [
+  "Nenhuma atualização vem mais dele. O que já está instalado fica."
+ ],
  "No result yet from the program that applies it.": [
   "Ainda sem resultado do programa que aplica a mudança."
  ],
@@ -595,8 +825,14 @@
  "Not applied. The assistant's output is below.": [
   "Não aplicado. A saída do assistente está abaixo."
  ],
+ "Not checked yet on this computer.": [
+  "Ainda não houve procura neste computador."
+ ],
  "Not in the list of this NVIDIA driver version": [
   "Fora da lista desta versão do driver NVIDIA"
+ ],
+ "Not installed on this computer.": [
+  "Não instalado neste computador."
  ],
  "Not now": [
   "Agora não"
@@ -606,6 +842,9 @@
  ],
  "Nothing runs unless you confirm. Your decision goes to the approvals queue and is recorded.": [
   "Nada é executado sem a sua confirmação. Sua decisão vai para a fila de aprovações e fica registrada."
+ ],
+ "Nothing was changed, or not everything worked. The assistant's report is under Details.": [
+  "Nada foi alterado, ou nem tudo funcionou. O relatório do assistente está em Detalhes."
  ],
  "Notifications": [
   "Notificações"
@@ -635,6 +874,9 @@
  "Only NVIDIA's old %1 driver supports it; nouveau drives it": [
   "Só o antigo driver %1 da NVIDIA dá suporte; o nouveau cuida dela"
  ],
+ "Only https addresses are accepted: software and keys must not travel unprotected.": [
+  "Só endereços https são aceitos: software e chaves não podem trafegar sem proteção."
+ ],
  "Open": [
   "Abrir"
  ],
@@ -643,6 +885,9 @@
  ],
  "Open %s?": [
   "Abrir %s?"
+ ],
+ "Open Additional drivers": [
+  "Abrir Drivers adicionais"
  ],
  "Open apps: %1. Save your work first: unsaved changes in them may be lost.": [
   "Apps abertos: %1. Salve seu trabalho antes: alterações não salvas neles podem ser perdidas."
@@ -653,11 +898,23 @@
  "Opens quick settings": [
   "Abre os ajustes rápidos"
  ],
+ "Optional tools from OpenBasalt, such as Samba Conductor.": [
+  "Ferramentas opcionais da OpenBasalt, como o Samba Conductor."
+ ],
  "Orange": [
   "Laranja"
  ],
+ "Other software sources": [
+  "Outras fontes de software"
+ ],
+ "Package signatures are not checked.": [
+  "As assinaturas dos pacotes não são conferidas."
+ ],
  "Packaged by OpenBasalt, not supported by NVIDIA. NVIDIA, GeForce and CUDA are trademarks of NVIDIA Corporation.": [
   "Empacotado pelo OpenBasalt, sem suporte da NVIDIA. NVIDIA, GeForce e CUDA são marcas da NVIDIA Corporation."
+ ],
+ "Packages built by people on Fedora's COPR service. Basalt OS does not review them.": [
+  "Pacotes feitos por pessoas no serviço COPR do Fedora. O Basalt OS não os revisa."
  ],
  "Panel": [
   "Painel"
@@ -694,6 +951,24 @@
  ],
  "Press to start and stop": [
   "Apertar para começar e parar"
+ ],
+ "Preview builds can break things, the display included.": [
+  "Versões de teste podem quebrar coisas, inclusive a tela."
+ ],
+ "Preview builds can break things.": [
+  "Versões de teste podem quebrar coisas."
+ ],
+ "Preview builds can break things. A snapshot is taken before each update so you can go back.": [
+  "Versões de teste podem quebrar coisas. Um snapshot é feito antes de cada atualização, então dá para voltar."
+ ],
+ "Preview builds of Basalt OS components, before they reach everyone.": [
+  "Versões de teste dos componentes do Basalt OS, antes de chegarem a todo mundo."
+ ],
+ "Preview builds of the additional drivers, tested here before they reach everyone.": [
+  "Versões de teste dos drivers adicionais, testadas aqui antes de chegarem a todo mundo."
+ ],
+ "Programs you open from the launcher.": [
+  "Programas que você abre pelo lançador."
  ],
  "Push to talk": [
   "Apertar para falar"
@@ -748,6 +1023,12 @@
  "Remove": [
   "Remover"
  ],
+ "Remove source": [
+  "Remover fonte"
+ ],
+ "Remove this software source?": [
+  "Remover esta fonte de software?"
+ ],
  "Removed %1.": [
   "%1 removido."
  ],
@@ -774,6 +1055,9 @@
  ],
  "Restart the computer now?": [
   "Reiniciar o computador agora?"
+ ],
+ "Restart to finish": [
+  "Reinicie para terminar"
  ],
  "Restore size": [
   "Restaurar tamanho"
@@ -805,6 +1089,12 @@
  "Secure Boot is on and the Basalt kernel module CA is not enrolled yet, so the kernel would refuse the NVIDIA module. Enroll it first: run sudo basalt-secureboot enroll-mok in a terminal and confirm at the next start (one time only).": [
   "O Secure Boot está ligado e a CA de módulos do kernel do Basalt ainda não foi registrada, então o kernel recusaria o módulo NVIDIA. Registre-a primeiro: rode sudo basalt-secureboot enroll-mok num terminal e confirme na próxima inicialização (só uma vez)."
  ],
+ "Security updates": [
+  "Atualizações de segurança"
+ ],
+ "Security updates only": [
+  "Só as de segurança"
+ ],
  "Send a reply to %s: %s": [
   "Enviar uma resposta para %s: %s"
  ],
@@ -823,8 +1113,26 @@
  "Settings pages": [
   "Páginas dos Ajustes"
  ],
+ "Show all channels": [
+  "Mostrar todos os canais"
+ ],
+ "Show the assistant's report": [
+  "Mostrar o relatório do assistente"
+ ],
+ "Show the list": [
+  "Mostrar a lista"
+ ],
  "Shown underlined in the field. Nothing is typed until you choose Insert (Super+Shift+Return).": [
   "Aparece sublinhado no campo. Nada é digitado até você escolher Inserir (Super+Shift+Return)."
+ ],
+ "Signed with a key that is not the OpenBasalt release key (%1)": [
+  "Assinado com uma chave que não é a chave de lançamento da OpenBasalt (%1)"
+ ],
+ "Signed with the OpenBasalt key %1": [
+  "Assinado com a chave da OpenBasalt %1"
+ ],
+ "Signing key: %1": [
+  "Chave de assinatura: %1"
  ],
  "Slate": [
   "Ardósia"
@@ -838,8 +1146,20 @@
  "Snapshot %1 holds the system as it was before the install. Rolling back returns to it at the next start; your files in your home folder stay as they are.": [
   "O snapshot %1 guarda o sistema como estava antes da instalação. Voltar a ele vale a partir da próxima inicialização; os seus arquivos na pasta pessoal ficam como estão."
  ],
+ "Software from this source can change your whole system. Only add sources you trust.": [
+  "Software desta fonte pode mudar o sistema inteiro. Só adicione fontes em que você confia."
+ ],
+ "Some updates, such as a new kernel, take effect when the computer restarts. Save your work first.": [
+  "Algumas atualizações, como um kernel novo, só valem quando o computador reiniciar. Salve seu trabalho antes."
+ ],
  "Sound muted": [
   "Som desligado"
+ ],
+ "Source added. Its software can now be installed and updated.": [
+  "Fonte adicionada. O software dela já pode ser instalado e atualizado."
+ ],
+ "Source removed.": [
+  "Fonte removida."
  ],
  "Speak the answers aloud": [
   "Falar as respostas em voz alta"
@@ -871,6 +1191,12 @@
  "Spoken answers": [
   "Respostas faladas"
  ],
+ "Stable. Turning it off stops updates of those tools.": [
+  "Estável. Desligar interrompe as atualizações dessas ferramentas."
+ ],
+ "Step %1 of %2: %3": [
+  "Passo %1 de %2: %3"
+ ],
  "Stop by itself after a silence, once you have spoken:": [
   "Parar sozinho depois de um silêncio, quando você já tiver falado:"
  ],
@@ -892,6 +1218,9 @@
  "Suspend the computer": [
   "Suspender o computador"
  ],
+ "System": [
+  "Sistema"
+ ],
  "System default": [
   "Padrão do sistema"
  ],
@@ -900,6 +1229,9 @@
  ],
  "Terra": [
   "Terra"
+ ],
+ "Tested before release. Always on.": [
+  "Testado antes do lançamento. Sempre ligado."
  ],
  "That is not something the desktop does. Try: \"dark mode\", \"open text editor\", \"arrange windows side by side\", \"why nginx\".": [
   "Isso não é algo que a área de trabalho faz. Experimente: \"modo escuro\", \"abra o editor de texto\", \"organize as janelas lado a lado\", \"por que o nginx\"."
@@ -921,6 +1253,9 @@
  ],
  "The NVIDIA driver is proprietary software. You may use it with NVIDIA GPUs; it may not be modified, and it comes with this license, in English. Read it before you accept.": [
   "O driver NVIDIA é software proprietário. Você pode usá-lo com GPUs NVIDIA; ele não pode ser modificado e vem com esta licença, em inglês. Leia antes de aceitar."
+ ],
+ "The address of its .repo file, or its address and the address of its signing key. Only https sources that sign their packages and package lists can be added.": [
+  "O endereço do arquivo .repo dela, ou o endereço dela e o da chave de assinatura. Só dá para adicionar fontes https que assinam os pacotes e as listas de pacotes."
  ],
  "The administrator turned model downloads off on this computer.": [
   "O administrador desligou os downloads de modelos neste computador."
@@ -948,6 +1283,9 @@
  ],
  "The computer restarts in %1 s.": [
   "O computador reinicia em %1 s."
+ ],
+ "The desktop, the assistant and the other parts made for Basalt OS.": [
+  "A área de trabalho, o assistente e as outras partes feitas para o Basalt OS."
  ],
  "The download failed. Try again later.": [
   "O download falhou. Tente de novo mais tarde."
@@ -1021,6 +1359,9 @@
  "The screen is locked. Unlock it to talk.": [
   "A tela está bloqueada. Desbloqueie para falar."
  ],
+ "The software that makes Basalt OS: the desktop, the assistant, the security tools.": [
+  "O software que forma o Basalt OS: a área de trabalho, o assistente, as ferramentas de segurança."
+ ],
  "The speech model %s is not installed.": [
   "O modelo de fala %s não está instalado."
  ],
@@ -1044,6 +1385,18 @@
  ],
  "The system assistant (basalt) is not installed: Additional drivers needs it.": [
   "O assistente do sistema (basalt) não está instalado: os Drivers adicionais precisam dele."
+ ],
+ "The system assistant (basalt) is not installed: Updates and channels needs it.": [
+  "O assistente do sistema (basalt) não está instalado: Atualizações e canais precisa dele."
+ ],
+ "The system assistant on this computer is older than this page. A coming update of Basalt OS brings it.": [
+  "O assistente do sistema neste computador é mais antigo que esta página. Uma próxima atualização do Basalt OS traz o que falta."
+ ],
+ "The system goes back to the snapshot taken just before the last update, at the next start. Your files in your home folder stay as they are.": [
+  "O sistema volta ao snapshot feito logo antes da última atualização, no próximo início. Seus arquivos na pasta pessoal ficam como estão."
+ ],
+ "The system goes back to the snapshot when the computer restarts.": [
+  "O sistema volta ao snapshot quando o computador reiniciar."
  ],
  "The text field lost focus, so nothing was typed. Click in the field and dictate again.": [
   "O campo de texto perdeu o foco, então nada foi digitado. Clique no campo e dite de novo."
@@ -1133,8 +1486,32 @@
  "To try the NVIDIA driver again instead, run sudo basalt-nvidia retry in a terminal and restart.": [
   "Para tentar o driver NVIDIA de novo, rode sudo basalt-nvidia retry num terminal e reinicie."
  ],
+ "Trust and add": [
+  "Confiar e adicionar"
+ ],
  "Try again": [
   "Tentar de novo"
+ ],
+ "Turn off": [
+  "Desligar"
+ ],
+ "Turn off %1?": [
+  "Desligar %1?"
+ ],
+ "Turn on": [
+  "Ligar"
+ ],
+ "Turn on %1?": [
+  "Ligar %1?"
+ ],
+ "Turn on preview builds": [
+  "Ligar versões de teste"
+ ],
+ "Turn on preview builds?": [
+  "Ligar versões de teste?"
+ ],
+ "Turned on by Additional drivers, together with the driver.": [
+  "Ligado por Drivers adicionais, junto com o driver."
  ],
  "Turning speech into text, on this computer": [
   "Transformando a fala em texto, neste computador"
@@ -1154,6 +1531,36 @@
  ],
  "Type this into %1?": [
   "Digitar isto em %1?"
+ ],
+ "Undo the last update": [
+  "Desfazer a última atualização"
+ ],
+ "Undo the last update?": [
+  "Desfazer a última atualização?"
+ ],
+ "Undo the update": [
+  "Desfazer a atualização"
+ ],
+ "Undoing the update": [
+  "Desfazendo a atualização"
+ ],
+ "Update history": [
+  "Histórico de atualizações"
+ ],
+ "Updates": [
+  "Atualizações"
+ ],
+ "Updates and channels": [
+  "Atualizações e canais"
+ ],
+ "Updates from this page are coming soon": [
+  "As atualizações por esta página chegam em breve"
+ ],
+ "Updates installed. A snapshot from before them is kept, so you can undo them.": [
+  "Atualizações instaladas. Um snapshot de antes delas fica guardado, então dá para desfazer."
+ ],
+ "Updates will also come from this channel. Its packages are signed with the OpenBasalt release key.": [
+  "As atualizações também virão deste canal. Os pacotes dele são assinados com a chave de lançamento da OpenBasalt."
  ],
  "Violet": [
   "Violeta"
@@ -1191,11 +1598,23 @@
  "Waiting for the approval to download": [
   "Aguardando a aprovação para baixar"
  ],
+ "Waiting for your password.": [
+  "Esperando sua senha."
+ ],
+ "Well-known sources, with the address and signing key Basalt OS checked for you.": [
+  "Fontes conhecidas, com o endereço e a chave de assinatura que o Basalt OS conferiu para você."
+ ],
+ "Went back to snapshot %1": [
+  "Voltou ao snapshot %1"
+ ],
  "What changes": [
   "O que muda"
  ],
  "What should the reply say? For example: reply to Ana: Thursday works for me.": [
   "O que a resposta deve dizer? Por exemplo: responda à Ana: quinta-feira está bom para mim."
+ ],
+ "Where Basalt OS gets its software. Everything that is not final goes to a testing channel first.": [
+  "De onde o Basalt OS recebe o software. Tudo o que não é final passa antes por um canal de teste."
  ],
  "Which site? Say its address (for example news.example.org) or allow a site first.": [
   "Qual site? Diga o endereço (por exemplo news.example.org) ou permita um site primeiro."
@@ -1220,6 +1639,9 @@
  ],
  "Yellow": [
   "Amarelo"
+ ],
+ "You can keep working. Do not turn the computer off.": [
+  "Pode continuar trabalhando. Não desligue o computador."
  ],
  "You can keep working. This card says when it is ready.": [
   "Você pode continuar trabalhando. Este cartão avisa quando estiver pronto."
@@ -1251,14 +1673,29 @@
  "automatic language detection": [
   "detecção automática do idioma"
  ],
+ "checking that everything works": [
+  "conferindo se tudo funciona"
+ ],
  "deceptive links": [
   "links enganosos"
+ ],
+ "did not finish": [
+  "não terminou"
+ ],
+ "done": [
+  "feito"
  ],
  "downloading": [
   "baixando"
  ],
  "hidden text": [
   "texto oculto"
+ ],
+ "https://example.org/example.repo": [
+  "https://example.org/example.repo"
+ ],
+ "installed": [
+  "instaladas"
  ],
  "instructions addressed to the assistant": [
   "instruções dirigidas ao assistente"
@@ -1287,6 +1724,9 @@
  "multilingual": [
   "multilíngue"
  ],
+ "new: %1": [
+  "novo: %1"
+ ],
  "not downloaded": [
   "não baixado"
  ],
@@ -1296,8 +1736,17 @@
  "on this computer": [
   "neste computador"
  ],
+ "owner/project": [
+  "dono/projeto"
+ ],
  "shows the boot screen": [
   "mostra a tela de inicialização"
+ ],
+ "stopped before the end: undo it to be sure": [
+  "parou antes do fim: desfaça para garantir"
+ ],
+ "taking a snapshot": [
+  "fazendo um snapshot"
  ],
  "the default model": [
   "o modelo padrão"
@@ -1322,6 +1771,9 @@
  ],
  "today": [
   "hoje"
+ ],
+ "undone": [
+  "desfeita"
  ],
  "yesterday": [
   "ontem"

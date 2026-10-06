@@ -98,6 +98,9 @@ Newline-delimited JSON over a Unix socket (mode 0600, directory 0700).
 | `assistant.apply`, `assistant.ignore` | ui | the system assistant's own confirmation flow |
 | `drivers.state` | any | Additional drivers: the assistant's `basalt drivers --json` (GPUs, the driver that fits, its state, the NVIDIA license text), or `{"coming_soon": true}` with an assistant older than `basalt drivers` |
 | `drivers.propose`, `drivers.rollback` | ui | store the assistant's driver.install proposal, or the rollback to the snapshot taken before it, for the confirmation step |
+| `updates.state`, `channels.state` | any | Updates and channels: the assistant's `basalt updates --json` and `basalt channels --json`, or `{"coming_soon": true}` with an assistant older than them |
+| `updates.check` | ui | update.check: the assistant refreshes the package lists (as root, through the read helper; nothing is installed) |
+| `updates.propose`, `updates.rollback`, `channels.propose` | ui | store the assistant's update.install, update.rollback, repo.enable, repo.disable, source.add or source.remove proposal for the confirmation step |
 | `toplevels` | any | the windows (with their foreign-toplevel identifiers) |
 | `capture` | agent | a screenshot for this agent: confirmed by the person, or inside its control session |
 | `input` | agent | one synthetic input step (type, key, move, click, scroll), only inside the agent's control session |
@@ -337,6 +340,52 @@ session and shows a notification that opens the page, which explains why
 and offers the rollback to the snapshot taken before the install
 (`drivers rollback --json`, then the same confirmation). Every request is
 in the activity log.
+
+### Updates and channels
+
+Settings, Updates and channels (pt-BR "Atualizações e canais") shows
+what the system assistant reports (`basalt updates`, `basalt channels`;
+the basalt-os repository's `docs/updates.md`) and changes nothing by
+itself: every button stores one of the assistant's proposals through the
+read helper and shows it on a sheet, in plain words, with the exact
+commands under Details; the person confirms it, and it is applied like
+any other proposal (pkexec and an administrator's password, `basalt apply
+ID --yes --confirm CODE`, or the approval gate where it decides the
+assistant's proposals). The shell never runs dnf and never writes a
+repository file.
+
+- Updates: Check for updates (update.check, the last check's time), the
+  updates grouped and explained (security updates highlighted, Basalt OS
+  components, apps, system), with sizes and advisories behind "Show the
+  list"; Install updates or Security updates only (update.install: a
+  snapshot first; while it runs the page follows its steps); "Restart to
+  finish" with a Restart now button when an update needs it; the history,
+  with "Undo the last update" (update.rollback, back to the snapshot taken
+  before it, at the next start). Automatic security updates are shown off:
+  they become a rule of the approval gate once it runs scheduled jobs.
+- Channels: a card per Basalt channel (what it is, who it is for, the
+  risk, how it is signed: the OpenBasalt release key in short form) with a
+  toggle where the person may change it. basalt is always on; basalt-nonfree
+  is turned on by Additional drivers; basalt-nonfree-testing shows on
+  hardware the NVIDIA driver supports, or after "Show all channels".
+  Turning on a testing channel shows the consent sheet: "Preview builds can
+  break things. A snapshot is taken before each update so you can go back."
+- Other software sources: the catalog of well-known sources (Flathub, RPM
+  Fusion, Google Chrome, Visual Studio Code, Docker CE) with the address
+  and key Basalt OS pins, a COPR project by name, or a custom source by the
+  address of its `.repo` file or its address and key address (https only;
+  the page refuses plain http before asking). The sheet says that software
+  from a source can change the whole system, shows the key's fingerprint
+  and owner, and says whether Basalt OS knows the source. Added sources
+  have their own cards (on and off, Remove, when they were added and who
+  decided); repositories added another way are listed, not changed.
+- A link to "How updates are verified" (the basalt-os repository's
+  `docs/security/updates.md`).
+
+Requests that store proposals are refused right after agent input, like
+every other confirmation, and each is in the activity log. A request in
+natural language reaches only the reports (`basalt updates`, `basalt
+channels`); checking and proposing start from the page.
 
 ## Design tokens
 

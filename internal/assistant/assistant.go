@@ -65,6 +65,14 @@ func readArgs(args []string) error {
 	if len(args) == 0 {
 		return errors.New("empty request")
 	}
+	// Updates and channels check every argument themselves (a source's URL
+	// and name are not single words).
+	if args[0] == "updates" {
+		return updatesArgs(args[1:])
+	}
+	if args[0] == "channels" {
+		return channelsArgs(args[1:])
+	}
 	for _, a := range args {
 		if !reWord.MatchString(a) && !strings.HasPrefix(a, "--") {
 			return fmt.Errorf("invalid argument %q", a)
@@ -95,7 +103,14 @@ func readArgs(args []string) error {
 }
 
 func (b *Bridge) run(ctx context.Context, argv []string) (string, error) {
-	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
+	return b.runFor(ctx, 90*time.Second, argv)
+}
+
+// runFor runs a program with a time limit: reads and proposals take
+// seconds, a check for updates a few minutes, an apply as long as the
+// update takes.
+func (b *Bridge) runFor(ctx context.Context, limit time.Duration, argv []string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, limit)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...)
 	var out bytes.Buffer
@@ -107,6 +122,10 @@ func (b *Bridge) run(ctx context.Context, argv []string) (string, error) {
 
 // Read runs a read-only command and returns its text output.
 func (b *Bridge) Read(ctx context.Context, args []string) (string, error) {
+	return b.readFor(ctx, 90*time.Second, args)
+}
+
+func (b *Bridge) readFor(ctx context.Context, limit time.Duration, args []string) (string, error) {
 	if !b.Available() {
 		return "", errors.New("the system assistant (basalt) is not installed")
 	}
@@ -115,13 +134,13 @@ func (b *Bridge) Read(ctx context.Context, args []string) (string, error) {
 	}
 	if b.Pkexec != "" {
 		if st, err := os.Stat(b.Helper); err == nil && !st.IsDir() {
-			out, err := b.run(ctx, append([]string{b.Pkexec, b.Helper}, args...))
+			out, err := b.runFor(ctx, limit, append([]string{b.Pkexec, b.Helper}, args...))
 			if err == nil || !strings.Contains(out, "Not authorized") {
 				return out, err
 			}
 		}
 	}
-	return b.run(ctx, append([]string{b.Basalt}, args...))
+	return b.runFor(ctx, limit, append([]string{b.Basalt}, args...))
 }
 
 // Ask runs `basalt ask TEXT` through the helper (the assistant's own
@@ -237,6 +256,9 @@ type Proposal struct {
 	Report   string  `json:"report"` // the assistant's full text, with the exact commands
 	Code     string  `json:"code"`   // confirmation code for exactly these commands
 	Review   bool    `json:"needs_review"`
+	// Evidence lines (a new software source: its key's fingerprint and
+	// owner, which the confirmation shows in plain words).
+	Evidence []string `json:"evidence,omitempty"`
 }
 
 var (
@@ -308,7 +330,9 @@ func (b *Bridge) Apply(ctx context.Context, id, code string) (string, error) {
 	if b.Pkexec == "" {
 		return "", errors.New("pkexec is not installed")
 	}
-	return b.run(ctx, []string{b.Pkexec, b.Basalt, "apply", id, "--yes", "--confirm", code})
+	// No short limit: an update installs for as long as it takes (the
+	// assistant's own runner has no wall-clock timeout for a change).
+	return b.runFor(ctx, 3*time.Hour, []string{b.Pkexec, b.Basalt, "apply", id, "--yes", "--confirm", code})
 }
 
 // Submitted is a proposal queued in the approval gate.
@@ -370,6 +394,11 @@ func Understood(out string) []string {
 	}
 	args := strings.Fields(m[1])
 	if readArgs(args) != nil {
+		return nil
+	}
+	// Updates and channels: only their reports. Checking, and storing a
+	// proposal (an update, a channel, a source), start from the page.
+	if (args[0] == "updates" || args[0] == "channels") && len(args) > 1 {
 		return nil
 	}
 	return args

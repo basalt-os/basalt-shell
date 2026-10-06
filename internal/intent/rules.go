@@ -467,6 +467,9 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 		if has(c, "voz", "fala", "idioma", "language", "speech") {
 			page = "voice"
 		}
+		if has(c, "update", "atualizaç", "channel", "canais", "canal") {
+			page = "updates"
+		}
 		return []Call{{Action: "settings.open", Args: map[string]any{"page": page}}}, []string{"open settings: " + page}, true
 	}
 	if m := regexp.MustCompile(`^(?:open|launch|start|run|abr[aei]r?|abre|inicia|iniciar|executa)\s+(?:the\s+|o\s+|a\s+)?(.+)$`).FindStringSubmatch(c); m != nil {

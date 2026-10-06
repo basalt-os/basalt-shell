@@ -62,6 +62,16 @@ optional_policy(`
 	unconfined_run_to(basalt_agent_mcp_t, basalt_agent_mcp_exec_t)
 ')
 
+# Settings applies the system assistant's proposals with pkexec (basalt
+# apply ID --yes --confirm CODE): a package transaction there (updates,
+# a driver, a channel's definition) runs dnf in rpm_t, as it does from an
+# administrator's terminal, so package scriptlets run in rpm_script_t.
+# Without it dnf stays in the daemon's domain and every scriptlet is
+# refused (the transaction fails half way).
+optional_policy(`
+	rpm_domtrans(basalt_shell_t)
+')
+
 # The daemon creates its socket directory with its own type.
 userdom_user_tmp_filetrans(basalt_shell_t, basalt_shell_runtime_t, dir, "basalt-shell")
 userdom_user_tmp_filetrans(basalt_shell_t, basalt_shell_runtime_t, dir, "basalt-shell-headless")

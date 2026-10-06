@@ -52,6 +52,7 @@ FloatingWindow {
         { id: "windows", label: "Windows", icon: "window" },
         { id: "ai", label: "Assistant and AI", icon: "spark" },
         { id: "voice", label: Tr.t("Voice and assistant"), icon: "mic" },
+        { id: "updates", label: Tr.t("Updates and channels"), icon: "download" },
         { id: "drivers", label: Tr.t("Additional drivers"), icon: "chip" },
         { id: "about", label: "About", icon: "info" }
     ]
@@ -400,6 +401,12 @@ FloatingWindow {
                 // Voice and assistant: the person's own languages and models.
                 VoiceSettings {
                     visible: Ui.settingsPage === "voice" && Ui.settings
+                    Layout.fillWidth: true
+                }
+
+                // Updates and channels (basalt updates, basalt channels).
+                UpdatesSettings {
+                    visible: Ui.settingsPage === "updates" && Ui.settings
                     Layout.fillWidth: true
                 }
 
