@@ -360,6 +360,23 @@ an English-only model) and `tests/lang-session.sh` (push to talk in
 Portuguese on an English desktop, then English again, with the
 confirmations clicked).
 
+Zero setup (`zero-setup/README.md`): a person who never logged in and
+is not an administrator, in Portuguese and in English, on the desktop
+lab VM: the voice service ran at login with no command and no password
+prompt; Super+V offered `ggml-base-q5_1` (61 MB) or `ggml-base.en`
+(148 MB) in the person's language; after Download the card showed the
+progress and a notification said voice was ready (a few seconds for
+61 MB); "Deixe mais escuro." and "Make it darker." became proposals and
+a Portuguese dictation was typed into Mousepad after Insert, without
+logging out; with the network down the card waited and the download
+started again by itself 12 s after the network came back; Settings
+downloaded the assistant's local model (qwen3-1.7b-q8_0, 1.8 GB, the
+stand-in `recommended` picked on 6 vCPUs), the model service started
+and the command bar's next free-form request was "understood by the
+local model" with no password prompt. Every step was in basalt-ledger
+(who agreed, what, how big; the failed attempt as a warning) and
+SELinux logged no denial.
+
 Results in the lab VM (10 vCPU, CPU only, utterances synthesized with
 Piper, so a clean and regular voice; real voices and microphones do
 worse):
