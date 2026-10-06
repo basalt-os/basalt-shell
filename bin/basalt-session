@@ -48,6 +48,66 @@ export XCURSOR_SIZE=${XCURSOR_SIZE:-24}
 # the effects off when the renderer is software.
 export WLR_RENDERER_ALLOW_SOFTWARE=${WLR_RENDERER_ALLOW_SOFTWARE:-1}
 
+# Messages for the journal (greetd does not keep a session's stderr).
+log() {
+  printf 'basalt-session: %s\n' "$*" >&2
+  command -v logger >/dev/null 2>&1 && logger -t basalt-session -- "$*" 2>/dev/null
+  return 0
+}
+
+# Prints the DRM driver of a virtual machine's display adapter, if one
+# drives a display: virtio-gpu (with or without virgl), QXL, bochs (std
+# VGA), Cirrus, VMware SVGA, VirtualBox, Hyper-V, or the firmware
+# framebuffer (simpledrm, efidrm, vesadrm) when a hypervisor is present.
+virtual_display_driver() {
+  local card dev drv hv=0
+  if grep -qw hypervisor /proc/cpuinfo 2>/dev/null || [ -e /sys/hypervisor/type ]; then hv=1; fi
+  for card in /sys/class/drm/card[0-9]*; do
+    # Connectors (card1-Virtual-1) are not devices.
+    case ${card##*/} in *-*) continue ;; esac
+    drv=""
+    # virtio-gpu: the PCI function is bound to virtio-pci and the DRM
+    # driver to its virtio child device.
+    for dev in "$card"/device/virtio*/driver "$card"/device/driver; do
+      if [ -e "$dev" ]; then drv=$(basename "$(readlink -f "$dev")"); break; fi
+    done
+    case $drv in
+      virtio_gpu | qxl | bochs-drm | bochs | cirrus | cirrus-qemu | vmwgfx | vboxvideo | hyperv_drm)
+        echo "$drv"; return 0 ;;
+      simple-framebuffer | simpledrm | efidrm | vesadrm | efi-framebuffer | vesa-framebuffer)
+        if [ "$hv" = 1 ]; then echo "$drv"; return 0; fi ;;
+    esac
+  done
+  return 1
+}
+
+# Virtual GPUs and the hardware cursor plane: QEMU and the other
+# hypervisors take the cursor plane's image and hotspot and draw the
+# pointer in the viewer (virt-manager, SPICE, VNC) themselves. With
+# wlroots on virtio-gpu the image arrives shifted inside its 64x64 buffer
+# (Adwaita's arrow 41 rows below its hotspot, checked with virgl), so the
+# pointer the person sees is not where clicks go and the top bar cannot
+# be reached. wlroots then draws the cursor into the frame itself. Only
+# for a session on a display: nested and headless sessions use no cursor
+# plane. Set WLR_NO_HARDWARE_CURSORS=0 to keep the cursor plane.
+if [ -z "${WLR_NO_HARDWARE_CURSORS+x}" ] && [ "$which" != headless ] &&
+  [ -z "${WAYLAND_DISPLAY:-}" ] && [ -z "${DISPLAY:-}" ]; then
+  if vgpu=$(virtual_display_driver); then
+    export WLR_NO_HARDWARE_CURSORS=1
+    log "virtual display adapter ($vgpu): WLR_NO_HARDWARE_CURSORS=1 (software cursor)"
+    # The viewer then draws its own pointer next to the session's (or the
+    # last image an earlier session left): give QEMU an empty, hidden
+    # cursor while no compositor holds the card.
+    for d in "$(dirname "$(readlink -f "$0")")/../libexec/basalt-shell" /usr/local/libexec/basalt-shell /usr/libexec/basalt-shell; do
+      if [ -x "$d/basalt-vm-cursor" ]; then
+        out=$("$d/basalt-vm-cursor" 2>&1) || true
+        [ -n "$out" ] && log "$out"
+        break
+      fi
+    done
+  fi
+fi
+
 conf=${XDG_CONFIG_HOME:-$HOME/.config}/basalt-shell
 mkdir -p "$conf/sway.d"
 

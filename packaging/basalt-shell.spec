@@ -225,6 +225,18 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Tue Oct 06 2026 Basalt OS developers - 0.5.1-1
+- basalt-session: in a virtual machine (virtio-gpu, QXL, bochs, Cirrus,
+  VMware SVGA, VirtualBox, Hyper-V, or the firmware framebuffer under a
+  hypervisor) sway draws the pointer itself (WLR_NO_HARDWARE_CURSORS=1,
+  unless already set): on virtio-gpu the cursor plane's image reached the
+  viewer 41 rows below its hotspot, so the pointer seen in virt-manager
+  was not where clicks went and the top bar could not be reached. The
+  decision is logged to the journal (basalt-session).
+- basalt-vm-cursor (libexec): before such a session starts, gives the
+  hypervisor an empty, hidden cursor, so the viewer does not draw its own
+  pointer or one left by an earlier session next to the session's.
+
 * Mon Oct 05 2026 Basalt OS developers - 0.5.0-1
 - Settings, Additional drivers: the graphics hardware, the NVIDIA driver
   of Basalt OS's basalt-nonfree repository for Turing and newer GPUs (what

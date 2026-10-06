@@ -28,7 +28,9 @@ elif [ "${BASALT_NESTED:-0}" != 1 ]; then
   # Portals left from an earlier session would talk to a dead display.
   systemctl --user stop xdg-desktop-portal.service xdg-desktop-portal-gtk.service \
     xdg-desktop-portal-wlr.service xdg-desktop-portal-gnome.service 2>/dev/null
+  # shellcheck disable=SC2086 # a list of variable names, split on purpose
   dbus-update-activation-environment --systemd $present
+  # shellcheck disable=SC2086 # same list
   systemctl --user import-environment $present
   # A session killed without cleanup (greeter restart, crash) leaves the
   # targets active and autostarted apps dead: restart them.

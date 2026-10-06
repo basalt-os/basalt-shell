@@ -1,6 +1,6 @@
 # basalt-shell
 
-> Pre-release prototype (0.5.0). Expect breaking changes. Part of
+> Pre-release prototype (0.5.1). Expect breaking changes. Part of
 > [Basalt OS](https://basalt-os.org), a Linux distribution built as a
 > Fedora remix; not affiliated with or endorsed by the Fedora Project or
 > Red Hat.
