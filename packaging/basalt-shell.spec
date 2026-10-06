@@ -286,6 +286,11 @@ fi
   person confirms; agents can neither propose nor call it (person-only
   actions are no longer listed as MCP tools). swayidle also locks on
   logind's lock request.
+- Voice: the answer to the last utterance no longer closes the card of
+  a new one started meanwhile (and is not spoken over it), and the
+  spoken answer uses its own connection to the voice service, so a press
+  made while an answer is being synthesized opens the microphone at
+  once. Both found in the 0.6.2 lab run.
 
 * Tue Oct 06 2026 Basalt OS developers - 0.6.1-1
 - Settings, Additional drivers: with a system assistant older than

@@ -139,21 +139,23 @@ func (c *Core) voiceListening() (bool, pttSession, uint64) {
 }
 
 // takeListening ends the utterance gen if it is still the open one, so
-// only one of the key, the limit, the silence and Escape ends it.
-func (c *Core) takeListening(gen uint64) bool {
+// only one of the key, the limit, the silence and Escape ends it. It
+// returns the generation of the turn that answers it.
+func (c *Core) takeListening(gen uint64) (uint64, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.voice.State != "listening" || c.voiceGen != gen {
-		return false
+		return 0, false
 	}
 	c.voiceGen++
-	return true
+	return c.voiceGen, true
 }
 
 // stopListening closes the microphone and sends the words (the end of
 // an utterance for any reason but a cancel).
 func (c *Core) stopListening(gen uint64, reason string) {
-	if !c.takeListening(gen) {
+	turn, ok := c.takeListening(gen)
+	if !ok {
 		return
 	}
 	c.voiceKeys(false)
@@ -161,8 +163,8 @@ func (c *Core) stopListening(gen uint64, reason string) {
 	if reason != "release" && reason != "key" {
 		_, _ = c.Audit.Append("voice", "daemon", "microphone closed by itself ("+reason+")", map[string]any{"reason": reason})
 	}
-	c.setVoice(VoiceState{State: "transcribing"})
-	go c.voiceTurn(release)
+	c.setVoiceTurn(turn, VoiceState{State: "transcribing"})
+	go c.voiceTurnFor(release, turn)
 }
 
 // voiceKeys turns the compositor's voice key mode on or off (sway:

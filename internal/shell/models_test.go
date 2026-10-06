@@ -232,6 +232,11 @@ func TestVoicePressOffersSpeechModel(t *testing.T) {
 	if !notified {
 		t.Fatal("no notification when voice was ready")
 	}
+	// The notification and the card are two steps: give the card a moment
+	// (this failed now and then under -race, also before 0.6.2).
+	for end := time.Now().Add(2 * time.Second); time.Now().Before(end) && c.VoiceStatus().State != "idle"; {
+		time.Sleep(10 * time.Millisecond)
+	}
 	if st := c.VoiceStatus(); st.State != "idle" || !strings.Contains(st.Note, "Voice is ready") {
 		t.Errorf("card after the download: %+v", st)
 	}

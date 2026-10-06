@@ -94,6 +94,12 @@ the card takes the keyboard while the words go to the assistant, so
 Escape works; while dictating into a field it does not take it (that
 would end the field's input method session) and Cancel is the way.
 
+A press while the last answer is still being worked on starts a new
+utterance at once: the old answer is still shown, but it neither closes
+the new card nor is spoken over the person (each utterance has a
+generation; `speak` uses its own connection to the voice service, whose
+`listen` stops an answer being spoken).
+
 The silence is measured by the voice service while it records, with a
 small energy detector (`internal/voice/Endpointer`: 20 ms frames, a noise
 floor that follows the room, speech as at least 80 ms over three times

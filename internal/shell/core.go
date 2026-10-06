@@ -152,6 +152,7 @@ type Core struct {
 	voiceModel       string          // the speech model chosen when the key went down
 	voiceSession     pttSession      // how the open microphone was opened (ptt.go)
 	voiceGen         uint64          // the open utterance; bumped when it ends
+	speakClient      *voice.Client   // the voice service connection for "speak" (skills.go)
 	llmDeclined      bool            // Not now on the local model offer, this session
 	voiceLangNoticed map[string]bool // answer languages told "shown, not spoken" this session
 	// prefs are the person's voice and assistant settings (voiceprefs.go).

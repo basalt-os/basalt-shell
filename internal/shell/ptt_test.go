@@ -267,3 +267,34 @@ func TestPushToTalkLimitAndSilence(t *testing.T) {
 		t.Fatalf("still listening after the silence")
 	}
 }
+
+// TestPushToTalkOldTurn: the answer to the last utterance, arriving
+// while the person already speaks again, neither closes the new card nor
+// speaks over them (found in the lab).
+func TestPushToTalkOldTurn(t *testing.T) {
+	c, fv, _ := pttCore(t, voiceprefs.Prefs{PushToTalk: "toggle", AutoStopSilence: "0", AnswerLang: "en-US"})
+	ctx := context.Background()
+	// A first utterance, stopped: its turn is the old one.
+	_ = c.VoicePress(ctx, false)
+	listening, _, gen := c.voiceListening()
+	old, ok := c.takeListening(gen)
+	if !listening || !ok || old == 0 {
+		t.Fatal("no first utterance")
+	}
+	c.setVoiceTurn(old, VoiceState{State: "thinking"})
+	if err := c.VoicePress(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+	fv.take()
+	c.voiceTurnFor(time.Now(), old)
+	if st := c.VoiceStatus(); st.State != "listening" {
+		t.Fatalf("the old turn changed the card: %+v", st)
+	}
+	if ops := fv.take(); hasOp(ops, "speak") || !hasOp(ops, "stop") {
+		t.Fatalf("the old turn sent %v", ops)
+	}
+	// The second press still stops the new utterance.
+	backdate(c, time.Second)
+	_ = c.VoicePress(ctx, false)
+	waitOp(t, fv, "stop")
+}

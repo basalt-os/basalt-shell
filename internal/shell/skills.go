@@ -243,7 +243,15 @@ type VoiceState struct {
 	Download *models.Job   `json:"download,omitempty"`
 }
 
-func (c *Core) setVoice(st VoiceState) {
+func (c *Core) setVoice(st VoiceState) { c.setVoiceTurn(0, st) }
+
+// setVoiceTurn sets the card for the utterance turn (0: whatever is
+// going on). A turn that a newer press superseded changes nothing: the
+// answer to the last utterance must not close the card of the next one
+// (found in the lab: a press while the previous answer was being worked
+// on showed "listening", then the old turn set the card to idle and the
+// next press opened the microphone again instead of stopping).
+func (c *Core) setVoiceTurn(turn uint64, st VoiceState) bool {
 	st.Since = time.Now().UTC()
 	st.Enabled = c.voiceInstalled()
 	if st.Lang == "" {
@@ -255,9 +263,36 @@ func (c *Core) setVoice(st VoiceState) {
 		st.LangName = nativeName(st.Lang)
 	}
 	c.mu.Lock()
+	if turn != 0 && c.voiceGen != turn {
+		c.mu.Unlock()
+		return false
+	}
 	c.voice = st
 	c.mu.Unlock()
 	c.Broadcast("voice", st)
+	return true
+}
+
+// speaker is a second connection to the voice service, for "speak"
+// only: a speak waits for the first sentence to be synthesized (seconds
+// for a cold Piper), and on the shared connection a press made meanwhile
+// waited for it before the microphone opened (found in the lab). The
+// voice service serves each connection on its own, and its "listen"
+// stops the answer being spoken.
+func (c *Core) speaker() *voice.Client {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.speakClient == nil || c.speakClient.Path != c.Voice.Path {
+		c.speakClient = &voice.Client{Path: c.Voice.Path}
+	}
+	return c.speakClient
+}
+
+// voiceCurrent is the utterance generation now (see ptt.go).
+func (c *Core) voiceCurrent() uint64 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.voiceGen
 }
 
 // VoiceStatus returns the current voice state.
@@ -395,7 +430,12 @@ func (c *Core) VoiceRelease(ctx context.Context) error {
 	return nil
 }
 
-func (c *Core) voiceTurn(release time.Time) {
+func (c *Core) voiceTurn(release time.Time) { c.voiceTurnFor(release, c.voiceCurrent()) }
+
+// voiceTurnFor answers the utterance that ended at release; turn is the
+// generation it left (a newer press supersedes it: its card and its
+// spoken answer are then dropped, the answer is still shown).
+func (c *Core) voiceTurnFor(release time.Time, turn uint64) {
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 	timing := map[string]int64{}
@@ -417,7 +457,7 @@ func (c *Core) voiceTurn(release time.Time) {
 			}
 			msg = voiceError(err, model)
 		}
-		c.setVoice(VoiceState{State: "error", Error: msg})
+		c.setVoiceTurn(turn, VoiceState{State: "error", Error: msg})
 		return
 	}
 	tr := rep.Transcript
@@ -427,7 +467,7 @@ func (c *Core) voiceTurn(release time.Time) {
 	if !tr.Speech || strings.TrimSpace(tr.Text) == "" {
 		// Nothing understood (silence, noise, or a key let go at once): a
 		// friendly note on the card, not an error.
-		c.setVoice(VoiceState{State: "idle", Note: i18n.G("I did not catch that. Try again."), Mode: rt.Mode, Timing: timing})
+		c.setVoiceTurn(turn, VoiceState{State: "idle", Note: i18n.G("I did not catch that. Try again."), Mode: rt.Mode, Timing: timing})
 		_, _ = c.Audit.Append("voice", "voice", "no speech", map[string]any{"timing": timing, "level": tr.Level})
 		return
 	}
@@ -443,22 +483,22 @@ func (c *Core) voiceTurn(release time.Time) {
 		pr, err := c.dictate(ctx, rt, tr.Text)
 		timing["release_to_preview"] = time.Since(release).Milliseconds()
 		if err != nil {
-			c.setVoice(VoiceState{State: "error", Error: err.Error(), Mode: rt.Mode, Target: rt.Target, Timing: timing})
+			c.setVoiceTurn(turn, VoiceState{State: "error", Error: err.Error(), Mode: rt.Mode, Target: rt.Target, Timing: timing})
 			return
 		}
 		_, _ = c.Audit.Append("voice", "voice", "dictation shown for confirmation", map[string]any{"timing": timing, "stt_model": tr.Model,
 			"target": rt.Target, "chars": len([]rune(tr.Text))})
-		c.setVoice(VoiceState{State: "dictation", Text: tr.Text, Mode: rt.Mode, Target: rt.Target, Proposal: pr.ID, Timing: timing})
+		c.setVoiceTurn(turn, VoiceState{State: "dictation", Text: tr.Text, Mode: rt.Mode, Target: rt.Target, Proposal: pr.ID, Timing: timing})
 		go func() {
 			// The card goes back to idle when the dictation is decided.
 			_, _ = c.Wait(context.Background(), pr.ID)
 			if st := c.VoiceStatus(); st.Proposal == pr.ID {
-				c.setVoice(VoiceState{State: "idle", Text: tr.Text, Mode: rt.Mode, Target: rt.Target})
+				c.setVoiceTurn(turn, VoiceState{State: "idle", Text: tr.Text, Mode: rt.Mode, Target: rt.Target})
 			}
 		}()
 		return
 	}
-	c.setVoice(VoiceState{State: "thinking", Text: request, Mode: rt.Mode, Target: rt.Target, Note: rt.Note, Timing: timing})
+	c.setVoiceTurn(turn, VoiceState{State: "thinking", Text: request, Mode: rt.Mode, Target: rt.Target, Note: rt.Note, Timing: timing})
 	t := time.Now()
 	res := c.Ask(ctx, request)
 	timing["answer"] = time.Since(t).Milliseconds()
@@ -500,9 +540,13 @@ func (c *Core) voiceTurn(release time.Time) {
 	} else {
 		speech = ""
 	}
+	if speech != "" && c.voiceCurrent() != turn {
+		// The person already pressed again: do not speak over them.
+		speech = ""
+	}
 	if speech != "" {
-		c.setVoice(VoiceState{State: "speaking", Text: tr.Text, Timing: timing})
-		r, err := c.Voice.Do(ctx, voice.Request{Op: "speak", Text: speech, Voice: voiceName})
+		c.setVoiceTurn(turn, VoiceState{State: "speaking", Text: tr.Text, Timing: timing})
+		r, err := c.speaker().Do(ctx, voice.Request{Op: "speak", Text: speech, Voice: voiceName})
 		if err == nil && r.Spoken != nil {
 			sp = r.Spoken
 			timing["tts_first_audio"] = sp.FirstAudioMS
@@ -511,7 +555,7 @@ func (c *Core) voiceTurn(release time.Time) {
 	}
 	_, _ = c.Audit.Append("voice", "voice", tr.Text, map[string]any{"timing": timing, "stt_model": tr.Model, "stt_language": tr.Lang,
 		"answer_language": eff.AnswerLang, "kind": res.Kind, "spoken": speech, "level": tr.Level, "tts": sp})
-	c.setVoice(VoiceState{State: "idle", Text: tr.Text, Timing: timing, Note: note})
+	c.setVoiceTurn(turn, VoiceState{State: "idle", Text: tr.Text, Timing: timing, Note: note})
 }
 
 // nativeName is a language's own name for the person ("Português
@@ -613,8 +657,10 @@ func (c *Core) WatchVoice(ctx context.Context) {
 // card's Cancel): the microphone closes and nothing is transcribed.
 func (c *Core) VoiceCancel(ctx context.Context) {
 	if listening, s, gen := c.voiceListening(); listening {
-		if act, _ := pttDecide(pttCancel, true, s, time.Now(), pttSignal{}); act == pttDropWords && c.takeListening(gen) {
-			_, _ = c.Audit.Append("voice", "ui", "microphone closed, words dropped (cancel)", nil)
+		if act, _ := pttDecide(pttCancel, true, s, time.Now(), pttSignal{}); act == pttDropWords {
+			if _, ok := c.takeListening(gen); ok {
+				_, _ = c.Audit.Append("voice", "ui", "microphone closed, words dropped (cancel)", nil)
+			}
 		}
 	}
 	c.voiceKeys(false)
