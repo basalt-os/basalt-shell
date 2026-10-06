@@ -1,0 +1,4 @@
+/usr/libexec/basalt-greeter/basalt-greeter		--	gen_context(system_u:object_r:basalt_greeter_exec_t,s0)
+/usr/local/libexec/basalt-greeter/basalt-greeter	--	gen_context(system_u:object_r:basalt_greeter_exec_t,s0)
+/run/basalt-greeter(/.*)?				gen_context(system_u:object_r:basalt_greeter_runtime_t,s0)
+/var/cache/basalt-greeter(/.*)?				gen_context(system_u:object_r:basalt_greeter_cache_t,s0)

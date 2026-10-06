@@ -1,0 +1,37 @@
+#!/bin/sh
+# Runs the greeter UI inside the greeter's sway (exec from sway.conf),
+# writes how it ended to $BASALT_GREETER_RUN/status and ends sway.
+#   0          a session was started (Quickshell quits after greetd's yes)
+#   noready    the screen never reported it was drawn (watchdog)
+#   anything   Quickshell's exit status
+set -u
+share=${BASALT_GREETER_DATA:-/usr/share/basalt-greeter}
+run=${BASALT_GREETER_RUN:-/run/basalt-greeter}
+timeout=${BASALT_GREETER_READY_TIMEOUT:-30}
+
+quickshell -p "$share/qml" >"$run/ui.log" 2>&1 &
+qs=$!
+
+# Watchdog: the UI writes $run/ready once its screen is up.
+(
+  i=0
+  while [ "$i" -lt "$timeout" ]; do
+    [ -e "$run/ready" ] && exit 0
+    kill -0 "$qs" 2>/dev/null || exit 0
+    sleep 1
+    i=$((i + 1))
+  done
+  echo noready >"$run/status.watchdog"
+  kill "$qs" 2>/dev/null
+) &
+
+wait "$qs"
+rc=$?
+if [ -e "$run/status.watchdog" ]; then
+  mv -f "$run/status.watchdog" "$run/status"
+elif [ "$rc" = 0 ] && [ ! -e "$run/ready" ]; then
+  echo noready >"$run/status"
+else
+  echo "$rc" >"$run/status"
+fi
+swaymsg exit >/dev/null 2>&1

@@ -1,0 +1,59 @@
+#!/bin/sh
+# The greeter greetd runs (default_session of /etc/basalt/greetd.toml) on
+# the Basalt OS desktop edition: the graphical login screen, and the text
+# login (tuigreet) when the graphical one cannot run, so the person can
+# always log in.
+#
+# Text login instead of the graphical one when:
+#   - /etc/basalt/greeter.conf says GREETER=text;
+#   - there is no display device (/dev/dri/card*);
+#   - the graphical greeter failed twice since boot (crashed, or never
+#     drew its screen), counted in /run/basalt-greeter/failures;
+#   - it fails now: tuigreet starts at once, on the same terminal.
+#
+# Runs as the greeter user in greetd's domain; the graphical greeter
+# itself runs confined (basalt_greeter_t, see selinux/basalt_greeter.te).
+set -u
+cd / || exit 1
+
+libexec=${BASALT_GREETER_LIBEXEC:-/usr/libexec/basalt-greeter}
+run=${BASALT_GREETER_RUN:-/run/basalt-greeter}
+conf=${BASALT_GREETER_CONF:-/etc/basalt/greeter.conf}
+
+log() {
+  command -v logger >/dev/null 2>&1 && logger -t basalt-greeter -- "$*" 2>/dev/null
+  return 0
+}
+
+text_login() {
+  log "text login (tuigreet): $1"
+  exec tuigreet --time --remember --remember-session --asterisks \
+    --sessions /usr/share/wayland-sessions --cmd 'basalt-session sway'
+}
+
+mode=graphical
+if [ -r "$conf" ]; then
+  v=$(sed -n 's/^[[:space:]]*GREETER[[:space:]]*=[[:space:]]*"\{0,1\}\([a-z]*\)"\{0,1\}[[:space:]]*$/\1/p' "$conf" | tail -n 1)
+  [ -n "$v" ] && mode=$v
+fi
+[ "$mode" = text ] && text_login "GREETER=text in $conf"
+
+found=0
+for c in /dev/dri/card*; do [ -e "$c" ] && found=1 && break; done
+[ "$found" = 1 ] || text_login "no display device"
+
+failures=0
+[ -r "$run/failures" ] && failures=$(cat "$run/failures" 2>/dev/null)
+case $failures in '' | *[!0-9]*) failures=0 ;; esac
+[ "$failures" -ge 2 ] && text_login "the graphical greeter failed $failures times since boot"
+
+status=127
+[ -x "$libexec/basalt-greeter" ] && { "$libexec/basalt-greeter"; status=$?; }
+if [ "$status" = 0 ]; then
+  # A session was started (or the computer is going down).
+  [ -w "$run" ] && echo 0 >"$run/failures"
+  exit 0
+fi
+failures=$((failures + 1))
+[ -w "$run" ] && echo "$failures" >"$run/failures"
+text_login "the graphical greeter ended with status $status"

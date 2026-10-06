@@ -1,0 +1,100 @@
+#!/bin/sh
+# The graphical login screen: sway with a locked configuration (no key
+# bindings, no bar, no XWayland) running the greeter UI (Quickshell),
+# which talks to greetd over GREETD_SOCK. Started by greeter-session; its
+# exit status tells greeter-session whether the screen worked: 0 after a
+# session was started, anything else falls back to the text login.
+#
+# Entry point of the basalt_greeter_t SELinux domain.
+set -u
+cd / || exit 3
+
+share=${BASALT_GREETER_DATA:-/usr/share/basalt-greeter}
+run=${BASALT_GREETER_RUN:-/run/basalt-greeter}
+export BASALT_GREETER_DATA="$share" BASALT_GREETER_RUN="$run"
+export BASALT_GREETER_STATE="${BASALT_GREETER_STATE:-/var/cache/basalt-greeter}"
+
+log() {
+  command -v logger >/dev/null 2>&1 && logger -t basalt-greeter -- "$*" 2>/dev/null
+  return 0
+}
+
+[ -n "${GREETD_SOCK:-}" ] || { log "GREETD_SOCK is not set: not started by greetd"; exit 3; }
+[ -d "$run" ] && [ -w "$run" ] || { log "$run is missing or not writable"; exit 3; }
+rm -f "$run/ready" "$run/status"
+
+# The greeter's own runtime directory (Wayland and sway sockets,
+# Quickshell's logs): inside its runtime files, so its SELinux domain needs
+# nothing of the user runtime directories under /run/user.
+export XDG_RUNTIME_DIR="$run/xdg"
+rm -rf "$XDG_RUNTIME_DIR"
+mkdir -m 0700 "$XDG_RUNTIME_DIR" || { log "cannot create $XDG_RUNTIME_DIR"; exit 3; }
+
+# Caches of the greeter user (Mesa shaders, Qt's QML cache, fontconfig):
+# in the greeter's own state directory, never in a person's home.
+export HOME="$BASALT_GREETER_STATE"
+export XDG_CACHE_HOME="$BASALT_GREETER_STATE/cache"
+export XDG_CONFIG_HOME="$BASALT_GREETER_STATE/config"
+export XDG_DATA_HOME="$BASALT_GREETER_STATE/data"
+export XDG_STATE_HOME="$BASALT_GREETER_STATE/state"
+mkdir -p "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_STATE_HOME" 2>/dev/null
+
+# The keyboard layout of the system (localectl set-x11-keymap writes
+# 00-keyboard.conf; a console keymap like "br-abnt2" gives "br").
+kb=/etc/X11/xorg.conf.d/00-keyboard.conf
+xkb() { sed -n "s/^[[:space:]]*Option[[:space:]]*\"$1\"[[:space:]]*\"\([^\"]*\)\".*/\1/p" "$kb" 2>/dev/null | head -n 1; }
+layout=$(xkb XkbLayout)
+if [ -n "$layout" ]; then
+  export XKB_DEFAULT_LAYOUT="$layout"
+  v=$(xkb XkbVariant); [ -n "$v" ] && export XKB_DEFAULT_VARIANT="$v"
+  v=$(xkb XkbOptions); [ -n "$v" ] && export XKB_DEFAULT_OPTIONS="$v"
+  v=$(xkb XkbModel); [ -n "$v" ] && export XKB_DEFAULT_MODEL="$v"
+elif [ -r /etc/vconsole.conf ]; then
+  km=$(sed -n 's/^KEYMAP="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' /etc/vconsole.conf | head -n 1)
+  case $km in
+    '') ;;
+    uk) export XKB_DEFAULT_LAYOUT=gb ;;
+    br-abnt2 | br-abnt) export XKB_DEFAULT_LAYOUT=br ;;
+    *) export XKB_DEFAULT_LAYOUT="${km%%-*}" ;;
+  esac
+fi
+
+# Toolkit and renderer: Wayland only, no window decorations; software
+# rendering allowed (VMs and machines without a GPU), like the session.
+export XDG_SESSION_TYPE=wayland
+export QT_QPA_PLATFORM=wayland
+export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+export WLR_RENDERER_ALLOW_SOFTWARE=1
+export XCURSOR_THEME=Adwaita XCURSOR_SIZE=24
+# Quickshell's debug messages (greetd replies among them) stay off.
+export QT_LOGGING_RULES="*.debug=false"
+# Nothing from the greeter user's environment may steer Qt or Quickshell,
+# and the greeter has no session bus (only the system bus: logind,
+# NetworkManager, UPower).
+unset QT_PLUGIN_PATH QML2_IMPORT_PATH QML_IMPORT_PATH LD_PRELOAD LD_LIBRARY_PATH QT_QPA_PLATFORMTHEME DBUS_SESSION_BUS_ADDRESS
+# QML runs interpreted: no just-in-time code, so the domain needs no
+# executable shared memory.
+export QV4_FORCE_INTERPRETER=1
+
+# Virtual GPUs draw the pointer from the cursor plane at the wrong place
+# (see basalt-session): the compositor draws it instead.
+if grep -qw hypervisor /proc/cpuinfo 2>/dev/null; then
+  export WLR_NO_HARDWARE_CURSORS=1
+fi
+
+# sway refuses to start while NVIDIA's kernel module is loaded unless told.
+flags=""
+[ -d /sys/module/nvidia ] && flags="--unsupported-gpu"
+
+# shellcheck disable=SC2086
+sway $flags --config "$share/sway.conf" >"$run/sway.log" 2>&1 &
+pid=$!
+wait "$pid"
+sway_status=$?
+
+status=$(cat "$run/status" 2>/dev/null)
+case $status in
+  '') log "the greeter ended without a status (sway exited with $sway_status)"; exit 4 ;;
+  0) exit 0 ;;
+  *) log "the greeter failed: $status"; exit 5 ;;
+esac

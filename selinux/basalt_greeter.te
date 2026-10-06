@@ -1,0 +1,196 @@
+policy_module(basalt_greeter, 0.1.0)
+
+########################################
+#
+# Basalt OS login screen (basalt-greeter).
+#
+#   basalt_greeter_t   the graphical greeter: the launcher script, the
+#                      greeter's sway and the greeter UI (Quickshell), all
+#                      as greetd's greeter user. Entered when greetd's
+#                      greeter (xdm_t on Fedora) runs
+#                      /usr/libexec/basalt-greeter/basalt-greeter.
+#
+# What it may do: draw on the screen (DRM, input devices handed over by
+# logind), talk to greetd over its socket (the password goes there and
+# nowhere else), read who can log in (/etc/passwd, AccountsService
+# pictures), the installed sessions, fonts and themes, ask NetworkManager
+# and UPower for the status icons, ask logind to suspend, restart or power
+# off (logind and polkit decide), and keep its own files: the runtime
+# directory /run/basalt-greeter and the memory /var/cache/basalt-greeter.
+#
+# What it may not do: read /etc/shadow or any password database, people's
+# home directories or runtime directories, start sessions itself (greetd
+# does, after PAM), reach the network, or run as another domain. The text
+# login fallback (tuigreet) does not run here: greeter-session starts it in
+# greetd's own domain, so a broken policy never locks people out.
+#
+
+require {
+	type xdm_t;
+	type xdm_var_run_t;
+	type xdm_var_lib_t;
+	type usr_t;
+	type shadow_t;
+	type user_home_dir_t;
+	type user_home_t;
+}
+
+type basalt_greeter_t;
+type basalt_greeter_exec_t;
+application_domain(basalt_greeter_t, basalt_greeter_exec_t)
+role system_r types basalt_greeter_t;
+
+# /run/basalt-greeter: ready and status files, the failure count, the
+# greeter's XDG_RUNTIME_DIR (Wayland and sway sockets).
+type basalt_greeter_runtime_t;
+files_pid_file(basalt_greeter_runtime_t)
+
+# /var/cache/basalt-greeter: last user and session, accessibility choices,
+# and the caches of the greeter user (Mesa shaders, fontconfig, QML).
+type basalt_greeter_cache_t;
+files_type(basalt_greeter_cache_t)
+
+# Shared memory (Wayland buffers, memfd).
+type basalt_greeter_tmpfs_t;
+files_tmpfs_file(basalt_greeter_tmpfs_t)
+
+########################################
+#
+# Entering the domain.
+#
+
+# greetd's greeter runs the launcher.
+domtrans_pattern(xdm_t, basalt_greeter_exec_t, basalt_greeter_t)
+allow xdm_t basalt_greeter_t:process { signal sigkill };
+# greeter-session (in xdm_t) keeps the failure count of this boot.
+allow xdm_t basalt_greeter_runtime_t:dir rw_dir_perms;
+allow xdm_t basalt_greeter_runtime_t:file manage_file_perms;
+
+optional_policy(`
+	# An administrator may run it by hand for testing.
+	unconfined_run_to(basalt_greeter_t, basalt_greeter_exec_t)
+')
+
+########################################
+#
+# The domain.
+#
+
+allow basalt_greeter_t self:process { signal sigkill getsched setsched execmem getcap setcap };
+allow basalt_greeter_t self:fifo_file rw_fifo_file_perms;
+allow basalt_greeter_t self:unix_stream_socket { create_stream_socket_perms connectto };
+allow basalt_greeter_t self:unix_dgram_socket create_socket_perms;
+allow basalt_greeter_t self:netlink_kobject_uevent_socket create_socket_perms;
+allow basalt_greeter_t self:capability { sys_nice };
+dontaudit basalt_greeter_t self:capability { sys_admin dac_override dac_read_search };
+
+# Its programs: the scripts, sway, Quickshell, swaymsg, nmcli, systemctl,
+# coreutils.
+can_exec(basalt_greeter_t, basalt_greeter_exec_t)
+corecmd_exec_bin(basalt_greeter_t)
+corecmd_exec_shell(basalt_greeter_t)
+corecmd_read_bin_symlinks(basalt_greeter_t)
+
+# Its own files.
+manage_dirs_pattern(basalt_greeter_t, basalt_greeter_runtime_t, basalt_greeter_runtime_t)
+manage_files_pattern(basalt_greeter_t, basalt_greeter_runtime_t, basalt_greeter_runtime_t)
+manage_sock_files_pattern(basalt_greeter_t, basalt_greeter_runtime_t, basalt_greeter_runtime_t)
+manage_lnk_files_pattern(basalt_greeter_t, basalt_greeter_runtime_t, basalt_greeter_runtime_t)
+files_pid_filetrans(basalt_greeter_t, basalt_greeter_runtime_t, dir, "basalt-greeter")
+manage_dirs_pattern(basalt_greeter_t, basalt_greeter_cache_t, basalt_greeter_cache_t)
+manage_files_pattern(basalt_greeter_t, basalt_greeter_cache_t, basalt_greeter_cache_t)
+manage_lnk_files_pattern(basalt_greeter_t, basalt_greeter_cache_t, basalt_greeter_cache_t)
+allow basalt_greeter_t basalt_greeter_cache_t:file map;
+files_search_var(basalt_greeter_t)
+files_search_pids(basalt_greeter_t)
+manage_files_pattern(basalt_greeter_t, basalt_greeter_tmpfs_t, basalt_greeter_tmpfs_t)
+allow basalt_greeter_t basalt_greeter_tmpfs_t:file map;
+fs_tmpfs_filetrans(basalt_greeter_t, basalt_greeter_tmpfs_t, file)
+
+# greetd: its socket, its file descriptors (the terminal), its signals.
+allow basalt_greeter_t xdm_t:unix_stream_socket connectto;
+allow basalt_greeter_t xdm_var_run_t:sock_file write;
+allow basalt_greeter_t xdm_t:fd use;
+allow basalt_greeter_t xdm_t:process sigchld;
+allow basalt_greeter_t xdm_t:fifo_file rw_fifo_file_perms;
+term_use_unallocated_ttys(basalt_greeter_t)
+term_use_generic_ptys(basalt_greeter_t)
+
+# The screen and the input devices (logind hands the devices over).
+dev_rw_dri(basalt_greeter_t)
+dev_rw_input_dev(basalt_greeter_t)
+# wlroots allocates its buffers with udmabuf when it renders in software
+# (no GPU).
+dev_rw_dma_dev(basalt_greeter_t)
+dev_read_sysfs(basalt_greeter_t)
+dev_read_urand(basalt_greeter_t)
+dev_rw_null(basalt_greeter_t)
+dev_read_rand(basalt_greeter_t)
+dev_getattr_all_chr_files(basalt_greeter_t)
+udev_read_db(basalt_greeter_t)
+kernel_read_system_state(basalt_greeter_t)
+kernel_read_kernel_sysctls(basalt_greeter_t)
+fs_getattr_all_fs(basalt_greeter_t)
+fs_search_auto_mountpoints(basalt_greeter_t)
+fs_read_dos_files(basalt_greeter_t)
+
+# What it reads: who can log in, sessions, themes, fonts, locale.
+files_read_etc_files(basalt_greeter_t)
+files_read_usr_files(basalt_greeter_t)
+files_read_usr_symlinks(basalt_greeter_t)
+files_read_etc_runtime_files(basalt_greeter_t)
+files_search_var_lib(basalt_greeter_t)
+auth_read_passwd(basalt_greeter_t)
+auth_use_nsswitch(basalt_greeter_t)
+miscfiles_read_fonts(basalt_greeter_t)
+miscfiles_read_localization(basalt_greeter_t)
+miscfiles_read_generic_certs(basalt_greeter_t)
+libs_use_ld_so(basalt_greeter_t)
+libs_use_shared_libs(basalt_greeter_t)
+logging_send_syslog_msg(basalt_greeter_t)
+userdom_use_user_terminals(basalt_greeter_t)
+
+# The system bus: logind (devices, power), NetworkManager and UPower for
+# the status icons.
+dbus_system_bus_client(basalt_greeter_t)
+systemd_dbus_chat_logind(basalt_greeter_t)
+systemd_exec_systemctl(basalt_greeter_t)
+systemd_read_logind_sessions_files(basalt_greeter_t)
+init_read_state(basalt_greeter_t)
+init_dbus_chat(basalt_greeter_t)
+init_stream_connect(basalt_greeter_t)
+
+# The keyboard layout of the system (/etc/X11/xorg.conf.d), and greetd's
+# home directory, the greeter's working directory when it starts.
+xserver_read_config(basalt_greeter_t)
+xserver_search_xdm_lib(basalt_greeter_t)
+allow basalt_greeter_t xdm_var_lib_t:dir getattr;
+# Qt probes once for executable memory (its JIT for QML and regular
+# expressions); refused, it runs them interpreted, which the greeter wants.
+dontaudit basalt_greeter_t basalt_greeter_tmpfs_t:file { execute execmod };
+# Quickshell watches its QML files for live reload; the greeter does not
+# reload, and /usr is not to be watched.
+dontaudit basalt_greeter_t usr_t:{ file dir } watch;
+
+optional_policy(`
+	accountsd_read_lib_files(basalt_greeter_t)
+')
+optional_policy(`
+	devicekit_dbus_chat_power(basalt_greeter_t)
+')
+optional_policy(`
+	networkmanager_dbus_chat(basalt_greeter_t)
+')
+optional_policy(`
+	policykit_dbus_chat(basalt_greeter_t)
+')
+
+########################################
+#
+# What the login screen never gets: no password database, no one's home.
+# (Fedora does not check neverallow at install; these document the intent
+# and the policy above grants none of it.)
+#
+
+neverallow basalt_greeter_t shadow_t:file ~getattr;
+neverallow basalt_greeter_t { user_home_dir_t user_home_t }:file { read write open };

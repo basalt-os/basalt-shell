@@ -1,6 +1,6 @@
 # basalt-shell
 
-> Pre-release prototype (0.5.1). Expect breaking changes. Part of
+> Pre-release prototype (0.7.0). Expect breaking changes. Part of
 > [Basalt OS](https://basalt-os.org), a Linux distribution built as a
 > Fedora remix; not affiliated with or endorsed by the Fedora Project or
 > Red Hat.
@@ -52,8 +52,8 @@ More screenshots and short recordings are in [media/](media/).
 
 A working prototype, not yet a release: everything below runs on sway and
 niri on Fedora 44, in a lab VM and in the container described under "Try
-it". Before 1.0 it still needs a greeter and a lock screen of its own (it
-uses tuigreet and a themed swaylock today), more typed actions, an
+it". Before 1.0 it still needs a lock screen of its own (a themed swaylock
+today), more typed actions, an
 independent review of the confirmation boundary, and translations. The
 packages are not yet in a public repository; until they are, build them
 from source (below) or try the shell in a container.
@@ -66,6 +66,7 @@ from source (below) or try the shell in a container.
 | `basalt-shell-ui` | Quickshell (Qt 6 / QML): panel, launcher, command bar, confirmation sheet, agent-control indicator, quick settings, notification center, activity feed, settings window, polkit dialog, wallpaper |
 | `basalt-shell mcp` | MCP server on stdio for a local model or any MCP client (confined in `basalt_agent_mcp_t`) |
 | `basalt-shell ctl`, `propose`, `screenshot` | the same from scripts |
+| `basalt-greeter` | the login screen: a greetd greeter in Quickshell, run by a locked-down sway, confined in `basalt_greeter_t`; the text login (tuigreet) takes over when it cannot run ([docs/greeter.md](docs/greeter.md)) |
 | `basalt-session sway, niri or headless` | starts a session; login entries "Basalt" and "Basalt (niri)"; `basalt-headless.service` |
 | `selinux/` | the `basalt_shell` policy module (docs/selinux.md), built on the agent family's `basalt_agent_base` |
 
@@ -108,7 +109,8 @@ Pick one.
 4. On Basalt OS: `sudo dnf install basalt-shell` from the Basalt OS
    repository (<https://obpkg.org/basalt>) once a release that includes it
    is published. The installer's desktop profile
-   (`basalt.profile=desktop`, see `lab/`) installs it with greetd.
+   (`basalt.profile=desktop`, see `lab/`) installs it with greetd and
+   the Basalt login screen.
 
 Keys: Super+Space launcher, Super+A command bar, Super+S quick settings,
 Super+N notifications, Super+Comma settings, Super+Return terminal,

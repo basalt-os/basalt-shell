@@ -10,7 +10,7 @@ GO ?= go
 GOFLAGS ?= -trimpath
 BUILD := build
 
-.PHONY: all build test vet install uninstall clean rpm selinux install-selinux help
+.PHONY: all build test test-greeter vet install install-greeter uninstall clean rpm selinux install-selinux help
 
 all: build
 
@@ -31,6 +31,11 @@ build:
 test:
 	$(GO) vet ./...
 	$(GO) test ./...
+	@if command -v node >/dev/null 2>&1; then $(MAKE) test-greeter; else echo "node not found: greeter logic tests skipped (make test-greeter)"; fi
+
+# The greeter's JavaScript logic (greeter/logic.js) with Node's test runner.
+test-greeter:
+	node --test greeter/tests/
 
 install:
 	test -x $(BUILD)/basalt-shell || $(MAKE) build
@@ -73,6 +78,18 @@ install:
 	install -Dm755 libexec/assistant-read $(DESTDIR)$(LIBEXECDIR)/basalt-shell/assistant-read
 	install -Dm644 config/polkit/org.openbasalt.shell.policy $(DESTDIR)$(POLKITDIR)/actions/org.openbasalt.shell.policy
 	install -Dm644 config/polkit/50-basalt-shell.rules $(DESTDIR)$(POLKITDIR)/rules.d/50-basalt-shell.rules
+	$(MAKE) install-greeter
+
+# The login screen (basalt-greeter): QML, catalogs, its sway configuration,
+# the launchers greetd runs, its configuration and runtime directories.
+install-greeter:
+	install -d $(DESTDIR)$(PREFIX)/share/basalt-greeter/qml $(DESTDIR)$(PREFIX)/share/basalt-greeter/locale $(DESTDIR)$(LIBEXECDIR)/basalt-greeter
+	install -m644 greeter/*.qml greeter/logic.js $(DESTDIR)$(PREFIX)/share/basalt-greeter/qml/
+	install -m644 greeter/locale/*.json $(DESTDIR)$(PREFIX)/share/basalt-greeter/locale/
+	install -m644 greeter/sway.conf $(DESTDIR)$(PREFIX)/share/basalt-greeter/sway.conf
+	install -m755 greeter/bin/greeter-session greeter/bin/basalt-greeter greeter/bin/greeter-ui $(DESTDIR)$(LIBEXECDIR)/basalt-greeter/
+	install -Dm644 config/greeter/greeter.conf $(DESTDIR)$(SYSCONFDIR)/basalt/greeter.conf
+	install -Dm644 config/greeter/basalt-greeter.tmpfiles $(DESTDIR)$(PREFIX)/lib/tmpfiles.d/basalt-greeter.conf
 
 uninstall:
 	rm -rf $(DESTDIR)$(PREFIX)/share/basalt-shell $(DESTDIR)$(LIBEXECDIR)/basalt-shell
@@ -82,17 +99,19 @@ uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-session.target $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-headless.service
 	rm -f $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-voice.service $(DESTDIR)$(PREFIX)/lib/systemd/user-preset/80-basalt-shell.preset
 	rm -f $(DESTDIR)$(POLKITDIR)/actions/org.openbasalt.shell.policy $(DESTDIR)$(POLKITDIR)/rules.d/50-basalt-shell.rules
+	rm -rf $(DESTDIR)$(PREFIX)/share/basalt-greeter $(DESTDIR)$(LIBEXECDIR)/basalt-greeter
+	rm -f $(DESTDIR)$(PREFIX)/lib/tmpfiles.d/basalt-greeter.conf
 
-# SELinux module basalt_shell: needs selinux-policy-devel and the agent
-# family's base module interface (basalt-agent-selinux installs
+# SELinux modules basalt_shell and basalt_greeter: need selinux-policy-devel
+# and the agent family's base module interface (basalt-agent-selinux installs
 # basalt_agent_base.if), or scripts/build-selinux.sh in a Fedora container.
 selinux:
 	mkdir -p $(BUILD)/selinux
 	cp selinux/*.te selinux/*.if selinux/*.fc $(BUILD)/selinux/
-	$(MAKE) -C $(BUILD)/selinux -f /usr/share/selinux/devel/Makefile basalt_shell.pp
+	$(MAKE) -C $(BUILD)/selinux -f /usr/share/selinux/devel/Makefile basalt_shell.pp basalt_greeter.pp
 
 install-selinux:
-	semodule -i $(BUILD)/selinux/basalt_shell.pp
+	semodule -i $(BUILD)/selinux/basalt_shell.pp $(BUILD)/selinux/basalt_greeter.pp
 	restorecon -F $(PREFIX)/bin/basalt-shell $(PREFIX)/bin/basalt-shelld $(PREFIX)/libexec/basalt-shell/basalt-shell-ui-launch \
 		$(PREFIX)/bin/basalt-voiced $(PREFIX)/libexec/basalt-shell/basalt-skill $(PREFIX)/libexec/basalt-shell/basalt-skill-index
 

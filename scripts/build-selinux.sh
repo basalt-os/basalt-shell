@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build the basalt_shell SELinux module in a Fedora container with
+# Build the basalt_shell and basalt_greeter SELinux modules in a Fedora container with
 # selinux-policy-devel, against the agent family's base module
 # basalt_agent_base (basalt-os repository, packages/basalt-agent/selinux; the
 # RPM build takes it from basalt-agent-selinux). The base module is built
@@ -23,6 +23,6 @@ rm -rf build/selinux && mkdir -p build/selinux
 cp selinux/*.te selinux/*.if selinux/*.fc "$base"/basalt_agent_base.{te,if,fc} build/selinux/
 $podman run --rm --net=host -v "$PWD/build/selinux:/m:Z" "registry.fedoraproject.org/fedora:$rel" bash -euc '
   dnf -y -q install selinux-policy-devel make >/dev/null
-  cd /m && make -f /usr/share/selinux/devel/Makefile basalt_agent_base.pp basalt_shell.pp
+  cd /m && make -f /usr/share/selinux/devel/Makefile basalt_agent_base.pp basalt_shell.pp basalt_greeter.pp
   rpm -q selinux-policy-devel > policy-version.txt'
 ls -1 build/selinux/*.pp
