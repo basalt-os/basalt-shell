@@ -42,9 +42,11 @@ Singleton {
     // The name of the control that holds the keyboard (navKey, e2e or its
     // label), for screen reader checks and the keyboard tests (ipc focused).
     property string focusedControl: ""
-    function noteFocused(name, on) {
-        if (on) focusedControl = name;
-        else if (focusedControl === name) focusedControl = "";
+    // The control itself, when its caller passes it (for ipc focusedRect).
+    property var focusedItem: null
+    function noteFocused(name, on, item) {
+        if (on) { focusedControl = name; focusedItem = item || null; }
+        else if (focusedControl === name) { focusedControl = ""; focusedItem = null; }
     }
 
     // Modal surfaces (authentication, confirmation, choice). While one is
@@ -195,6 +197,14 @@ Singleton {
         // For the keyboard tests (lab/keyboard): the control with the
         // keyboard focus, and the surfaces that are open.
         function focused(): string { return ui.focusedControl; }
+        // Where that control is drawn in its window: "x y width height"
+        // (the panel's window list must stay clear of the clock).
+        function focusedRect(): string {
+            const it = ui.focusedItem;
+            if (!it) return "";
+            const r = it.mapToItem(null, 0, 0);
+            return [r.x, r.y, it.width, it.height].map(v => Math.round(v)).join(" ");
+        }
         function surfaces(): string {
             return ["launcher", "commandbar", "quicksettings", "activity", "notifications", "settings", "power"]
                 .filter(s => ui.isOpen(s)).concat(ui.windowMenu ? ["windowmenu"] : []).concat(ui.panelFocus ? ["panel"] : [])

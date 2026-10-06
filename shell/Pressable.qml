@@ -60,7 +60,7 @@ Rectangle {
     Accessible.onToggleAction: p.clicked()
 
     onActiveFocusChanged: {
-        Ui.noteFocused(p.navKey || p.e2e || p.Accessible.name, activeFocus);
+        Ui.noteFocused(p.navKey || p.e2e || p.Accessible.name, activeFocus, p);
         if (activeFocus) { Nav.noteFocus(p); Nav.reveal(p); }
     }
 

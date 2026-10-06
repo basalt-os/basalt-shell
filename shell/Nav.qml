@@ -234,10 +234,13 @@ Singleton {
     }
 
     // reveal scrolls every Flickable around a newly focused control so the
-    // control (and its focus ring) is in view.
+    // control (and its focus ring) is in view: vertically, and
+    // horizontally where the content is wider than the view (the panel's
+    // window list).
     function reveal(it) {
         if (!it) return;
         const pad = Theme.focusWidth + Theme.focusOffset + Theme.s2;
+        const ring = Theme.focusWidth + Theme.focusOffset;
         let p = it.parent;
         while (p) {
             if (p.contentY !== undefined && p.contentHeight !== undefined && p.flicking !== undefined && p.contentItem) {
@@ -247,6 +250,13 @@ Singleton {
                 const max = Math.max(min, min + p.contentHeight - p.height);
                 if (top < p.contentY) p.contentY = Math.max(min, top);
                 else if (bottom > p.contentY + p.height) p.contentY = Math.min(max, bottom - p.height);
+                if (p.contentWidth > p.width) {
+                    const left = r.x - ring, right = r.x + it.width + ring;
+                    const minX = p.originX || 0;
+                    const maxX = Math.max(minX, minX + p.contentWidth - p.width);
+                    if (left < p.contentX) p.contentX = Math.max(minX, left);
+                    else if (right > p.contentX + p.width) p.contentX = Math.min(maxX, right - p.width);
+                }
             }
             p = p.parent;
         }

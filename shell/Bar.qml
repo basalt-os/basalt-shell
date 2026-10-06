@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Widgets
@@ -143,108 +144,171 @@ PanelWindow {
                 // the mouse, also one without a title bar of its own (X11 apps
                 // on niri) or with a compositor title bar (sway cannot draw
                 // buttons on it).
-                Row {
+                //
+                // It never reaches the clock in the middle: entries shrink
+                // down to their icon, and when even icons do not fit the list
+                // is clipped before the clock and scrolls (mouse wheel, drag),
+                // keeping the focused window in view. Before, entries stopped
+                // shrinking at a minimum width and many windows ran under the
+                // clock. Every entry stays a keyboard stop (a Row of
+                // Pressables, all created, in order, unlike a ListView's
+                // delegates): Left and Right reach the ones scrolled out, and
+                // Nav.reveal scrolls the list to the entry with the focus.
+                Flickable {
                     id: taskbar
-                    spacing: Theme.s1
-                    // Up to the clock in the middle (many windows used to run
-                    // under it).
-                    readonly property real maxWidth: Math.max(0, pill.width / 2 - clockBox.width / 2 - Theme.s3 - Theme.s1 - x)
-                    readonly property real itemWidth: bar.tasks.length > 0
-                        ? Math.max(Theme.panelHeight * 1.2, Math.min(Theme.fontSize * 15, (maxWidth - spacing * (bar.tasks.length - 1)) / bar.tasks.length))
+                    clip: true
+                    flickableDirection: Flickable.HorizontalFlick
+                    boundsBehavior: Flickable.StopAtBounds
+                    interactive: contentWidth > width
+                    // Room around the entries for the focus ring, which the
+                    // clip would cut otherwise.
+                    readonly property real pad: Theme.focusWidth + Theme.focusOffset
+                    readonly property int count0: bar.tasks.length
+                    readonly property real spacing: Theme.s1
+                    // Room up to the clock (x: where the list starts in the
+                    // left group, which starts Theme.s1 into the pill).
+                    readonly property real maxWidth: Math.max(0, pill.width / 2 - clockBox.width / 2 - Theme.s3 - Theme.s1 - x - Theme.s1)
+                    // An icon-only entry.
+                    readonly property real minItem: Theme.panelHeight - Theme.s3
+                    readonly property real itemWidth: count0 > 0
+                        ? Math.max(minItem, Math.min(Theme.fontSize * 15, (maxWidth - 2 * pad - spacing * (count0 - 1)) / count0))
                         : 0
-                    Repeater {
-                        model: bar.tasks
-                        delegate: Pressable {
-                            id: task
-                            required property var modelData
-                            e2e: "task"
-                            navKey: "task-" + modelData.id
-                            readonly property bool min: modelData.state === "minimized"
-                            readonly property var entry: DesktopEntries.heuristicLookup(modelData.app_id || "")
-                            accessibleName: (modelData.title || (entry ? entry.name : modelData.app_id)) + (min ? ", " + Tr.t("minimized") : "")
-                            checkable: true
-                            checked: modelData.focused
-                            contextMenu: true
-                            acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
-                            height: Theme.panelHeight - Theme.s3
-                            width: taskbar.itemWidth
-                            radius: Theme.radiusSm
-                            color: modelData.focused ? Theme.accentSoft : (task.hot ? Theme.hover : "transparent")
-                            onMiddleClicked: Bus.act("window.close", { window: modelData.id })
-                            onMenuRequested: {
-                                const w = task.modelData;
-                                const p = task.mapToItem(bar.contentItem, 0, bar.top ? task.height + Theme.s2 : -Theme.s2);
-                                const o = (Bus.desktop.outputs || []).find(o => o.name === bar.screen.name);
-                                Ui.openWindowMenu(w.id, (o ? o.rect.x : 0) + p.x, (o ? o.rect.y : 0) + (bar.top ? p.y : bar.screen.height - 320),
-                                                  Ui.panelFocus ? "panel" : "", task.navKey);
-                            }
-                            onClicked: {
-                                const w = task.modelData;
-                                if (task.min) Bus.act("window.set_state", { window: w.id, state: "normal" });
-                                else if (w.focused) Bus.act("window.set_state", { window: w.id, state: "minimized" });
-                                else Bus.act("window.focus", { window: w.id });
-                            }
-                            Behavior on color { ColorAnimation { duration: Theme.fast } }
-                            // Focus underline.
-                            Rectangle {
-                                visible: task.modelData.focused
-                                anchors.bottom: parent.bottom
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                width: parent.width * 0.4
-                                height: 2
-                                radius: 1
-                                color: Theme.accent
-                            }
-                            readonly property bool hot: task.hovered || closeMa.containsMouse
-                            // Room for the close button, shown on hover when the
-                            // entry is wide enough for a title.
-                            readonly property bool showClose: hot && width > Theme.fontSize * 6
-                            Row {
-                                anchors.fill: parent
-                                anchors.leftMargin: Theme.s2
-                                anchors.rightMargin: task.showClose ? closeBtn.width + Theme.s1 : Theme.s2
-                                spacing: Theme.s2
-                                IconImage {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    implicitSize: Theme.fontSize * 1.5
-                                    source: Quickshell.iconPath(task.entry ? task.entry.icon : "", "application-x-executable")
-                                    opacity: task.min ? 0.55 : 1
+                    readonly property real wanted: count0 > 0 ? count0 * itemWidth + spacing * (count0 - 1) + 2 * pad : 0
+                    Layout.preferredWidth: Math.min(maxWidth, wanted)
+                    Layout.preferredHeight: Theme.panelHeight - Theme.s3 + 2 * pad
+                    contentWidth: taskRow.width + 2 * pad
+                    contentHeight: height
+                    // Scroll so item (an entry) is in view.
+                    function ensureVisible(item) {
+                        if (!item) return;
+                        const max = Math.max(0, contentWidth - width);
+                        const left = item.x, right = item.x + item.width + 2 * pad;
+                        if (left < contentX) contentX = Math.max(0, left);
+                        else if (right > contentX + width) contentX = Math.min(max, right - width);
+                    }
+                    // The focused window's entry stays in view, after the
+                    // entries are laid out (a new window changes the list and
+                    // the focus at once).
+                    readonly property int focusedIndex: bar.tasks.findIndex(w => w.focused)
+                    function showFocused() {
+                        if (focusedIndex >= 0) ensureVisible(taskRepeater.itemAt(focusedIndex));
+                        else if (contentX > Math.max(0, contentWidth - width)) contentX = Math.max(0, contentWidth - width);
+                    }
+                    onFocusedIndexChanged: Qt.callLater(showFocused)
+                    onContentWidthChanged: Qt.callLater(showFocused)
+                    onWidthChanged: Qt.callLater(showFocused)
+                    WheelHandler {
+                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                        onWheel: event => {
+                            const d = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x;
+                            const max = Math.max(0, taskbar.contentWidth - taskbar.width);
+                            taskbar.contentX = Math.max(0, Math.min(max, taskbar.contentX - d));
+                        }
+                    }
+                    Row {
+                        id: taskRow
+                        x: taskbar.pad
+                        y: taskbar.pad
+                        spacing: taskbar.spacing
+                        Repeater {
+                            id: taskRepeater
+                            model: bar.tasks
+                            delegate: Pressable {
+                                id: task
+                                required property var modelData
+                                e2e: "task"
+                                navKey: "task-" + modelData.id
+                                readonly property bool min: modelData.state === "minimized"
+                                readonly property var entry: DesktopEntries.heuristicLookup(modelData.app_id || "")
+                                accessibleName: (modelData.title || (entry ? entry.name : modelData.app_id)) + (min ? ", " + Tr.t("minimized") : "")
+                                checkable: true
+                                checked: modelData.focused
+                                contextMenu: true
+                                acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+                                height: Theme.panelHeight - Theme.s3
+                                width: taskbar.itemWidth
+                                radius: Theme.radiusSm
+                                color: modelData.focused ? Theme.accentSoft : (task.hot ? Theme.hover : "transparent")
+                                onMiddleClicked: Bus.act("window.close", { window: modelData.id })
+                                onMenuRequested: {
+                                    const w = task.modelData;
+                                    const p = task.mapToItem(bar.contentItem, 0, bar.top ? task.height + Theme.s2 : -Theme.s2);
+                                    const o = (Bus.desktop.outputs || []).find(o => o.name === bar.screen.name);
+                                    Ui.openWindowMenu(w.id, (o ? o.rect.x : 0) + p.x, (o ? o.rect.y : 0) + (bar.top ? p.y : bar.screen.height - 320),
+                                                      Ui.panelFocus ? "panel" : "", task.navKey);
                                 }
-                                Txt {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: parent.width - Theme.fontSize * 1.5 - parent.spacing
-                                    visible: width > Theme.fontSize * 2
-                                    text: task.modelData.title || (task.entry ? task.entry.name : task.modelData.app_id)
-                                    role: "small"
-                                    color: task.min ? Theme.textMuted : Theme.text
-                                    font.italic: task.min
+                                onClicked: {
+                                    const w = task.modelData;
+                                    if (task.min) Bus.act("window.set_state", { window: w.id, state: "normal" });
+                                    else if (w.focused) Bus.act("window.set_state", { window: w.id, state: "minimized" });
+                                    else Bus.act("window.focus", { window: w.id });
                                 }
-                            }
-                            // Close button (hover). Declared after the entry's
-                            // MouseArea so it takes the click.
-                            Rectangle {
-                                id: closeBtn
-                                property string e2e: "task-close"
-                                visible: task.showClose
-                                anchors.right: parent.right
-                                anchors.rightMargin: Theme.s1
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: Theme.fontSize * 1.7
-                                height: width
-                                radius: width / 2
-                                color: closeMa.pressed ? Theme.pressed : (closeMa.containsMouse ? Theme.hover : "transparent")
-                                Icon {
-                                    anchors.centerIn: parent
-                                    name: "close"
-                                    size: Theme.fontSize * 1.05
-                                    color: closeMa.containsMouse ? Theme.danger : Theme.textMuted
+                                Behavior on color { ColorAnimation { duration: Theme.fast } }
+                                // Focus underline.
+                                Rectangle {
+                                    visible: task.modelData.focused
+                                    anchors.bottom: parent.bottom
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    width: parent.width * 0.4
+                                    height: 2
+                                    radius: 1
+                                    color: Theme.accent
                                 }
-                                MouseArea {
-                                    id: closeMa
+                                readonly property bool hot: task.hovered || closeMa.containsMouse
+                                // Room for the close button, shown on hover when the
+                                // entry is wide enough for a title.
+                                readonly property bool showClose: hot && width > Theme.fontSize * 6
+                                // Too narrow for a title: the icon alone,
+                                // centered, no larger than the entry.
+                                readonly property real iconSize: Math.min(Theme.fontSize * 1.5, height - Theme.s1)
+                                readonly property bool iconOnly: width < Theme.s2 * 3 + iconSize + Theme.fontSize * 2
+                                Row {
                                     anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: Bus.act("window.close", { window: task.modelData.id })
+                                    anchors.leftMargin: task.iconOnly ? Math.max(0, (task.width - task.iconSize) / 2) : Theme.s2
+                                    anchors.rightMargin: task.showClose ? closeBtn.width + Theme.s1 : (task.iconOnly ? 0 : Theme.s2)
+                                    spacing: Theme.s2
+                                    IconImage {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        implicitSize: task.iconSize
+                                        source: Quickshell.iconPath(task.entry ? task.entry.icon : "", "application-x-executable")
+                                        opacity: task.min ? 0.55 : 1
+                                    }
+                                    Txt {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: parent.width - task.iconSize - parent.spacing
+                                        visible: !task.iconOnly
+                                        text: task.modelData.title || (task.entry ? task.entry.name : task.modelData.app_id)
+                                        role: "small"
+                                        color: task.min ? Theme.textMuted : Theme.text
+                                        font.italic: task.min
+                                    }
+                                }
+                                // Close button (hover). Declared after the entry's
+                                // MouseArea so it takes the click.
+                                Rectangle {
+                                    id: closeBtn
+                                    property string e2e: "task-close"
+                                    visible: task.showClose
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: Theme.s1
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: Theme.fontSize * 1.7
+                                    height: width
+                                    radius: width / 2
+                                    color: closeMa.pressed ? Theme.pressed : (closeMa.containsMouse ? Theme.hover : "transparent")
+                                    Icon {
+                                        anchors.centerIn: parent
+                                        name: "close"
+                                        size: Theme.fontSize * 1.05
+                                        color: closeMa.containsMouse ? Theme.danger : Theme.textMuted
+                                    }
+                                    MouseArea {
+                                        id: closeMa
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: Bus.act("window.close", { window: task.modelData.id })
+                                    }
                                 }
                             }
                         }
@@ -383,10 +447,39 @@ PanelWindow {
                             }
                             onClicked: { if (modelData.onlyMenu) trayItem.showMenu(); else modelData.activate(); }
                             onMenuRequested: trayItem.showMenu()
+                            // The theme icon the item names, if any. Apps in a
+                            // Flatpak name icons their sandbox has but the
+                            // host theme lacks (VLC names "vlc"; Flatpak
+                            // exports only "org.videolan.VLC"), which drew
+                            // the missing-icon checkerboard: then the icon of
+                            // the app's launcher is used. Symbolic icons
+                            // (Telegram) are drawn in the panel's text color,
+                            // not their dark default.
+                            readonly property string themeName: {
+                                const u = String(modelData.icon || "");
+                                return u.startsWith("image://icon/") ? decodeURIComponent(u.substring(13).split("?")[0]) : "";
+                            }
+                            // Items that ship their own icon directory
+                            // (IconThemePath, "?path=": JetBrains Toolbox) are
+                            // found there.
+                            readonly property bool missing: themeName !== "" && !themeName.startsWith("/")
+                                && String(modelData.icon).indexOf("path=") < 0 && Quickshell.iconPath(themeName, true) === ""
+                            readonly property var entry: missing ? DesktopEntries.heuristicLookup(modelData.id || themeName) : null
+                            readonly property bool symbolic: !missing && themeName.endsWith("-symbolic")
                             IconImage {
                                 anchors.centerIn: parent
                                 implicitSize: parent.width * 0.75
-                                source: modelData.icon
+                                source: trayItem.missing
+                                    ? Quickshell.iconPath(trayItem.entry ? trayItem.entry.icon : "", "application-x-executable")
+                                    : trayItem.modelData.icon
+                                layer.enabled: trayItem.symbolic
+                                layer.effect: MultiEffect {
+                                    // White first, then the text color
+                                    // (colorization keeps the dark luminance).
+                                    brightness: 1.0
+                                    colorization: 1.0
+                                    colorizationColor: Theme.text
+                                }
                             }
                         }
                     }

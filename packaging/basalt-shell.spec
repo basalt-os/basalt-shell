@@ -115,6 +115,17 @@ Requires:       google-noto-emoji-fonts
 Requires:       swayidle
 Requires:       swaylock
 Requires:       wl-clipboard
+# Daily work: Flatpak with Flathub (the remote is shipped below), GCR's SSH
+# agent and passphrase dialog (the session sets SSH_AUTH_SOCK), archives
+# (tar, unzip: JetBrains Toolbox and most downloads), git.
+Requires:       flatpak
+Requires:       gcr
+Requires:       tar
+Requires:       unzip
+Requires:       git-core
+# AppImages built with the older runtime need libfuse 2 (fuse3 is already
+# there for the current runtime).
+Requires:       fuse-libs
 # Default apps: terminal, file manager, text editor, browser.
 Requires:       foot
 Requires:       nautilus
@@ -132,8 +143,9 @@ Requires(post): systemd
 %description -n basalt-desktop
 The Basalt OS desktop edition on top of the server system: the Basalt
 shell on SwayFX, the greetd login screen (basalt-greeter) starting it, portals,
-PipeWire, fonts and themes so GTK and Qt apps follow the shell, and the
-default apps (foot, Files, Text Editor, Firefox). The graphical target is
+PipeWire, fonts and themes so GTK and Qt apps follow the shell, the
+default apps (foot, Files, Text Editor, Firefox), Flatpak with the
+Flathub remote, and GCR's SSH agent. The graphical target is
 set by the installer.
 
 %package -n basalt-greeter
@@ -208,6 +220,8 @@ make install DESTDIR=%{buildroot} PREFIX=%{_prefix} SYSCONFDIR=%{_sysconfdir} LI
 install -Dpm 0644 config/desktop/greetd.toml %{buildroot}%{_sysconfdir}/basalt/greetd.toml
 install -Dpm 0644 config/desktop/greetd-basalt.conf %{buildroot}%{_unitdir}/greetd.service.d/50-basalt.conf
 install -Dpm 0644 config/desktop/80-basalt-desktop.preset %{buildroot}%{_presetdir}/80-basalt-desktop.preset
+# Flathub, unfiltered, added on first use of flatpak (remotes.d).
+install -Dpm 0644 config/flatpak/flathub.flatpakrepo %{buildroot}%{_datadir}/flatpak/remotes.d/flathub.flatpakrepo
 for m in basalt_shell basalt_greeter; do
     bzip2 -9 -c build/selinux/$m.pp >$m.pp.bz2
     install -Dpm 0644 $m.pp.bz2 %{buildroot}%{_datadir}/selinux/packages/%{selinuxtype}/$m.pp.bz2
@@ -315,6 +329,8 @@ fi
 %dir %{_unitdir}/greetd.service.d
 %{_unitdir}/greetd.service.d/50-basalt.conf
 %{_presetdir}/80-basalt-desktop.preset
+%dir %{_datadir}/flatpak/remotes.d
+%{_datadir}/flatpak/remotes.d/flathub.flatpakrepo
 
 %files -n basalt-greeter
 %license LICENSE
@@ -337,6 +353,30 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Tue Oct 06 2026 Basalt OS developers - 0.8.3-1
+- Daily-driver round (the owner's apps on the desktop edition):
+- New floating windows stay below the panel: sway centers a new window
+  on the whole output, so IntelliJ IDEA restored at the screen size had
+  its toolbar under the top bar; the daemon fits new windows into the
+  usable area in their first seconds.
+- The panel's window list never runs under the clock: entries shrink to
+  their icon, then the list scrolls (wheel, drag), keeping the focused
+  window in view; its entries stay keyboard stops (Left and Right reach
+  the ones scrolled out, and the list follows the keyboard focus).
+- The session starts with the system's keyboard layouts (it always used
+  US); Super+Shift+Space switches layouts on sway and niri.
+- Flatpak apps (and Google Chrome) get their icons in the launcher and the
+  panel: the session adds the Flatpak export directories to XDG_DATA_DIRS.
+- Tray: Flatpak apps that name a host-missing icon (VLC) use their
+  launcher's icon instead of the missing-icon checkerboard; symbolic tray
+  icons (Telegram) are drawn in the panel's text color.
+- SSH keys: the session uses GCR's SSH agent (passphrase asked once in a
+  dialog, optionally kept in the login keyring).
+- basalt-desktop requires flatpak, gcr, tar, unzip, git-core and fuse-libs
+  (older AppImages), and ships the Flathub remote
+  (/usr/share/flatpak/remotes.d), so Flathub apps install with one
+  command and no setup.
+
 * Tue Oct 06 2026 Basalt OS developers - 0.8.2-1
 - Approval surfaces open with the keyboard focus on the negative action,
   so a stray Return never approves anything: an agent's confirmation

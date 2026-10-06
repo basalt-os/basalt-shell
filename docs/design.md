@@ -523,6 +523,24 @@ for X11 classes); niri `window-rule { open-floating true }`. Tiling stays
 one key away (Super+T per window) and per workspace (`windows.arrange
 tile`, the Windows settings page, or "tile windows" in the command bar).
 
+New floating windows stay inside the usable area on sway: sway centers a
+floating window on the whole output and lets it be as large as the
+output, so a window as tall as the screen (IntelliJ IDEA restoring the
+size it had, an X11 app asking for position 0,0) had its toolbar under
+the panel. The daemon checks each new floating window in its first
+seconds (at once, then after 0.4, 1.5 and 4 s, since X11 and Java apps
+resize themselves after they map) and, when it does not fit the
+workspace's usable area (the output minus the panel's exclusive zone),
+shrinks and moves it inside. Fullscreen windows and windows that fit are
+left alone.
+
+The panel's window list never runs under the clock: entries shrink down
+to their icon, and when even icons do not fit the list is clipped before
+the clock and scrolls with the mouse wheel or a drag, keeping the
+focused window's entry in view. Its entries stay keyboard stops of the
+panel: Left and Right reach the ones scrolled out, and the list scrolls
+to the entry with the keyboard focus.
+
 ## Regular applications
 
 | Need | How |
@@ -547,6 +565,9 @@ tile`, the Windows settings page, or "tile windows" in the command bar).
 | Clipboard | wl-clipboard, cliphist history |
 | Idle and lock | swayidle and swaylock in the theme's colors (basalt-lock) |
 | Autostart | basalt-session.target wants xdg-desktop-autostart.target |
+| Flatpak apps | the session adds the Flatpak export directories to XDG_DATA_DIRS (login shells do it through profile.d; greetd starts no login shell), so the launcher and the panel find their launchers and icons, and those of RPMs whose scripts put icons there (Google Chrome) |
+| Keyboard layouts | the session starts with the system's layouts (XKB_DEFAULT_* from /etc/X11/xorg.conf.d/00-keyboard.conf, as the login screen does); Super+Shift+Space switches to the next one |
+| Java (JetBrains IDEs) | native Wayland by default in the 2026 IDEs; new windows are kept inside the usable area (above) |
 
 ## Session
 

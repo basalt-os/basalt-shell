@@ -7,7 +7,8 @@
 set -uo pipefail
 export XDG_RUNTIME_DIR=/tmp/xdg WAYLAND_DISPLAY=wayland-1 PATH=/tmp/stage/usr/bin:$PATH
 export BASALT_SHELL_SOCKET=$XDG_RUNTIME_DIR/basalt-shell-headless/shell.sock
-export SWAYSOCK=$(ls "$XDG_RUNTIME_DIR"/sway-ipc.*.sock 2>/dev/null | head -1)
+SWAYSOCK=$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -name 'sway-ipc.*.sock' 2>/dev/null | head -1)
+export SWAYSOCK
 qml=/tmp/stage/usr/share/basalt-shell/qml
 pass=0
 fail=0
@@ -297,6 +298,54 @@ expect drawer-tab-activity "Right: the Activity tab"
 surfaces activity
 k Tab
 shot 18-activity
+k Escape; sleep 0.4
+surfaces ""
+
+echo "== Twenty windows: new windows below the panel, the window list clear of the clock"
+# A window as large as the output: sway centers it on the whole output,
+# under the panel; the daemon moves it into the usable area.
+swaymsg -q exec "foot --title big --window-size-pixels=1600x1000"
+sleep 6
+# top of the frame (title bar included), workspace top, frame bottom, workspace bottom
+read -r wtop atop wbot abot < <(swaymsg -t get_tree | jq -r '.. | objects | select(.type == "workspace" and .name != "__i3_scratch") as $ws
+  | $ws.floating_nodes[]? | select(.name == "big")
+  | [(.rect.y - (if .border == "normal" then .deco_rect.height else 0 end)), $ws.rect.y, (.rect.y + .rect.height), ($ws.rect.y + $ws.rect.height)] | @tsv' | head -1)
+# shellcheck disable=SC2016 # check evaluates it
+check '[ -n "${wtop:-}" ] && [ "$wtop" -ge "$atop" ] && [ "$wbot" -le "$abot" ]' \
+  "A screen-sized window is kept below the panel (frame ${wtop:-?}..${wbot:-?}, usable ${atop:-?}..${abot:-?})"
+count_windows() { swaymsg -t get_tree | jq '[.. | objects | select(.app_id == "foot")] | length'; }
+have=$(count_windows)
+for i in $(seq 1 $((20 - have))); do swaymsg -q exec "foot --title w$i"; sleep 0.3; done
+sleep 4
+n=$(count_windows)
+# shellcheck disable=SC2016 # check evaluates it
+check '[ "$n" -ge 20 ]' "20 windows open ($n)"
+shot 19-panel-twenty-windows
+k ctrl+alt+Tab; sleep 0.6
+expect panel-launcher "The panel takes the keyboard with $n windows"
+# Right along the panel: every window's entry is a stop, each drawn left
+# of the clock (the list scrolls to the focused entry), then the clock.
+rects=()
+for _ in $(seq 1 $((n + 10))); do
+  k Right
+  name=$(ui focused)
+  [[ $name == task-* ]] && rects+=("$(ui focusedRect)")
+  [[ $name == panel-clock ]] && break
+done
+expect panel-clock "Right after the last window's entry reaches the clock"
+# shellcheck disable=SC2016 # check evaluates it
+check '[ "${#rects[@]}" -eq "$n" ]' "Right reaches each of the $n entries (${#rects[@]})"
+read -r cx _ < <(ui focusedRect)
+over=0
+for r in "${rects[@]}"; do
+  read -r x _ w _ <<<"$r"
+  if [ "$x" -lt 0 ] || [ $((x + w)) -gt "${cx:-0}" ]; then over=$((over + 1)); echo "      entry at $r runs under the clock at x=$cx"; fi
+done
+# shellcheck disable=SC2016 # check evaluates it
+check '[ -n "${cx:-}" ] && [ "$over" -eq 0 ]' "No entry overlaps the clock (clock at x=${cx:-?}, last entry ${rects[-1]:-none})"
+k Left
+shot 20-panel-last-entry
+expect "task-*" "Left from the clock: the last entry, scrolled into view"
 k Escape; sleep 0.4
 surfaces ""
 

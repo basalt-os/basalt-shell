@@ -44,6 +44,57 @@ export MOZ_ENABLE_WAYLAND=1
 export ELECTRON_OZONE_PLATFORM_HINT=auto
 export SDL_VIDEODRIVER="wayland,x11"
 export _JAVA_AWT_WM_NONREPARENTING=1
+# The keyboard layouts of the system (localectl set-x11-keymap writes
+# 00-keyboard.conf; the greeter reads the same file): sway and niri use
+# XKB_DEFAULT_* for keyboards without a configuration of their own, and
+# without them the session typed with the US layout on a computer set to
+# Brazilian ABNT2 (or any other), although the login screen used the
+# right one. A person's own setting (these variables, or an input block in
+# ~/.config/basalt-shell/sway.d) still wins.
+if [ -z "${XKB_DEFAULT_LAYOUT:-}" ]; then
+  kb=/etc/X11/xorg.conf.d/00-keyboard.conf
+  xkb() { sed -n "s/^[[:space:]]*Option[[:space:]]*\"$1\"[[:space:]]*\"\([^\"]*\)\".*/\1/p" "$kb" 2>/dev/null | head -n 1; }
+  layout=$(xkb XkbLayout)
+  if [ -n "$layout" ]; then
+    export XKB_DEFAULT_LAYOUT="$layout"
+    v=$(xkb XkbVariant); [ -n "$v" ] && export XKB_DEFAULT_VARIANT="$v"
+    v=$(xkb XkbOptions); [ -n "$v" ] && export XKB_DEFAULT_OPTIONS="$v"
+    v=$(xkb XkbModel); [ -n "$v" ] && export XKB_DEFAULT_MODEL="$v"
+  elif [ -r /etc/vconsole.conf ]; then
+    km=$(sed -n 's/^KEYMAP="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' /etc/vconsole.conf | head -n 1)
+    case $km in
+      '') ;;
+      uk) export XKB_DEFAULT_LAYOUT=gb ;;
+      br-abnt2 | br-abnt) export XKB_DEFAULT_LAYOUT=br ;;
+      *) export XKB_DEFAULT_LAYOUT="${km%%-*}" ;;
+    esac
+  fi
+  unset kb layout v km
+  unset -f xkb
+fi
+
+# Apps installed with Flatpak: their launchers and icons live under the
+# Flatpak export directories, which only login shells add (profile.d) and
+# the session is started without one. Without them the launcher and the
+# panel showed Flatpak apps (Slack, Telegram, Spotify) with a generic icon,
+# and so with Google Chrome too: its RPM installs its icons with
+# xdg-icon-resource into the first data directory, which is Flatpak's
+# when dnf runs from a login shell.
+data=${XDG_DATA_DIRS:-/usr/local/share:/usr/share}
+for d in /var/lib/flatpak/exports/share "${XDG_DATA_HOME:-$HOME/.local/share}/flatpak/exports/share"; do
+  case ":$data:" in *":$d:"*) ;; *) data="$d:$data" ;; esac
+done
+export XDG_DATA_DIRS=$data
+unset data d
+# SSH keys: GCR's SSH agent (the one GNOME uses) holds them for the
+# session, asks for a key's passphrase in a dialog the first time it is
+# used and can keep it in the login keyring. Without an agent every ssh,
+# git push and virt-manager connection asked for the passphrase again.
+# basalt-session-init starts its socket.
+if [ -z "${SSH_AUTH_SOCK:-}" ] && [ -n "${XDG_RUNTIME_DIR:-}" ] &&
+  { [ -e /usr/lib/systemd/user/gcr-ssh-agent.socket ] || [ -e /etc/systemd/user/gcr-ssh-agent.socket ]; }; then
+  export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/gcr/ssh"
+fi
 export XCURSOR_THEME=${XCURSOR_THEME:-Adwaita}
 export XCURSOR_SIZE=${XCURSOR_SIZE:-24}
 # wlroots refuses a software EGL renderer (llvmpipe) unless this is set,
