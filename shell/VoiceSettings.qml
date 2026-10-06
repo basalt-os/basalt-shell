@@ -186,7 +186,7 @@ ColumnLayout {
         text: Tr.t("The model in use understands English only. Choose a multilingual model for %1.").arg(vs.eff ? vs.langName(vs.eff.speech_language) : "")
     }
     Btn {
-        text: Tr.t("System default (%1)").arg(vs.models ? vs.models.default_stt : ""); variant: "outline"; focusable: true; e2e: "voice-model-default"
+        text: Tr.t("Automatic for my language (%1)").arg(vs.info && vs.info.speech_model_in_use && !(vs.prefs && vs.prefs.speech_model) ? vs.info.speech_model_in_use : (vs.models ? vs.models.default_stt : "")); variant: "outline"; focusable: true; e2e: "voice-model-default"
         active: vs.prefs !== null && !vs.prefs.speech_model
         onClicked: vs.save({ speech_model: "" })
     }

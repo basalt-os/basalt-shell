@@ -32,6 +32,12 @@ type Bridge struct {
 	Basalt string // path of `basalt`
 	Helper string // path of the read helper (run through pkexec)
 	Pkexec string
+	// Admin: the person is an administrator (group wheel), whom polkit
+	// lets run the read helper without a password. For anyone else the
+	// background refresh of the proposals (Pending) never goes through
+	// pkexec, so a person who is not an administrator is not asked for a
+	// password at login and every minute after.
+	Admin bool
 }
 
 // Default finds the tools; ok is false when the assistant is not installed.
@@ -240,6 +246,16 @@ func FindProposal(text string) (id, code string) {
 
 // Pending lists pending proposals with their reports.
 func (b *Bridge) Pending(ctx context.Context) ([]Proposal, error) {
+	if !b.Admin {
+		// The person's own view (no proposals are stored for them); a
+		// failure means there is nothing to show, not an error to report.
+		out, err := b.run(ctx, []string{b.Basalt, "pending", "--json"})
+		var ps []Proposal
+		if err != nil || json.Unmarshal([]byte(out), &ps) != nil {
+			return []Proposal{}, nil
+		}
+		return ps, nil
+	}
 	out, err := b.Read(ctx, []string{"pending", "--json"})
 	if err != nil {
 		return nil, fmt.Errorf("%v: %s", err, strings.TrimSpace(out))

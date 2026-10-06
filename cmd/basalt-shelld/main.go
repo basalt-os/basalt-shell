@@ -87,6 +87,10 @@ func run(ctx context.Context) error {
 		}
 	}
 	if b, ok := assistant.Default(); ok {
+		// Administrators (wheel, as in the polkit rule) read the
+		// assistant's state without a password; nobody else is asked for
+		// one by a background refresh.
+		b.Admin = models.InGroup("wheel")
 		core.Assistant = b
 	}
 	core.Translator = intent.FromAssistantConfig("/etc/basalt/assistant.conf")

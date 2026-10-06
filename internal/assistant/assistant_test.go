@@ -74,3 +74,36 @@ esac
 		t.Error("bad variant accepted")
 	}
 }
+
+// A person who is not an administrator is never asked for a password by
+// the background refresh of the proposals: Pending does not run pkexec
+// for them (zero setup: no password prompt at login).
+func TestPendingWithoutAdmin(t *testing.T) {
+	dir := t.TempDir()
+	log := filepath.Join(dir, "log")
+	pk := filepath.Join(dir, "pkexec")
+	basalt := filepath.Join(dir, "basalt")
+	helper := filepath.Join(dir, "assistant-read")
+	for p, body := range map[string]string{
+		pk:     "#!/bin/sh\necho \"pkexec $*\" >>" + log + "\necho '[{\"id\":\"p-root00\"}]'\n",
+		basalt: "#!/bin/sh\necho \"basalt $*\" >>" + log + "\necho '[]'\n",
+		helper: "#!/bin/sh\n",
+	} {
+		if err := os.WriteFile(p, []byte(body), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	b := &Bridge{Basalt: basalt, Helper: helper, Pkexec: pk}
+	ps, err := b.Pending(context.Background())
+	if err != nil || len(ps) != 0 {
+		t.Fatalf("not an administrator: %v %v", ps, err)
+	}
+	if got, _ := os.ReadFile(log); strings.Contains(string(got), "pkexec") {
+		t.Errorf("pkexec ran for a person who is not an administrator: %s", got)
+	}
+	b.Admin = true
+	ps, err = b.Pending(context.Background())
+	if err != nil || len(ps) != 1 || ps[0].ID != "p-root00" {
+		t.Fatalf("administrator: %v %v", ps, err)
+	}
+}

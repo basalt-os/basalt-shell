@@ -202,6 +202,17 @@ fi
 
 %posttrans selinux
 %selinux_relabel_post -s %{selinuxtype}
+# The programs the voice and skill domains may run get their types from
+# this module. The relabel above follows the /usr/lib paths of the file
+# contexts and misses the same files under /usr/lib64 (whisper-cli of
+# basalt-voice, Chromium), and a package installed in the same transaction
+# before the module was loaded keeps the old label: push to talk then
+# fails with "permission denied". Label them here.
+if [ -x %{_sbindir}/selinuxenabled ] && %{_sbindir}/selinuxenabled; then
+    for p in %{_libdir}/basalt-voice %{_libexecdir}/basalt-voice %{_bindir}/pw-cat %{_bindir}/pdftotext %{_bindir}/pdfinfo %{_libdir}/chromium-browser; do
+        [ -e "$p" ] && %{_sbindir}/restorecon -R "$p" >/dev/null 2>&1 || :
+    done
+fi
 
 %files
 %license LICENSE LICENSE-artwork NOTICE
@@ -246,6 +257,10 @@ fi
 
 %changelog
 * Tue Oct 06 2026 Basalt OS developers - 0.6.0-1
+- basalt-shell-selinux labels the voice and skill programs under
+  /usr/lib64 (whisper-cli, Chromium) after its module is loaded: when
+  basalt-voice was installed first, whisper-cli kept lib_t and push to
+  talk failed with "permission denied" (found in the zero-setup lab).
 - Zero setup for voice and the local model (Basalt OS rule: no feature
   asks the person to run a command):
 - The voice service is enabled for every person by a user preset and

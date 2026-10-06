@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"os/user"
 	"time"
 
 	"github.com/basalt-os/basalt-shell/internal/i18n"
@@ -230,6 +231,9 @@ func (c *Core) offerLocalModel(ctx context.Context, request string) {
 // consent records the person's consent to a download.
 func (c *Core) consent(kind, target, purpose string, bytes int64, files []models.File) {
 	data := map[string]any{"kind": kind, "what": target, "purpose": purpose, "bytes": bytes}
+	if u, err := user.Current(); err == nil {
+		data["user"] = u.Username
+	}
 	var names []string
 	for _, f := range files {
 		if !f.Present {

@@ -156,6 +156,9 @@
  "Automatic": [
   "Automático"
  ],
+ "Automatic for my language (%1)": [
+  "Automático para o meu idioma (%1)"
+ ],
  "Best regards,": [
   "Atenciosamente,"
  ],
@@ -625,9 +628,6 @@
  ],
  "System default": [
   "Padrão do sistema"
- ],
- "System default (%1)": [
-  "Padrão do sistema (%1)"
  ],
  "That is not something the desktop does. Try: \"dark mode\", \"open text editor\", \"arrange windows side by side\", \"why nginx\".": [
   "Isso não é algo que a área de trabalho faz. Experimente: \"modo escuro\", \"abra o editor de texto\", \"organize as janelas lado a lado\", \"por que o nginx\"."
