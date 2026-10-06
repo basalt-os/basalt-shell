@@ -123,6 +123,9 @@ Requires:       gcr
 Requires:       tar
 Requires:       unzip
 Requires:       git-core
+# AppImages built with the older runtime need libfuse 2 (fuse3 is already
+# there for the current runtime).
+Requires:       fuse-libs
 # Default apps: terminal, file manager, text editor, browser.
 Requires:       foot
 Requires:       nautilus
@@ -367,7 +370,8 @@ fi
   icons (Telegram) are drawn in the panel's text color.
 - SSH keys: the session uses GCR's SSH agent (passphrase asked once in a
   dialog, optionally kept in the login keyring).
-- basalt-desktop requires flatpak, gcr, tar, unzip and git-core, and ships
+- basalt-desktop requires flatpak, gcr, tar, unzip, git-core and fuse-libs
+  (older AppImages), and ships
   the Flathub remote (/usr/share/flatpak/remotes.d), so Flathub apps
   install with one command and no setup.
 
