@@ -37,6 +37,9 @@ Singleton {
     // Where it decides, this UI sends the person's decisions to it
     // (GateBus), and the daemon runs what the gate allowed.
     property var gate: ({ present: false, enforce: [] })
+    // Referencing the gate connection creates it (singletons are lazy):
+    // it must be connected before the person decides.
+    readonly property bool gateReady: GateBus.ready
     // The UI's language is the session's (uiCatalog translates it, see
     // Tr.qml); the voice and the answers follow the person's own
     // settings (Settings, Voice and assistant).

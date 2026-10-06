@@ -63,29 +63,44 @@ PanelWindow {
             busy = false;
             win.result = ok ? res : { kind: "error", error: res };
             win.retry = ok && res.retry ? res.retry : "";
+            // A rule at the approval gate may have decided it already.
+            if (ok && res.proposal && res.proposal.gate_mode === "enforce")
+                Bus.call("proposal", { id: res.proposal.id }, (pok, p) => { if (pok && p.status !== "pending" && win.proposal && win.proposal.id === p.id) win._done(true, p); });
         });
+    }
+    // A proposal that ended without a click here (a rule of the person's
+    // allowed or refused it at the approval gate, or it expired) shows its
+    // outcome as if decided here.
+    Connections {
+        target: Bus
+        function onProposalChanged(p) {
+            if (win.proposal && p.id === win.proposal.id && p.status !== "pending" && !win.busy) win._done(true, p);
+        }
+    }
+    function _done(ok, res) {
+        busy = false;
+        statusOk = ok && (res.status === "applied" || res.status === "declined");
+        const applied = win.isMail ? qsTr("Sent.") : (win.isMove ? qsTr("Done. Say \"undo\" to put the files back.") : qsTr("Applied."));
+        const declined = win.isMail ? qsTr("Not sent. The draft was discarded.") : qsTr("Ignored. Nothing changed.");
+        status = ok ? (res.status === "applied" ? applied : (res.status === "declined" ? declined : res.status + (res.error ? ": " + res.error : "")))
+                    : qsTr("Failed: %1").arg(res);
+        if (ok && res.status === "applied" && String(res.decided_by || "").indexOf("gate:rule:") === 0)
+            status = Tr.t("Done: one of your rules allowed it.");
+        result = null;
+        if (ok && res.status === "applied" && win.retry !== "") {
+            // A permission the request needed: run the request again.
+            field.text = win.retry; win.retry = "";
+            status = "";
+            win.submit();
+            return;
+        }
+        win.retry = "";
+        if (ok && res.status === "applied" && !win.isMail && !win.isMove) closeTimer.restart();
     }
     function decide(approve) {
         if (!proposal) return;
         busy = true;
-        const done = (ok, res) => {
-            busy = false;
-            statusOk = ok && (res.status === "applied" || res.status === "declined");
-            const applied = win.isMail ? qsTr("Sent.") : (win.isMove ? qsTr("Done. Say \"undo\" to put the files back.") : qsTr("Applied."));
-            const declined = win.isMail ? qsTr("Not sent. The draft was discarded.") : qsTr("Ignored. Nothing changed.");
-            status = ok ? (res.status === "applied" ? applied : (res.status === "declined" ? declined : res.status + (res.error ? ": " + res.error : "")))
-                        : qsTr("Failed: %1").arg(res);
-            result = null;
-            if (ok && res.status === "applied" && win.retry !== "") {
-                // A permission the request needed: run the request again.
-                field.text = win.retry; win.retry = "";
-                status = "";
-                win.submit();
-                return;
-            }
-            win.retry = "";
-            if (ok && res.status === "applied" && !win.isMail && !win.isMove) closeTimer.restart();
-        };
+        const done = (ok, res) => win._done(ok, res);
         if (approve && isMail) Bus.decideEdited(proposal.id, actionPreview.edits(), done);
         else Bus.decide(proposal.id, approve, done);
     }
