@@ -99,15 +99,30 @@ func (c *Core) inputMethod() *wlime.IM {
 // routeVoice decides where the words of this press go.
 func (c *Core) routeVoice() voiceRoute {
 	im := c.inputMethod()
-	if im == nil {
-		return voiceRoute{Mode: "assistant"}
+	var st wlime.State
+	if im != nil {
+		st = im.State()
 	}
-	st := im.State()
-	if !st.Active {
-		return voiceRoute{Mode: "assistant"}
+	if im == nil || !st.Active {
+		// No input method, or no text field has focus (it may have had
+		// one before): the words are a request. The window list is not
+		// even looked at.
+		return routeFor(im != nil, st, "", false)
 	}
 	app, ok := c.focusedWindowApp()
-	if !ok {
+	return routeFor(true, st, app, ok)
+}
+
+// routeFor is the routing rule (ADR 0012): dictation only when the input
+// method is held, a text field is active, an app window has focus and
+// the field is not for a secret; everything else is a request to the
+// assistant. With nothing focused (an empty desktop, or a field that
+// lost focus) the words go to the assistant, never to an error.
+func routeFor(haveIM bool, st wlime.State, app string, appFocused bool) voiceRoute {
+	if !haveIM || !st.Active {
+		return voiceRoute{Mode: "assistant"}
+	}
+	if !appFocused {
 		// No app window has focus: the active field is the shell's own
 		// (the command bar, even while hidden). The words are a request.
 		return voiceRoute{Mode: "assistant"}

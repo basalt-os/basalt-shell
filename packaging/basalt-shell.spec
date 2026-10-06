@@ -269,6 +269,12 @@ fi
   through the same code path as a press with no release to follow. sway
   gets the binding mode basalt-voice (Escape) while it listens.
   basalt-voiced reports whether speech was heard and the silence since.
+- Voice card: holding Super+V right after an utterance that heard
+  nothing no longer shows "Voice error" over the listening hints (a new
+  press clears the last error or note); nothing understood is now the
+  note "I did not catch that. Try again." in the person's language, not
+  an error; red is only for errors. Routing is a pure rule with tests:
+  nothing focused, or a field that lost focus, goes to the assistant.
 
 * Tue Oct 06 2026 Basalt OS developers - 0.6.1-1
 - Settings, Additional drivers: with a system assistant older than

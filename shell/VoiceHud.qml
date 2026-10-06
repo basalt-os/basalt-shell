@@ -57,7 +57,14 @@ PanelWindow {
     mask: Region { item: (hud.waiting || hud.asking || hud.toggleListening) ? card : null }
 
     onStChanged: {
-        if (st === "offer" || st === "download") { showError = false; showNote = false; return; }
+        // A new utterance (or the next step of one) clears what the last
+        // one left on the card: an error or a note must never stay on top
+        // of "Listening" (the owner's 0.5.1 report: "Voice error" over the
+        // listening hints after a previous "nothing heard").
+        if (st === "offer" || st === "download" || st === "listening" || st === "transcribing" || st === "thinking" || st === "speaking" || st === "dictation") {
+            showError = false; showNote = false; errTimer.stop(); noteTimer.stop();
+            if (st === "offer" || st === "download" || st === "listening") return;
+        }
         if (st === "error" || (st === "idle" && v.error)) { showError = true; errTimer.restart(); }
         else if (st === "idle" && v.note) { showNote = true; noteTimer.restart(); }
     }
@@ -119,8 +126,10 @@ PanelWindow {
             Rectangle {
                 width: Theme.fontSize * 2.6; height: width; radius: width / 2
                 anchors.top: parent.top
-                color: hud.st === "listening" ? Theme.danger : Theme.accentSoft
-                Icon { anchors.centerIn: parent; name: hud.asking ? "download" : ((hud.showError || hud.showNote) ? "info" : (hud.waiting ? "list" : "mic")); size: Theme.fontSize * 1.5; color: hud.st === "listening" ? "#ffffff" : Theme.accent }
+                // Red only for an error; the open microphone is the accent
+                // (hints and notes are neutral).
+                color: hud.showError ? Theme.danger : (hud.st === "listening" ? Theme.accent : Theme.accentSoft)
+                Icon { anchors.centerIn: parent; name: hud.asking ? "download" : ((hud.showError || hud.showNote) ? "info" : (hud.waiting ? "list" : "mic")); size: Theme.fontSize * 1.5; color: (hud.st === "listening" || hud.showError) ? "#ffffff" : Theme.accent }
                 SequentialAnimation on scale {
                     running: hud.st === "listening" && Theme.normal > 0
                     loops: Animation.Infinite
@@ -145,6 +154,7 @@ PanelWindow {
                     width: parent.width
                     wrapMode: Text.Wrap
                     font.weight: Font.DemiBold
+                    color: hud.showError ? Theme.danger : Theme.text
                     text: hud.title()
                 }
                 // Where the words go, while the key is held.

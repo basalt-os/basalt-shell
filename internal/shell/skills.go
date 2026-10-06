@@ -425,7 +425,9 @@ func (c *Core) voiceTurn(release time.Time) {
 	timing["stt"] = tr.STTMS
 	timing["release_to_text"] = time.Since(release).Milliseconds()
 	if !tr.Speech || strings.TrimSpace(tr.Text) == "" {
-		c.setVoice(VoiceState{State: "idle", Error: i18n.G("I did not hear anything."), Timing: timing})
+		// Nothing understood (silence, noise, or a key let go at once): a
+		// friendly note on the card, not an error.
+		c.setVoice(VoiceState{State: "idle", Note: i18n.G("I did not catch that. Try again."), Mode: rt.Mode, Timing: timing})
 		_, _ = c.Audit.Append("voice", "voice", "no speech", map[string]any{"timing": timing, "level": tr.Level})
 		return
 	}

@@ -478,6 +478,14 @@ goes down, and the card shows it while the person speaks:
   "assistant": a request to the assistant;
 - a password or PIN field: no dictation; the words go to the assistant.
 
+Nothing focused (an empty desktop, or a field that has just lost focus)
+is a request to the assistant, never an error (`routeFor` in
+`internal/shell/dictation.go`, with its tests). When nothing was
+understood (silence, noise, a key let go at once) the card says "I did
+not catch that. Try again." in the person's language, in the neutral
+style of a note; red is kept for errors. A new press clears whatever
+the last utterance left on the card.
+
 Only one input method can be bound on a seat; with another one running
 (IBus, Fcitx) dictation is off and every utterance goes to the assistant.
 
