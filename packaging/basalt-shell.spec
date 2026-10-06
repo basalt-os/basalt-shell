@@ -225,6 +225,20 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Mon Oct 05 2026 Basalt OS developers - 0.5.0-1
+- Settings, Additional drivers: the graphics hardware, the NVIDIA driver
+  of Basalt OS's basalt-nonfree repository for Turing and newer GPUs (what
+  changes, the license to accept, PRIME offload on laptops with two GPUs,
+  the datacenter notice for GeForce), installed through the system
+  assistant's driver.install proposal and its confirmation; after a failed
+  first start, why and the rollback to the snapshot from before. GPUs of
+  the 580 legacy branch get an explanation (no package). English and
+  Brazilian Portuguese.
+- basalt-session starts sway and SwayFX with --unsupported-gpu while the
+  NVIDIA kernel module is loaded.
+- The read helper accepts the Additional drivers requests (report,
+  license, storing the install or rollback proposal).
+
 * Mon Oct 05 2026 Basalt OS developers - 0.4.1-1
 - basalt-session allows wlroots' software renderer
   (WLR_RENDERER_ALLOW_SOFTWARE=1): SwayFX needs GLES, so on machines and

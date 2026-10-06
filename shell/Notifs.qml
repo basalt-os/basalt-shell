@@ -58,8 +58,11 @@ Singleton {
     Connections {
         target: Bus
         function onNotify(d) {
+            // A notification of the daemon may name a settings page to open
+            // (Additional drivers after a fallback).
+            const acts = d.page ? [{ id: "open", text: Tr.t("Open"), ref: { invoke: () => Ui.open("settings", d.page) } }] : [];
             n._push({ appName: d.app || "Basalt assistant", appIcon: "", image: "", summary: d.summary, body: d.body || "",
-                      urgency: d.urgency || "normal", ref: null, actions: [], agent: true });
+                      urgency: d.urgency || "normal", ref: null, actions: acts, agent: true });
         }
     }
     Connections {

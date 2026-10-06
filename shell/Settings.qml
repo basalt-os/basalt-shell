@@ -32,6 +32,7 @@ FloatingWindow {
         { id: "windows", label: "Windows", icon: "window" },
         { id: "ai", label: "Assistant and AI", icon: "spark" },
         { id: "voice", label: Tr.t("Voice and assistant"), icon: "mic" },
+        { id: "drivers", label: Tr.t("Additional drivers"), icon: "chip" },
         { id: "about", label: "About", icon: "info" }
     ]
 
@@ -326,6 +327,12 @@ FloatingWindow {
                 // Voice and assistant: the person's own languages and models.
                 VoiceSettings {
                     visible: Ui.settingsPage === "voice" && Ui.settings
+                    Layout.fillWidth: true
+                }
+
+                // Additional drivers (the NVIDIA driver of basalt-nonfree).
+                DriversSettings {
+                    visible: Ui.settingsPage === "drivers" && Ui.settings
                     Layout.fillWidth: true
                 }
 

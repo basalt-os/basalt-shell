@@ -14,7 +14,9 @@ PATH=/usr/sbin:/usr/bin
 word='^[A-Za-z0-9@._:-]{1,100}$'
 [ $# -ge 1 ] || { echo "usage: assistant-read COMMAND [ARGS]" >&2; exit 2; }
 for a in "$@"; do
-  case "$a" in --apply|--yes|--confirm|--confirm=*|rollback) echo "refused: $a is a change" >&2; exit 3 ;; esac
+  case "$a" in --apply|--yes|--confirm|--confirm=*) echo "refused: $a is a change" >&2; exit 3 ;; esac
+  # A rollback proposal is stored only by `drivers rollback --json` below.
+  if [ "$a" = rollback ] && [ "$1" != drivers ]; then echo "refused: $a is a change" >&2; exit 3; fi
 done
 cmd=$1; shift
 case "$cmd" in
@@ -58,5 +60,12 @@ case "$cmd" in
     [ ${#body} -le 65536 ] || { echo "refused: request too large" >&2; exit 3; }
     printf '%s' "$body" | exec curl -sS --fail-with-body --max-time 60 --unix-socket "$sock" \
       -H 'Content-Type: application/json' --data-binary @- http://localhost/v1/chat/completions ;;
+  drivers)
+    case "$*" in
+      "" | "--json" | "license nvidia" | "rollback --json" | "install nvidia --json" | \
+        "install nvidia display --json" | "install nvidia compute --json")
+        exec basalt drivers "$@" ;;
+      *) echo "refused argument" >&2; exit 3 ;;
+    esac ;;
   *) echo "refused: $cmd is not a read command" >&2; exit 3 ;;
 esac

@@ -96,6 +96,8 @@ Newline-delimited JSON over a Unix socket (mode 0600, directory 0700).
 | `chosen` | ui | the person's answer to a `choose` |
 | `assistant.pending`, `assistant.show` | any | the system assistant's proposals |
 | `assistant.apply`, `assistant.ignore` | ui | the system assistant's own confirmation flow |
+| `drivers.state` | any | Additional drivers: the assistant's `basalt drivers --json` (GPUs, the driver that fits, its state, the NVIDIA license text) |
+| `drivers.propose`, `drivers.rollback` | ui | store the assistant's driver.install proposal, or the rollback to the snapshot taken before it, for the confirmation step |
 | `toplevels` | any | the windows (with their foreign-toplevel identifiers) |
 | `capture` | agent | a screenshot for this agent: confirmed by the person, or inside its control session |
 | `input` | agent | one synthetic input step (type, key, move, click, scroll), only inside the agent's control session |
@@ -231,6 +233,34 @@ Apply runs `pkexec basalt apply ID --yes --confirm CODE`, so the person
 authenticates (in the shell's own polkit dialog) and the assistant
 re-checks that the code matches the commands, takes snapshots, runs,
 verifies and audits. The shell never applies system changes itself.
+
+### Additional drivers
+
+Settings, Additional drivers (pt-BR "Drivers adicionais") shows what
+`basalt drivers --json` reports: every display controller by PCI id and
+the kernel driver bound to it, whether NVIDIA's list of supported GPUs
+covers an NVIDIA GPU with the open kernel modules (Turing and newer), the
+recommended driver (the NVIDIA driver of Basalt OS's opt-in basalt-nonfree
+repository), what installing it changes (the repository, the packages,
+nouveau off, the snapshot, the check at the next start, the kernel update
+guard, the restart), the Secure Boot state, and on a laptop with two GPUs
+that the integrated GPU stays the display GPU while programs use the
+NVIDIA GPU through PRIME offload. The NVIDIA Driver License Agreement is
+shown on the page and must be accepted before the Install button works;
+GeForce and Titan GPUs also get the license's datacenter notice. Install
+stores the assistant's `driver.install` proposal (through the read helper,
+`drivers install nvidia --json`), shows its report with the exact commands
+and applies it like any other proposal (pkexec, `basalt apply ID --yes
+--confirm CODE`). GPUs that need NVIDIA's 580 legacy driver (Maxwell,
+Pascal, Volta, for example a GTX 1070) get an explanation and a link: the
+assistant will guide that path later; nothing is packaged for them.
+
+After a failed first start the driver falls back to nouveau (basalt-nvidia
+in Basalt OS). The daemon reads basalt-nvidia's state at the start of a
+session and shows a notification that opens the page, which explains why
+and offers the rollback to the snapshot taken before the install
+(`drivers rollback --json`, then the same confirmation). Every request is
+in the activity log.
 
 ## Design tokens
 
@@ -410,7 +440,10 @@ manager (apps run in their own scopes and need DISPLAY, the Wayland and
 Qt variables and the Electron hint), stops portals left from an earlier
 session and starts basalt-session.target, the clipboard history and the
 idle lock. Local additions: `~/.config/basalt-shell/sway.d/*` (sway) and
-`~/.config/basalt-shell/niri/local.kdl` (niri). The desktop profile of the Basalt
+`~/.config/basalt-shell/niri/local.kdl` (niri). When NVIDIA's kernel module
+is loaded (the NVIDIA driver, even on a laptop where the integrated GPU
+drives the display), sway and SwayFX start with `--unsupported-gpu`,
+without which they refuse to start; niri needs no flag. The desktop profile of the Basalt
 installer uses greetd with tuigreet. Run inside another desktop (a nested
 window), the session does not export anything to the host's systemd user
 manager and does not change the host's application settings.

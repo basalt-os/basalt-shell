@@ -37,6 +37,7 @@ Item {
         "shield": '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
         "arrow": '<path d="M5 12h14M13 6l6 6-6 6"/>',
         "terminal": '<path d="M4 17l6-5-6-5M12 19h8"/>',
+        "chip": '<rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/>',
         "chevron": '<path d="M6 9l6 6 6-6"/>',
         "warning": '<path d="M12 4l9 16H3z"/><path d="M12 10v4"/><circle cx="12" cy="17" r="0.8"/>',
         "info": '<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="8" r="0.8"/>',

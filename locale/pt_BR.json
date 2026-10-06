@@ -8,6 +8,9 @@
  "%1 MB, multilingual": [
   "%1 MB, multilíngue"
  ],
+ "%1 needs NVIDIA's 580 legacy driver, made for Maxwell, Pascal and Volta GPUs. Basalt OS does not package it: the system assistant will guide that install step by step in a later version. Until then nouveau drives this GPU.": [
+  "%1 precisa do driver legado 580 da NVIDIA, feito para GPUs Maxwell, Pascal e Volta. O Basalt OS não empacota esse driver: o assistente do sistema vai guiar essa instalação passo a passo numa versão futura. Até lá, o nouveau cuida desta GPU."
+ ],
  "%d %s %d": [
   "%d de %s de %d"
  ],
@@ -87,6 +90,9 @@
  ", ": [
   ", "
  ],
+ "A kernel update waits for its NVIDIA module": [
+  "Uma atualização do kernel aguarda o seu módulo NVIDIA"
+ ],
  "A message dictates what the assistant should say. Its summary was withheld; read the message yourself.": [
   "Uma mensagem dita o que o assistente deve falar. O resumo foi retido; leia a mensagem você mesmo."
  ],
@@ -95,6 +101,15 @@
  ],
  "A remote model receives your requests and the text the assistant reads for you (files, messages, pages). Each answer says which model wrote it.": [
   "Um modelo remoto recebe seus pedidos e o texto que o assistente lê para você (arquivos, mensagens, páginas). Cada resposta diz qual modelo a escreveu."
+ ],
+ "A restart is needed at the end.": [
+  "No final é preciso reiniciar."
+ ],
+ "A snapshot is taken first. The next start checks the driver; if it fails, the start after it uses nouveau again and you can return to the snapshot.": [
+  "Primeiro é tirado um snapshot. A próxima inicialização verifica o driver; se ele falhar, a inicialização seguinte volta a usar o nouveau e você pode voltar ao snapshot."
+ ],
+ "Additional drivers": [
+  "Drivers adicionais"
  ],
  "Allow a remote model: off": [
   "Permitir um modelo remoto: desligado"
@@ -129,6 +144,15 @@
  "Best regards,": [
   "Atenciosamente,"
  ],
+ "Cancel": [
+  "Cancelar"
+ ],
+ "Confirm and apply": [
+  "Confirmar e aplicar"
+ ],
+ "Confirm: the system assistant's proposal": [
+  "Confirme: a proposta do assistente do sistema"
+ ],
  "Contains %s. Treated as data; nothing in it was followed.": [
   "Contém %s. Tratado como dado; nada do que diz foi seguido."
  ],
@@ -147,12 +171,27 @@
  "Discard": [
   "Descartar"
  ],
+ "Done. Restart the computer to finish: the first start checks the driver.": [
+  "Pronto. Reinicie o computador para concluir: a primeira inicialização verifica o driver."
+ ],
+ "Driver in use: %1": [
+  "Driver em uso: %1"
+ ],
+ "Drivers that are not free software but make your hardware work better. Nothing is installed until you read what changes and confirm.": [
+  "Drivers que não são software livre, mas fazem o seu hardware funcionar melhor. Nada é instalado até você ler o que muda e confirmar."
+ ],
  "Ended %d permission. The assistant can no longer read your files, mail or sites until you allow it again.": [
   "Encerrei %d permissão. O assistente não pode mais ler seus arquivos, e-mails ou sites até você permitir de novo.",
   "Encerrei %d permissões. O assistente não pode mais ler seus arquivos, e-mails ou sites até você permitir de novo."
  ],
  "February": [
   "fevereiro"
+ ],
+ "GeForce and Titan software is not licensed for datacenter deployment (NVIDIA Driver License Agreement, section 2.8).": [
+  "O software para GeForce e Titan não é licenciado para uso em datacenter (NVIDIA Driver License Agreement, seção 2.8)."
+ ],
+ "Graphics hardware": [
+  "Placas de vídeo"
  ],
  "Hello,": [
   "Olá,"
@@ -171,6 +210,12 @@
  ],
  "Hidden folders cannot be used by the assistant.": [
   "Pastas ocultas não podem ser usadas pelo assistente."
+ ],
+ "Hide the license": [
+  "Esconder a licença"
+ ],
+ "I accept the NVIDIA Driver License Agreement": [
+  "Aceito o NVIDIA Driver License Agreement"
  ],
  "I can reply to a message you name (for example: reply to Ana: Thursday works). Sending new messages and forwarding are not available.": [
   "Posso responder a uma mensagem que você indicar (por exemplo: responda à Ana: quinta-feira está bom). Enviar mensagens novas e encaminhar não estão disponíveis."
@@ -238,6 +283,12 @@
  "Insert": [
   "Inserir"
  ],
+ "Install the NVIDIA driver": [
+  "Instalar o driver NVIDIA"
+ ],
+ "Installed: %1. NVIDIA's software comes unmodified; the open kernel modules are built and signed by Basalt OS for each kernel, so Secure Boot stays on.": [
+  "Instalados: %1. O software da NVIDIA vem sem modificações; os módulos abertos do kernel são compilados e assinados pelo Basalt OS para cada kernel, então o Secure Boot continua ligado."
+ ],
  "January": [
   "janeiro"
  ],
@@ -247,8 +298,20 @@
  "June": [
   "junho"
  ],
+ "Kernel %1 waits for its signed NVIDIA module; the computer keeps starting the previous kernel until it is published.": [
+  "O kernel %1 aguarda o seu módulo NVIDIA assinado; o computador continua iniciando o kernel anterior até ele ser publicado."
+ ],
+ "Kernel %s is installed, but its signed NVIDIA module is not published yet: the computer keeps starting the previous kernel.": [
+  "O kernel %s está instalado, mas o seu módulo NVIDIA assinado ainda não foi publicado: o computador continua iniciando o kernel anterior."
+ ],
+ "Kernel updates wait until their signed NVIDIA module is published, so the computer never starts a kernel without it.": [
+  "Atualizações do kernel aguardam até o módulo NVIDIA assinado delas ser publicado, então o computador nunca inicia um kernel sem ele."
+ ],
  "Language model": [
   "Modelo de linguagem"
+ ],
+ "Laptop with two GPUs: %1 stays the display GPU and saves power. Programs run on %2 when they ask for it (PRIME offload, basalt-nvidia-run PROGRAM), and CUDA works on it.": [
+  "Notebook com duas GPUs: %1 continua cuidando da tela e economiza energia. Os programas rodam na %2 quando pedem (PRIME offload, basalt-nvidia-run PROGRAMA), e o CUDA funciona nela."
  ],
  "Let the assistant read and search the files in %s (and below; hidden files, keys and browser data stay closed) for %s": [
   "Deixar o assistente ler e pesquisar os arquivos em %s (e subpastas; arquivos ocultos, chaves e dados do navegador continuam fechados) por %s"
@@ -268,6 +331,9 @@
  "Local model on this computer": [
   "Modelo local neste computador"
  ],
+ "Looking at the hardware.": [
+  "Olhando o hardware."
+ ],
  "March": [
   "março"
  ],
@@ -285,6 +351,21 @@
   "Mover %d arquivo para %s? Confira a lista e confirme. Você pode desfazer depois.",
   "Mover %d arquivos para %s? Confira a lista e confirme. Você pode desfazer depois."
  ],
+ "NVIDIA Driver License Agreement": [
+  "NVIDIA Driver License Agreement"
+ ],
+ "Needs NVIDIA's 580 legacy driver (Maxwell, Pascal, Volta)": [
+  "Precisa do driver legado 580 da NVIDIA (Maxwell, Pascal, Volta)"
+ ],
+ "No NVIDIA GPU: the drivers in use are the right ones.": [
+  "Nenhuma GPU NVIDIA: os drivers em uso são os certos."
+ ],
+ "No display controller was found.": [
+  "Nenhuma placa de vídeo foi encontrada."
+ ],
+ "No driver in use": [
+  "Nenhum driver em uso"
+ ],
  "No mail account is set up for the assistant (skills.conf).": [
   "Nenhuma conta de e-mail está configurada para o assistente (skills.conf)."
  ],
@@ -299,6 +380,12 @@
  ],
  "No voice for %1 is installed: answers in it are shown, not spoken.": [
   "Nenhuma voz para %1 está instalada: as respostas nesse idioma aparecem na tela, sem fala."
+ ],
+ "Not applied. The assistant's output is below.": [
+  "Não aplicado. A saída do assistente está abaixo."
+ ],
+ "Not in the list of this NVIDIA driver version": [
+  "Fora da lista desta versão do driver NVIDIA"
  ],
  "Not sent: %s": [
   "Não enviado: %s"
@@ -315,6 +402,12 @@
  "On": [
   "Ligado"
  ],
+ "Only NVIDIA's old %1 driver supports it; nouveau drives it": [
+  "Só o antigo driver %1 da NVIDIA dá suporte; o nouveau cuida dela"
+ ],
+ "Open": [
+  "Abrir"
+ ],
  "Open %s with its default application": [
   "Abrir %s com o aplicativo padrão"
  ],
@@ -323,6 +416,9 @@
  ],
  "Opening %s. Please confirm.": [
   "Abrindo %s. Confirme."
+ ],
+ "Packaged by OpenBasalt, not supported by NVIDIA. NVIDIA, GeForce and CUDA are trademarks of NVIDIA Corporation.": [
+  "Empacotado pelo OpenBasalt, sem suporte da NVIDIA. NVIDIA, GeForce e CUDA são marcas da NVIDIA Corporation."
  ],
  "Please confirm on the screen to put them back.": [
   "Confirme na tela para devolver os arquivos."
@@ -347,11 +443,29 @@
  "Read %s: %s. %s": [
   "Li %s: %s. %s"
  ],
+ "Read more": [
+  "Saiba mais"
+ ],
+ "Read the license": [
+  "Ler a licença"
+ ],
  "Reading mail failed: %s": [
   "A leitura do e-mail falhou: %s"
  ],
  "Reading the page failed: %s": [
   "A leitura da página falhou: %s"
+ ],
+ "Reason: %1. The computer uses nouveau now, so the screen keeps working.": [
+  "Motivo: %1. O computador usa o nouveau agora, então a tela continua funcionando."
+ ],
+ "Reason: %s. More in Settings, Additional drivers.": [
+  "Motivo: %s. Mais em Configurações, Drivers adicionais."
+ ],
+ "Reason: %s. The computer uses nouveau now. Open Settings, Additional drivers, to return to the snapshot taken before the install or to try again.": [
+  "Motivo: %s. O computador usa o nouveau agora. Abra Configurações, Drivers adicionais, para voltar ao snapshot de antes da instalação ou tentar de novo."
+ ],
+ "Recommended: NVIDIA driver %1 (proprietary)": [
+  "Recomendado: driver NVIDIA %1 (proprietário)"
  ],
  "Remote: %1": [
   "Remoto: %1"
@@ -364,6 +478,12 @@
  ],
  "Replies need the account's address and sending server in skills.conf (address, smtp_host).": [
   "Para responder, a conta precisa do endereço e do servidor de envio em skills.conf (address, smtp_host)."
+ ],
+ "Restart now": [
+  "Reiniciar agora"
+ ],
+ "Roll back to the snapshot": [
+  "Voltar ao snapshot"
  ],
  "Same as speech": [
   "O mesmo da fala"
@@ -380,6 +500,9 @@
  "Searching failed: %s": [
   "A pesquisa falhou: %s"
  ],
+ "Secure Boot is on and the Basalt kernel module CA is not enrolled yet, so the kernel would refuse the NVIDIA module. Enroll it first: run sudo basalt-secureboot enroll-mok in a terminal and confirm at the next start (one time only).": [
+  "O Secure Boot está ligado e a CA de módulos do kernel do Basalt ainda não foi registrada, então o kernel recusaria o módulo NVIDIA. Registre-a primeiro: rode sudo basalt-secureboot enroll-mok num terminal e confirme na próxima inicialização (só uma vez)."
+ ],
  "Send a reply to %s: %s": [
   "Enviar uma resposta para %s: %s"
  ],
@@ -391,6 +514,9 @@
  ],
  "Shown underlined in the field. Nothing is typed until you choose Insert (Super+Shift+Return).": [
   "Aparece sublinhado no campo. Nada é digitado até você escolher Inserir (Super+Shift+Return)."
+ ],
+ "Snapshot %1 holds the system as it was before the install. Rolling back returns to it at the next start; your files in your home folder stay as they are.": [
+  "O snapshot %1 guarda o sistema como estava antes da instalação. Voltar a ele vale a partir da próxima inicialização; os seus arquivos na pasta pessoal ficam como estão."
  ],
  "Speak the answers aloud": [
   "Falar as respostas em voz alta"
@@ -419,6 +545,9 @@
  "Stop speaking the answers (they are still shown on the screen)": [
   "Parar de falar as respostas (elas continuam aparecendo na tela)"
  ],
+ "Supported by the NVIDIA driver %1 (open kernel modules)": [
+  "Suportada pelo driver NVIDIA %1 (módulos abertos do kernel)"
+ ],
  "System default": [
   "Padrão do sistema"
  ],
@@ -431,8 +560,26 @@
  "That message has no sender to answer.": [
   "Essa mensagem não tem remetente para responder."
  ],
+ "The Basalt kernel module CA waits for its confirmation at the next start (blue MokManager screen); the NVIDIA module loads after it.": [
+  "A CA de módulos do kernel do Basalt aguarda a sua confirmação na próxima inicialização (tela azul do MokManager); o módulo NVIDIA carrega depois disso."
+ ],
+ "The NVIDIA driver %1 is in use.": [
+  "O driver NVIDIA %1 está em uso."
+ ],
+ "The NVIDIA driver %1 is installed. Restart the computer: the first start checks it and goes back to nouveau if it fails.": [
+  "O driver NVIDIA %1 está instalado. Reinicie o computador: a primeira inicialização verifica o driver e volta ao nouveau se ele falhar."
+ ],
+ "The NVIDIA driver did not start": [
+  "O driver NVIDIA não iniciou"
+ ],
+ "The NVIDIA driver is proprietary software. You may use it with NVIDIA GPUs; it may not be modified, and it comes with this license, in English. Read it before you accept.": [
+  "O driver NVIDIA é software proprietário. Você pode usá-lo com GPUs NVIDIA; ele não pode ser modificado e vem com esta licença, em inglês. Leia antes de aceitar."
+ ],
  "The assistant answers in %1.": [
   "O assistente responde em %1."
+ ],
+ "The basalt-nonfree repository is turned on. Its packages are signed with the OpenBasalt release key, like the other Basalt repositories.": [
+  "O repositório basalt-nonfree é ligado. Os pacotes dele são assinados com a chave de release do OpenBasalt, como os outros repositórios do Basalt."
  ],
  "The focused field is for a password or code: it gets no dictation.": [
   "O campo em foco é de senha ou código: não recebe ditado."
@@ -494,6 +641,9 @@
  "The system assistant (basalt) is not installed on this computer.": [
   "O assistente do sistema (basalt) não está instalado neste computador."
  ],
+ "The system assistant (basalt) is not installed: Additional drivers needs it.": [
+  "O assistente do sistema (basalt) não está instalado: os Drivers adicionais precisam dele."
+ ],
  "The text field lost focus, so nothing was typed. Click in the field and dictate again.": [
   "O campo de texto perdeu o foco, então nada foi digitado. Clique no campo e dite de novo."
  ],
@@ -525,11 +675,26 @@
  "These settings are yours only. They do not change the language of the desktop: you can speak to the assistant and get answers in another language.": [
   "Estas configurações são só suas. Elas não mudam o idioma da área de trabalho: você pode falar com o assistente e receber respostas em outro idioma."
  ],
+ "This NVIDIA GPU is not in the list of the NVIDIA driver Basalt OS ships; it may be newer than that driver. Nothing is recommended.": [
+  "Esta GPU NVIDIA não está na lista do driver NVIDIA que o Basalt OS distribui; ela pode ser mais nova que o driver. Nada é recomendado."
+ ],
+ "This NVIDIA GPU is supported only by an old NVIDIA driver that no longer gets updates. nouveau drives it.": [
+  "Esta GPU NVIDIA só tem suporte de um driver NVIDIA antigo que não recebe mais atualizações. O nouveau cuida dela."
+ ],
  "This page contains %s. I ignored it and did nothing it asked.": [
   "Esta página contém %s. Ignorei e não fiz nada do que ela pede."
  ],
  "This page contains %s. It tried to contact %s; the browser and the network filter blocked it. I ignored it and did nothing it asked.": [
   "Esta página contém %s. Ela tentou contatar %s; o navegador e o filtro de rede bloquearam. Ignorei e não fiz nada do que ela pede."
+ ],
+ "This start uses nouveau instead of the NVIDIA driver": [
+  "Esta inicialização usa o nouveau no lugar do driver NVIDIA"
+ ],
+ "This start uses nouveau: %1.": [
+  "Esta inicialização usa o nouveau: %1."
+ ],
+ "This system starts without a desktop: only the compute part is installed (CUDA, NVML, OpenCL, nvidia-smi), no display packages.": [
+  "Este sistema inicia sem área de trabalho: só a parte de computação é instalada (CUDA, NVML, OpenCL, nvidia-smi), sem pacotes de tela."
  ],
  "Those files are already in %s.": [
   "Esses arquivos já estão em %s."
@@ -552,6 +717,9 @@
  "To search your files I need your permission to read %s for 1 hour (read only).": [
   "Para pesquisar seus arquivos preciso da sua permissão para ler %s por 1 hora (somente leitura)."
  ],
+ "To try the NVIDIA driver again instead, run sudo basalt-nvidia retry in a terminal and restart.": [
+  "Para tentar o driver NVIDIA de novo, rode sudo basalt-nvidia retry num terminal e reinicie."
+ ],
  "Turning speech into text, on this computer": [
   "Transformando a fala em texto, neste computador"
  ],
@@ -573,6 +741,12 @@
  ],
  "Voice error": [
   "Erro de voz"
+ ],
+ "Waiting for authentication. Installing can take a few minutes.": [
+  "Aguardando a autenticação. A instalação pode levar alguns minutos."
+ ],
+ "What changes": [
+  "O que muda"
  ],
  "What should the reply say? For example: reply to Ana: Thursday works for me.": [
   "O que a resposta deve dizer? Por exemplo: responda à Ana: quinta-feira está bom para mim."
@@ -633,6 +807,12 @@
  ],
  "look-alike letters": [
   "letras parecidas de outros alfabetos"
+ ],
+ "nouveau, the open driver in use now, is turned off from the next start.": [
+  "O nouveau, o driver aberto em uso agora, é desligado a partir da próxima inicialização."
+ ],
+ "shows the boot screen": [
+  "mostra a tela de inicialização"
  ],
  "the default model": [
   "o modelo padrão"

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/basalt-os/basalt-shell/internal/apps"
+	"github.com/basalt-os/basalt-shell/internal/assistant"
 	"github.com/basalt-os/basalt-shell/internal/audit"
 	"github.com/basalt-os/basalt-shell/internal/i18n"
 	"github.com/basalt-os/basalt-shell/internal/voiceprefs"
@@ -531,6 +532,44 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		_ = decode(req.Args, &a)
 		out, err := c.AssistantIgnore(ctx, a.ID)
 		return map[string]any{"output": out, "ok": err == nil}, nil
+	case "drivers.state":
+		// Additional drivers: the assistant's report (no change).
+		if c.Assistant == nil || !c.Assistant.Available() {
+			return nil, errors.New(i18n.G("The system assistant (basalt) is not installed: Additional drivers needs it."))
+		}
+		return c.Assistant.Drivers(ctx)
+	case "drivers.propose", "drivers.rollback":
+		// Store the assistant's proposal; the shell UI then shows it on the
+		// confirmation sheet and applies it with assistant.apply.
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		if c.recentInput() {
+			return nil, errors.New("a request right after agent input is not accepted; ask again")
+		}
+		if c.Assistant == nil || !c.Assistant.Available() {
+			return nil, errors.New(i18n.G("The system assistant (basalt) is not installed: Additional drivers needs it."))
+		}
+		var a struct {
+			Variant string `json:"variant"`
+		}
+		_ = decode(req.Args, &a)
+		var p assistant.Proposal
+		var err error
+		if req.Op == "drivers.rollback" {
+			p, err = c.Assistant.DriversRollback(ctx)
+		} else {
+			p, err = c.Assistant.DriversPropose(ctx, a.Variant)
+		}
+		data := map[string]any{"assistant_proposal": p.ID, "variant": a.Variant}
+		if err != nil {
+			data["error"] = err.Error()
+		}
+		_, _ = c.Audit.Append("propose", "ui", req.Op, data)
+		if err != nil {
+			return nil, err
+		}
+		return p, nil
 	case "toplevels":
 		d := c.Refresh(ctx)
 		return d.Windows, nil

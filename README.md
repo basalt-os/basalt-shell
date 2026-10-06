@@ -1,6 +1,6 @@
 # basalt-shell
 
-> Pre-release prototype (0.4.0). Expect breaking changes. Part of
+> Pre-release prototype (0.5.0). Expect breaking changes. Part of
 > [Basalt OS](https://basalt-os.org), a Linux distribution built as a
 > Fedora remix; not affiliated with or endorsed by the Fedora Project or
 > Red Hat.
@@ -22,6 +22,13 @@ summarize e-mail and web pages, reply to an e-mail, and move or rename
 files. Every action is shown exactly and waits for the person's
 confirmation; content the assistant reads is treated as data, never as
 instructions ([docs/voice.md](docs/voice.md)).
+
+Settings, Additional drivers, finds the graphics hardware and, on Basalt
+OS, installs the NVIDIA driver for Turing and newer GPUs from the opt-in
+basalt-nonfree repository: it shows what changes and the NVIDIA license
+first, goes through the system assistant's confirmation, and after a
+failed first start explains why and offers the rollback
+([docs/design.md](docs/design.md#additional-drivers)).
 
 The shell runs on sway (the default; on SwayFX, when installed, with
 rounded corners, shadows, blur and dimmed inactive windows from the

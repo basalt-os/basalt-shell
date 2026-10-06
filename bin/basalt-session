@@ -51,6 +51,19 @@ export WLR_RENDERER_ALLOW_SOFTWARE=${WLR_RENDERER_ALLOW_SOFTWARE:-1}
 conf=${XDG_CONFIG_HOME:-$HOME/.config}/basalt-shell
 mkdir -p "$conf/sway.d"
 
+# The NVIDIA driver (Basalt OS: basalt-nonfree, nvidia-driver): sway and
+# SwayFX refuse to start while NVIDIA's kernel module is loaded unless
+# given --unsupported-gpu, even on a laptop where the integrated GPU drives
+# the display and NVIDIA only renders on demand (PRIME offload). wlroots
+# works with the NVIDIA driver 560 and newer (GBM, explicit sync), and
+# NVIDIA's own application profile already limits its video memory pool
+# for wlroots compositors. niri needs no flag (its memory profile comes
+# with basalt-nvidia).
+sway_flags=""
+if [ -e /sys/module/nvidia ]; then
+  sway_flags=--unsupported-gpu
+fi
+
 if [ "$which" = headless ]; then
   # No display, no GPU needed: wlroots' headless backend with the pixman
   # (CPU) renderer unless a render node exists; Quickshell draws with Qt's
@@ -72,7 +85,8 @@ if [ "$which" = headless ]; then
   hc=$rt/basalt-headless-sway.conf
   printf 'include %s/sway/config\noutput HEADLESS-1 resolution %s position 0 0 scale 1\n' "$share" "$size" >"$hc"
   export BASALT_SHELL_COMPOSITOR=sway XDG_CURRENT_DESKTOP=sway:Basalt XDG_SESSION_DESKTOP=sway
-  exec sway -c "$hc" "${@:2}"
+  # shellcheck disable=SC2086 # empty or one flag
+  exec sway $sway_flags -c "$hc" "${@:2}"
 fi
 
 # Nested in another desktop (a window): keep the host session untouched,
@@ -101,7 +115,8 @@ case "$which" in
     export BASALT_SHELL_COMPOSITOR=sway
     export XDG_CURRENT_DESKTOP=sway:Basalt
     export XDG_SESSION_DESKTOP=sway
-    sway -c "$share/sway/config" "${@:2}" &
+    # shellcheck disable=SC2086 # empty or one flag
+    sway $sway_flags -c "$share/sway/config" "${@:2}" &
     wait $!
     session_end
     ;;

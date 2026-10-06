@@ -64,6 +64,9 @@ func readArgs(args []string) error {
 			return fmt.Errorf("invalid argument %q", a)
 		}
 	}
+	if args[0] == "drivers" {
+		return driversArgs(args[1:])
+	}
 	switch args[0] {
 	case "status", "disk", "pending", "snapshots", "audit":
 	case "why", "show":
@@ -130,6 +133,83 @@ func (b *Bridge) Ask(ctx context.Context, text string) (string, error) {
 		}
 	}
 	return b.run(ctx, []string{b.Basalt, "ask", text})
+}
+
+// driversArgs validates `basalt drivers` requests (Additional drivers):
+// the report, the license, and storing the install or rollback proposal.
+// Storing a proposal changes nothing: applying it still goes through
+// Apply (pkexec, the person authenticates, the confirmation code).
+func driversArgs(rest []string) error {
+	bad := fmt.Errorf("not an Additional drivers request: drivers %s", strings.Join(rest, " "))
+	switch {
+	case len(rest) == 0, len(rest) == 1 && rest[0] == "--json":
+		return nil
+	case len(rest) == 2 && rest[0] == "license" && rest[1] == "nvidia":
+		return nil
+	case len(rest) == 2 && rest[0] == "rollback" && rest[1] == "--json":
+		return nil
+	case len(rest) >= 3 && rest[0] == "install" && rest[1] == "nvidia" && rest[len(rest)-1] == "--json":
+		switch len(rest) {
+		case 3:
+			return nil
+		case 4:
+			if rest[2] == "display" || rest[2] == "compute" {
+				return nil
+			}
+		}
+	}
+	return bad
+}
+
+// Drivers is `basalt drivers --json`: the graphics hardware, the driver
+// that fits, what installing it changes, the NVIDIA license text, the
+// Secure Boot state and the driver's state (trial, in use, fallback).
+func (b *Bridge) Drivers(ctx context.Context) (json.RawMessage, error) {
+	out, err := b.Read(ctx, []string{"drivers", "--json"})
+	if err != nil {
+		return nil, fmt.Errorf("%v: %s", err, strings.TrimSpace(out))
+	}
+	var v json.RawMessage
+	if err := json.Unmarshal([]byte(out), &v); err != nil {
+		return nil, fmt.Errorf("drivers: %v", err)
+	}
+	return v, nil
+}
+
+// DriversPropose stores the driver.install proposal (as root, through the
+// read helper) and returns it with its report and confirmation code, for
+// the confirmation sheet. variant: "" (the recommendation), display or
+// compute.
+func (b *Bridge) DriversPropose(ctx context.Context, variant string) (Proposal, error) {
+	args := []string{"drivers", "install", "nvidia"}
+	if variant != "" {
+		args = append(args, variant)
+	}
+	return b.stored(ctx, append(args, "--json"))
+}
+
+// DriversRollback stores the proposal that returns the system to the
+// snapshot taken before the NVIDIA driver install.
+func (b *Bridge) DriversRollback(ctx context.Context) (Proposal, error) {
+	return b.stored(ctx, []string{"drivers", "rollback", "--json"})
+}
+
+func (b *Bridge) stored(ctx context.Context, args []string) (Proposal, error) {
+	out, err := b.Read(ctx, args)
+	if err != nil {
+		return Proposal{}, fmt.Errorf("%s", strings.TrimSpace(strings.TrimPrefix(out, "basalt: ")))
+	}
+	var ref struct {
+		ID     string `json:"id"`
+		Stored bool   `json:"stored"`
+	}
+	if err := json.Unmarshal([]byte(out), &ref); err != nil || !reID.MatchString(ref.ID) {
+		return Proposal{}, fmt.Errorf("unexpected answer from basalt: %s", strings.TrimSpace(out))
+	}
+	if !ref.Stored {
+		return Proposal{}, errors.New("the proposal could not be stored (the assistant needs root: is the read helper installed?)")
+	}
+	return b.Show(ctx, ref.ID)
 }
 
 // Proposal is an assistant proposal as the shell shows it.

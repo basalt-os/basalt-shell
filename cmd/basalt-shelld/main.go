@@ -121,6 +121,11 @@ func run(ctx context.Context) error {
 	core.ApplyTheme(ctx)
 	go core.Watch(ctx)
 	go core.WatchVoice(ctx)
+	if os.Getenv("BASALT_HEADLESS") != "1" {
+		// Additional drivers: tell the person when the NVIDIA driver fell
+		// back to nouveau, or a kernel waits for its module.
+		go core.WatchDrivers(ctx)
+	}
 	if core.Voice != nil && os.Getenv("BASALT_SHELL_DICTATION") != "0" && os.Getenv("WAYLAND_DISPLAY") != "" {
 		// Dictation: the shell is the session's input method.
 		go core.WatchInputMethod(ctx)
