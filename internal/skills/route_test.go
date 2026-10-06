@@ -125,3 +125,61 @@ func TestURLWordsDoNotRoute(t *testing.T) {
 		t.Errorf("got %q", r.Skill)
 	}
 }
+
+// Brazilian Portuguese requests route to the same skills (English
+// identifiers); the content words left for the search are the topic.
+func TestClassifyPortuguese(t *testing.T) {
+	cases := map[string]string{
+		"Encontre o PDF que o banco mandou no mês passado.":       SkillFiles,
+		"Onde está o contrato que eu assinei em março?":           SkillFiles,
+		"Procure a planilha do orçamento da viagem.":              SkillFiles,
+		"Cadê o comprovante do aluguel?":                          SkillFiles,
+		"Abra o resultado 2.":                                     SkillOpen,
+		"abra o primeiro resultado":                               SkillOpen,
+		"O que a Ana disse no último e-mail?":                     SkillMail,
+		"Resuma minhas mensagens não lidas desta semana.":         SkillMail,
+		"Resuma a página de notícias.":                            SkillWeb,
+		"resuma news.lab.test":                                    SkillWeb,
+		"Permita o acesso à minha pasta Documentos por uma hora.": SkillGrant,
+		"revogue o acesso":                                        SkillRevoke,
+		"apague o arquivo do banco":                               SkillUnsupported,
+		"Deixe mais escuro.":                                      "",
+		"Use o tema lichen.":                                      "",
+		"Organize as janelas.":                                    "",
+		"Por que o nginx parou?":                                  "",
+	}
+	for in, want := range cases {
+		if got := Classify(in).Skill; got != want {
+			t.Errorf("%q: got %q, want %q", in, got, want)
+		}
+	}
+	r := Classify("Permita o acesso à minha pasta Documentos por uma hora.")
+	if r.Kind != GrantFolder || r.Duration != time.Hour || len(r.Targets) != 1 || r.Targets[0] != "documents" {
+		t.Errorf("grant: %+v", r)
+	}
+	if r := Classify("permitir a área de trabalho por meia hora"); r.Duration != 30*time.Minute || len(r.Targets) != 1 || r.Targets[0] != "desktop" {
+		t.Errorf("grant desktop: %+v", r)
+	}
+	if r := Classify("Abra o resultado 2."); r.N != 2 {
+		t.Errorf("open: %+v", r)
+	}
+	words := ContentWords("Encontre o PDF que o banco mandou no mês passado.")
+	if len(words) != 1 || words[0] != "banco" {
+		t.Errorf("content words: %v", words)
+	}
+	if cw := CrossWords(append(words, "fatura", "bank")); len(cw) != 1 || cw[0] != "invoice" {
+		t.Errorf("cross words: %v", cw)
+	}
+	now := time.Date(2026, 10, 4, 15, 0, 0, 0, time.UTC)
+	a, b, _ := TimeRange("o contrato que eu assinei em março", now)
+	if a.Month() != time.March || b.Month() != time.April {
+		t.Errorf("março: %v %v", a, b)
+	}
+	if a, _, _ := TimeRange("o PDF do mês passado", now); a.Month() != time.September {
+		t.Errorf("mês passado: %v", a)
+	}
+	// Accented words end a word ("até", "você").
+	if !has("o que você disse", "você") || has("vocês", "você") {
+		t.Error("unicode word edges")
+	}
+}

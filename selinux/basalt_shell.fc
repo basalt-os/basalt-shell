@@ -11,6 +11,7 @@
 /usr/libexec/basalt-shell/basalt-skill-index		--	gen_context(system_u:object_r:basalt_skill_index_exec_t,s0)
 /run/user/[0-9]+/basalt-voice(/.*)?			gen_context(system_u:object_r:basalt_voice_runtime_t,s0)
 HOME_DIR/\.local/share/basalt-skills(/.*)?		gen_context(system_u:object_r:basalt_skill_data_t,s0)
+HOME_DIR/\.config/basalt(/.*)?				gen_context(system_u:object_r:basalt_user_conf_t,s0)
 /run/user/[0-9]+/pipewire-0(-manager)?		-s	gen_context(system_u:object_r:basalt_pipewire_sock_t,s0)
 /usr/libexec/basalt-shell/basalt-skill-send		--	gen_context(system_u:object_r:basalt_skill_send_exec_t,s0)
 /usr/libexec/basalt-shell/basalt-skill-files		--	gen_context(system_u:object_r:basalt_skill_files_exec_t,s0)

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/basalt-os/basalt-shell/internal/assistant"
+	"github.com/basalt-os/basalt-shell/internal/i18n"
 	"github.com/basalt-os/basalt-shell/internal/intent"
 	"github.com/basalt-os/basalt-shell/internal/skills"
 )
@@ -41,8 +42,10 @@ type AskResult struct {
 func (c *Core) Ask(ctx context.Context, text string) AskResult {
 	text = strings.TrimSpace(text)
 	res := AskResult{Request: text}
+	// The person's answer language and model choice (their settings).
+	eff := c.refreshPrefs()
 	if text == "" || len(text) > 500 {
-		res.Kind, res.Error = "error", "type a request (at most 500 characters)"
+		res.Kind, res.Error = "error", i18n.G("Type a request (at most 500 characters).")
 		return res
 	}
 	// The read-only skills first: requests to find files, read mail or
@@ -52,7 +55,7 @@ func (c *Core) Ask(ctx context.Context, text string) AskResult {
 		return r
 	}
 	st := c.Theme()
-	ictx := intent.Context{Tokens: st.Tokens, Themes: st.Themes}
+	ictx := intent.Context{Tokens: st.Tokens, Themes: st.Themes, Lang: eff.AnswerLang}
 	// The fixed phrases first: when they understand the whole request
 	// they are exact and instant. Anything they do not fully understand
 	// goes to the local model (if any); when the model is unavailable or
@@ -62,9 +65,9 @@ func (c *Core) Ask(ctx context.Context, text string) AskResult {
 	rr := intent.Rules(text, ictx)
 	rulesComplete := (len(rr.Calls) > 0 && len(rr.Unknown) == 0) || len(rr.System) > 0
 	r := rr
-	if !rulesComplete && c.Translator != nil {
+	if tr := c.translator(); !rulesComplete && tr != nil {
 		mctx, cancel := context.WithTimeout(ctx, 45*time.Second)
-		mr, err := c.Translator.Translate(mctx, text, ictx)
+		mr, err := tr.Translate(mctx, text, ictx)
 		cancel()
 		switch {
 		case err != nil:
@@ -84,7 +87,7 @@ func (c *Core) Ask(ctx context.Context, text string) AskResult {
 
 	if r.AskSystem && len(r.Calls) == 0 {
 		if c.Assistant == nil || !c.Assistant.Available() {
-			res.Kind, res.Error = "error", "the system assistant (basalt) is not installed on this machine"
+			res.Kind, res.Error = "error", i18n.G("The system assistant (basalt) is not installed on this computer.")
 			return res
 		}
 		// The assistant's own translator (basalt ask) picks the command.
@@ -107,7 +110,7 @@ func (c *Core) Ask(ctx context.Context, text string) AskResult {
 	if len(r.System) > 0 {
 		res.Kind = "system"
 		if c.Assistant == nil || !c.Assistant.Available() {
-			res.Kind, res.Error = "error", "the system assistant (basalt) is not installed on this machine"
+			res.Kind, res.Error = "error", i18n.G("The system assistant (basalt) is not installed on this computer.")
 			return res
 		}
 		out, err := c.Assistant.Read(ctx, r.System)
@@ -130,11 +133,11 @@ func (c *Core) Ask(ctx context.Context, text string) AskResult {
 	}
 	if len(r.Calls) == 0 {
 		res.Kind = "unknown"
-		res.Error = "I did not understand that. Try: \"make it darker with rounder corners\", \"open text editor\", \"arrange windows side by side\", \"why nginx\"."
+		res.Error = i18n.G("I did not understand that. Try: \"make it darker with rounder corners\", \"open text editor\", \"arrange windows side by side\", \"why nginx\".")
 		if r.None {
-			res.Error = "That is not something the desktop does. Try: \"dark mode\", \"open text editor\", \"arrange windows side by side\", \"why nginx\"."
+			res.Error = i18n.G("That is not something the desktop does. Try: \"dark mode\", \"open text editor\", \"arrange windows side by side\", \"why nginx\".")
 		} else if len(r.Clarify) > 0 {
-			res.Error = "Please say which one: " + strings.Join(r.Clarify, "; ")
+			res.Error = i18n.G("Please say which one: %s", strings.Join(r.Clarify, "; "))
 		}
 		return res
 	}

@@ -34,6 +34,21 @@ func TestRules(t *testing.T) {
 		{"reduce motion", "motion.set"},
 		{"accent green", "theme.set_tokens"},
 		{"open settings", "settings.open"},
+		// Brazilian Portuguese, as speech recognition writes it.
+		{"Deixe mais escuro.", "theme.set_tokens"},
+		{"deixe a tela mais escura", "theme.set_tokens"},
+		{"Use o tema lichen.", "theme.switch"},
+		{"use o tema Líquen", "theme.switch"},
+		{"Use o tema, Lichen.", "theme.switch"},
+		{"mude para o tema lichen", "theme.switch"},
+		{"ative o modo escuro", "theme.switch"},
+		{"modo noturno", "theme.switch"},
+		{"Organize as janelas.", "windows.arrange"},
+		{"arrume as janelas", "windows.arrange"},
+		{"coloque as janelas lado a lado", "windows.arrange"},
+		{"aumente o texto", "theme.set_tokens"},
+		{"abra as configurações", "settings.open"},
+		{"abra o editor de texto", "app.launch"},
 	}
 	for _, c := range cases {
 		r := Rules(c.in, ctx)

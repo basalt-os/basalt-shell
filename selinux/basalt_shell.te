@@ -1,4 +1,4 @@
-policy_module(basalt_shell, 0.4.0)
+policy_module(basalt_shell, 0.5.0)
 
 ########################################
 #
@@ -522,6 +522,27 @@ dontaudit basalt_skill_files_t { ssh_home_t gpg_secret_t home_cert_t }:dir { get
 
 ########################################
 #
+# ~/.config/basalt: the person's own voice and assistant settings
+# (voice-and-assistant.conf: speech and answer languages, speech model,
+# voice, model choice). The shell daemon is its only reader and writer:
+# it writes the file when the person changes the settings in the shell's
+# Settings window, and sends the values to the voice service and to the
+# skill workers with each request, so those domains never open it (they
+# have no home access). The person may edit it in their own session.
+#
+
+type basalt_user_conf_t;
+userdom_user_home_content(basalt_user_conf_t)
+optional_policy(`
+	gen_require(`
+		type config_home_t;
+	')
+	# The daemon creates the directory with its own type.
+	filetrans_pattern(basalt_shell_t, config_home_t, basalt_user_conf_t, dir, "basalt")
+')
+
+########################################
+#
 # Invariants of the voice and skill domains.
 #
 
@@ -541,6 +562,10 @@ neverallow basalt_skill_family { bin_t shell_exec_t sudo_exec_t su_exec_t chkpwd
 neverallow basalt_skill_family { lib_t ld_so_t textrel_shlib_t }:file { execute_no_trans entrypoint };
 # Nothing they write can be run: home files, temporary files, memory files.
 neverallow basalt_skill_family { user_home_t user_tmp_t tmpfs_t basalt_agent_tmp_t basalt_agent_tmpfs_t basalt_voice_runtime_t basalt_skill_data_t }:file { execute execute_no_trans };
+# The person's voice and assistant settings are never changed by an
+# agent or by the voice and skill domains (see below).
+neverallow { basalt_agent_domain basalt_skill_family } basalt_user_conf_t:file { write append create setattr unlink rename link };
+neverallow { basalt_agent_domain basalt_skill_family } basalt_user_conf_t:dir { write add_name remove_name create setattr rmdir };
 # The mover never reads or writes a file's content and never deletes.
 neverallow basalt_skill_files_t user_home_t:file { open unlink };
 neverallow basalt_skill_files_t self:{ tcp_socket udp_socket rawip_socket } create;

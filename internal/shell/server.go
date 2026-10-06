@@ -17,6 +17,8 @@ import (
 
 	"github.com/basalt-os/basalt-shell/internal/apps"
 	"github.com/basalt-os/basalt-shell/internal/audit"
+	"github.com/basalt-os/basalt-shell/internal/i18n"
+	"github.com/basalt-os/basalt-shell/internal/voiceprefs"
 )
 
 // Request is one IPC message from a client (newline-delimited JSON).
@@ -292,8 +294,13 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		return map[string]any{
 			"desktop": d, "theme": c.Theme(), "pending": c.Pending(), "activity": c.Audit.Tail(60),
 			"actions": Catalog(), "assistant": c.Assistant != nil && c.Assistant.Available(),
-			"translator": c.Translator != nil, "version": Version, "control": c.ControlState(),
+			"translator": c.translator() != nil, "version": Version, "control": c.ControlState(),
 			"ui_check": ss.s.UI, "agent_io": c.AgentIO(),
+			"voice": c.VoiceStatus(), "grants": grantsOf(c), "skills": c.Skills != nil,
+			// The shell UI's own language is the session's (the desktop's
+			// texts); the voice and the answers have the person's own
+			// language settings.
+			"ui_lang": i18n.SessionTag(), "ui_catalog": uiCatalog(),
 		}, nil
 	case "desktop":
 		return c.Refresh(ctx), nil
@@ -597,6 +604,28 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		}
 		c.VoiceCancel(ctx)
 		return nil, nil
+	case "voice.settings":
+		// The person's voice and assistant settings, for the Settings
+		// window only.
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		return c.VoiceSettings(ctx), nil
+	case "voice.settings.set":
+		// Only the person, in the Settings window, changes them; values
+		// outside the administrator's policy are refused.
+		if err := ss.requireUI(); err != nil {
+			_, _ = c.Audit.Append("refuse", ss.actor(), "voice settings refused: not the shell UI", map[string]any{"pid": ss.pid})
+			return nil, err
+		}
+		var p voiceprefs.Prefs
+		if err := decode(req.Args, &p); err != nil {
+			return nil, err
+		}
+		if err := c.SetVoiceSettings(ctx, p); err != nil {
+			return nil, err
+		}
+		return c.VoiceSettings(ctx), nil
 	case "voice.status":
 		st := c.VoiceStatus()
 		return map[string]any{"voice": st, "dictation": c.DictationState()}, nil
@@ -629,6 +658,18 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 	}
 	log.Printf("unknown op %q from %s", req.Op, ss.actor())
 	return nil, fmt.Errorf("unknown op %q", req.Op)
+}
+
+var (
+	uiCatOnce sync.Once
+	uiCat     map[string][]string
+)
+
+// uiCatalog is the translation catalog of the session's language for the
+// shell UI (nil for English).
+func uiCatalog() map[string][]string {
+	uiCatOnce.Do(func() { uiCat = i18n.Catalog(i18n.LocaleName(i18n.SessionTag())) })
+	return uiCat
 }
 
 func grantsOf(c *Core) any {

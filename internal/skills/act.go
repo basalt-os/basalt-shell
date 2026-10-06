@@ -236,7 +236,8 @@ func (e *Engine) draftBody(ctx context.Context, ac Account, m imap.Message, inst
 	// works for me"). The model only rewrites an instruction that speaks
 	// about the recipient ("tell her I will be late", "ask him to call
 	// me"): a small model changed the meaning of plain sentences in the lab.
-	if e.Model == nil || !reAboutRecipient.MatchString(instruction) {
+	lm := e.model()
+	if lm == nil || !reAboutRecipient.MatchString(instruction) {
 		return wrap(own), "the person's words"
 	}
 	tag := nonce()
@@ -250,7 +251,7 @@ func (e *Engine) draftBody(ctx context.Context, ac Account, m imap.Message, inst
 	schema := map[string]any{"type": "object", "additionalProperties": false, "required": []string{"text"},
 		"properties": map[string]any{"text": map[string]any{"type": "string"}}}
 	t := time.Now()
-	c, err := e.Model.Complete(ctx, sys, user, schema, 160)
+	c, err := lm.Complete(ctx, sys, user, schema, 160)
 	a.Timing["draft"] = time.Since(t).Milliseconds()
 	if err != nil {
 		a.Model = append(a.Model, "draft: model unavailable ("+err.Error()+"), your words used")

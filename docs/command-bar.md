@@ -54,6 +54,15 @@ forwards it to the Unix socket configured for the translator, never to a
 network endpoint. The model has no power: its answer is validated by the
 shell and becomes a proposal.
 
+The fixed phrases cover the main requests in Brazilian Portuguese as
+speech recognition writes them ("deixe mais escuro", "modo escuro", "use
+o tema lichen" and the Portuguese names of the themes, "organize as
+janelas", "aumente o texto", "abra as configurações"); they map to the
+same English intents and actions. When the person's answer language is
+not English, the translator's prompt gets one line asking for answers in
+that language while every identifier stays English (see `docs/voice.md`,
+Model); its schema and the checks above are the same in every language.
+
 Every request is in the activity log with how it was understood: the
 backend (rules or model), the model's answer, the time it took, the
 phrases and calls, and what grounding dropped.

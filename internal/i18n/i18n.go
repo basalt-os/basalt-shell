@@ -46,19 +46,29 @@ func Locale() string {
 	return "en"
 }
 
-// Load reads the catalog of a language ("" = the session's); English or a
-// missing catalog means the reference strings.
+// Load reads the catalog of a language ("" = the session's) as the
+// daemon's language: the language of what the assistant says (the
+// person's answer language, see voiceprefs). English or a missing catalog
+// means the reference strings.
 func Load(l string) {
 	if l == "" {
 		l = Locale()
 	}
+	if t := Tag(l); t != "" {
+		l = LocaleName(t) // "pt-BR" and "pt_BR.UTF-8" both name pt_BR
+	}
 	var cat map[string][]string
-	for _, name := range []string{l, strings.SplitN(l, "_", 2)[0]} {
-		b, err := os.ReadFile(filepath.Join(Dir, name+".json"))
-		if err == nil && json.Unmarshal(b, &cat) == nil {
-			break
+	if !strings.HasPrefix(l, "en") {
+	search:
+		for _, name := range []string{l, strings.SplitN(l, "_", 2)[0]} {
+			for _, d := range Dirs() {
+				b, err := os.ReadFile(filepath.Join(d, name+".json"))
+				if err == nil && json.Unmarshal(b, &cat) == nil {
+					break search
+				}
+				cat = nil
+			}
 		}
-		cat = nil
 	}
 	mu.Lock()
 	lang, catalog = l, cat

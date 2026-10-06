@@ -203,6 +203,7 @@ fi
 %{_userunitdir}/basalt-voice.service
 %dir %{_sysconfdir}/basalt
 %config(noreplace) %{_sysconfdir}/basalt/voice.conf
+%config(noreplace) %{_sysconfdir}/basalt/desktop-models.conf
 %{_libexecdir}/basalt-shell/
 %{_datadir}/polkit-1/actions/org.openbasalt.shell.policy
 %{_datadir}/polkit-1/rules.d/50-basalt-shell.rules

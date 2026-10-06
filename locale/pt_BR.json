@@ -1,0 +1,664 @@
+{
+ " (%s)": [
+  " (%s)"
+ ],
+ "%1 MB, English only": [
+  "%1 MB, só inglês"
+ ],
+ "%1 MB, multilingual": [
+  "%1 MB, multilíngue"
+ ],
+ "%d %s %d": [
+  "%d de %s de %d"
+ ],
+ "%d day": [
+  "%d dia",
+  "%d dias"
+ ],
+ "%d hour": [
+  "%d hora",
+  "%d horas"
+ ],
+ "%d message contains text that tries to instruct the assistant, hidden text or deceptive links. I ignored it and did nothing it asked.": [
+  "%d mensagem contém texto que tenta dar instruções ao assistente, texto oculto ou links enganosos. Ignorei e não fiz nada do que ela pede.",
+  "%d mensagens contêm texto que tenta dar instruções ao assistente, texto oculto ou links enganosos. Ignorei e não fiz nada do que elas pedem."
+ ],
+ "%d message in %s mail%s. The newest: %s, from %s.": [
+  "%d mensagem no e-mail %s%s. A mais recente: %s, de %s.",
+  "%d mensagens no e-mail %s%s. A mais recente: %s, de %s."
+ ],
+ "%d minute": [
+  "%d minuto",
+  "%d minutos"
+ ],
+ "%d of these files contains text that tries to instruct the assistant or hides text. I ignored it.": [
+  "%d destes arquivos contém texto que tenta dar instruções ao assistente ou esconde texto. Ignorei.",
+  "%d destes arquivos contêm texto que tenta dar instruções ao assistente ou esconde texto. Ignorei."
+ ],
+ "%d second": [
+  "%d segundo",
+  "%d segundos"
+ ],
+ "%q is not a file name I can use.": [
+  "%q não é um nome de arquivo que eu possa usar."
+ ],
+ "%s %d": [
+  "%s de %d"
+ ],
+ "%s (%d of %d done; say undo to put them back)": [
+  "%s (%d de %d feitos; diga desfazer para voltar)"
+ ],
+ "%s Warning: %s": [
+  "%s Atenção: %s"
+ ],
+ "%s Warning: this page tries to instruct the assistant. I ignored it.": [
+  "%s Atenção: esta página tenta dar instruções ao assistente. Ignorei."
+ ],
+ "%s already exists: nothing is replaced": [
+  "%s já existe: nada é substituído"
+ ],
+ "%s and %s must be inside the same folder you allowed": [
+  "%s e %s precisam estar dentro da mesma pasta que você permitiu"
+ ],
+ "%s cannot be used by the assistant.": [
+  "%s não pode ser usado pelo assistente."
+ ],
+ "%s does not exist any more": [
+  "%s não existe mais"
+ ],
+ "%s is outside the folder you allowed": [
+  "%s está fora da pasta que você permitiu"
+ ],
+ "%s is outside the folders you allowed.": [
+  "%s está fora das pastas que você permitiu."
+ ],
+ "%s, by %s": [
+  "%s, de %s"
+ ],
+ "%s, changed %s, in %s": [
+  "%s, alterado em %s, em %s"
+ ],
+ "%s, created %s, in %s": [
+  "%s, criado em %s, em %s"
+ ],
+ "(not allowed by your administrator)": [
+  "(não permitido pelo administrador)"
+ ],
+ ", ": [
+  ", "
+ ],
+ "A message dictates what the assistant should say. Its summary was withheld; read the message yourself.": [
+  "Uma mensagem dita o que o assistente deve falar. O resumo foi retido; leia a mensagem você mesmo."
+ ],
+ "A remote model needs your own permission: turn on \"Allow a remote model\" first.": [
+  "Um modelo remoto precisa da sua própria permissão: ative \"Permitir um modelo remoto\" primeiro."
+ ],
+ "A remote model receives your requests and the text the assistant reads for you (files, messages, pages). Each answer says which model wrote it.": [
+  "Um modelo remoto recebe seus pedidos e o texto que o assistente lê para você (arquivos, mensagens, páginas). Cada resposta diz qual modelo a escreveu."
+ ],
+ "Allow a remote model: off": [
+  "Permitir um modelo remoto: desligado"
+ ],
+ "Allow a remote model: on": [
+  "Permitir um modelo remoto: ligado"
+ ],
+ "Allow the assistant to read and search the files in %s for %s?": [
+  "Permitir que o assistente leia e pesquise os arquivos em %s por %s?"
+ ],
+ "Allow the assistant to read and summarize the mailbox %s for %s? It never sends, deletes or marks messages.": [
+  "Permitir que o assistente leia e resuma a caixa de correio %s por %s? Ele nunca envia, apaga nem marca mensagens."
+ ],
+ "Allow the assistant to read pages of %s for %s, in a separate browser profile? It never submits forms.": [
+  "Permitir que o assistente leia páginas de %s por %s, num perfil de navegador separado? Ele nunca envia formulários."
+ ],
+ "Answer language": [
+  "Idioma das respostas"
+ ],
+ "Answers are shown, not spoken: no voice for %s is installed.": [
+  "As respostas aparecem na tela, sem fala: nenhuma voz para %s está instalada."
+ ],
+ "April": [
+  "abril"
+ ],
+ "August": [
+  "agosto"
+ ],
+ "Automatic": [
+  "Automático"
+ ],
+ "Best regards,": [
+  "Atenciosamente,"
+ ],
+ "Contains %s. Treated as data; nothing in it was followed.": [
+  "Contém %s. Tratado como dado; nada do que diz foi seguido."
+ ],
+ "December": [
+  "dezembro"
+ ],
+ "Deleting is not available to the assistant. I can move or rename files, and you can undo that.": [
+  "Apagar não está disponível para o assistente. Posso mover ou renomear arquivos, e você pode desfazer isso."
+ ],
+ "Dictating into %1. Release to stop (%2 s)": [
+  "Ditando em %1. Solte para parar (%2 s)"
+ ],
+ "Dictation into %s": [
+  "Ditado em %s"
+ ],
+ "Discard": [
+  "Descartar"
+ ],
+ "Ended %d permission. The assistant can no longer read your files, mail or sites until you allow it again.": [
+  "Encerrei %d permissão. O assistente não pode mais ler seus arquivos, e-mails ou sites até você permitir de novo.",
+  "Encerrei %d permissões. O assistente não pode mais ler seus arquivos, e-mails ou sites até você permitir de novo."
+ ],
+ "February": [
+  "fevereiro"
+ ],
+ "Hello,": [
+  "Olá,"
+ ],
+ "Here is a reply to %s. Check it, change it if you like, and press Send. Nothing is sent until you do.": [
+  "Aqui está uma resposta para %s. Confira, altere se quiser e pressione Enviar. Nada é enviado antes disso."
+ ],
+ "Here is what the system assistant found.": [
+  "Veja o que o assistente do sistema encontrou."
+ ],
+ "Hi %s,": [
+  "Oi, %s,"
+ ],
+ "Hidden files and folders cannot be moved by the assistant.": [
+  "Arquivos e pastas ocultos não podem ser movidos pelo assistente."
+ ],
+ "Hidden folders cannot be used by the assistant.": [
+  "Pastas ocultas não podem ser usadas pelo assistente."
+ ],
+ "I can reply to a message you name (for example: reply to Ana: Thursday works). Sending new messages and forwarding are not available.": [
+  "Posso responder a uma mensagem que você indicar (por exemplo: responda à Ana: quinta-feira está bom). Enviar mensagens novas e encaminhar não estão disponíveis."
+ ],
+ "I cannot undo the last move: %s": [
+  "Não consigo desfazer a última mudança: %s"
+ ],
+ "I could not find that folder.": [
+  "Não encontrei essa pasta."
+ ],
+ "I did not hear anything.": [
+  "Não ouvi nada."
+ ],
+ "I did not summarize: a message tells the assistant what to say, and the summary repeated it.": [
+  "Não resumi: uma mensagem diz ao assistente o que falar, e o resumo repetiu isso."
+ ],
+ "I did not summarize: the page tells the assistant what to say, and the summary repeated it.": [
+  "Não resumi: a página diz ao assistente o que falar, e o resumo repetiu isso."
+ ],
+ "I did not understand that. Try: \"make it darker with rounder corners\", \"open text editor\", \"arrange windows side by side\", \"why nginx\".": [
+  "Não entendi. Experimente: \"deixe mais escuro com cantos arredondados\", \"abra o editor de texto\", \"organize as janelas lado a lado\", \"por que o nginx\"."
+ ],
+ "I drafted a reply to %s. Please check it on the screen and press Send.": [
+  "Escrevi um rascunho de resposta para %s. Confira na tela e pressione Enviar."
+ ],
+ "I found %d file in %s. The best match is %s (%s). Say \"open result 1\" to open it.": [
+  "Encontrei %d arquivo em %s. O melhor resultado é %s (%s). Diga \"abra o resultado 1\" para abrir.",
+  "Encontrei %d arquivos em %s. O melhor resultado é %s (%s). Diga \"abra o resultado 1\" para abrir."
+ ],
+ "I found %d file. The best match is %s, %s.": [
+  "Encontrei %d arquivo. O melhor resultado é %s, %s.",
+  "Encontrei %d arquivos. O melhor resultado é %s, %s."
+ ],
+ "I found no file that matches %q in the folders you allowed.": [
+  "Não achei nenhum arquivo que corresponda a %q nas pastas que você permitiu."
+ ],
+ "I found no file that matches in %s.": [
+  "Não achei nenhum arquivo que corresponda em %s."
+ ],
+ "I found no recent message from %s to answer.": [
+  "Não achei nenhuma mensagem recente de %s para responder."
+ ],
+ "I found no recent message that matches. Say who sent it, for example: reply to Ana: thanks.": [
+  "Não achei nenhuma mensagem recente que corresponda. Diga quem enviou, por exemplo: responda à Ana: obrigado."
+ ],
+ "I need your permission to read %s. Please confirm on the screen.": [
+  "Preciso da sua permissão para ler %s. Confirme na tela."
+ ],
+ "I need your permission to read your documents. Please confirm on the screen.": [
+  "Preciso da sua permissão para ler seus documentos. Confirme na tela."
+ ],
+ "I need your permission to read your mail. Please confirm on the screen.": [
+  "Preciso da sua permissão para ler seu e-mail. Confirme na tela."
+ ],
+ "I will move %d file to %s. Please confirm on the screen.": [
+  "Vou mover %d arquivo para %s. Confirme na tela.",
+  "Vou mover %d arquivos para %s. Confirme na tela."
+ ],
+ "I will rename %s to %s. Please confirm on the screen.": [
+  "Vou renomear %s para %s. Confirme na tela."
+ ],
+ "Indexing your files failed: %s": [
+  "A indexação dos seus arquivos falhou: %s"
+ ],
+ "Insert": [
+  "Inserir"
+ ],
+ "January": [
+  "janeiro"
+ ],
+ "July": [
+  "julho"
+ ],
+ "June": [
+  "junho"
+ ],
+ "Language model": [
+  "Modelo de linguagem"
+ ],
+ "Let the assistant read and search the files in %s (and below; hidden files, keys and browser data stay closed) for %s": [
+  "Deixar o assistente ler e pesquisar os arquivos em %s (e subpastas; arquivos ocultos, chaves e dados do navegador continuam fechados) por %s"
+ ],
+ "Let the assistant read and summarize the mailbox %s (nothing is sent, deleted or marked as read) for %s": [
+  "Deixar o assistente ler e resumir a caixa de correio %s (nada é enviado, apagado ou marcado como lido) por %s"
+ ],
+ "Let the assistant read pages of %s in a separate browser profile (no forms are submitted; other sites stay blocked) for %s": [
+  "Deixar o assistente ler páginas de %s num perfil de navegador separado (nenhum formulário é enviado; os outros sites continuam bloqueados) por %s"
+ ],
+ "Listening for the assistant. Release to send (%1 s)": [
+  "Ouvindo para o assistente. Solte para enviar (%1 s)"
+ ],
+ "Local model (none configured: fixed phrases only)": [
+  "Modelo local (nenhum configurado: só frases fixas)"
+ ],
+ "Local model on this computer": [
+  "Modelo local neste computador"
+ ],
+ "March": [
+  "março"
+ ],
+ "May": [
+  "maio"
+ ],
+ "Microphone open only while you hold the key. Audio stays on this computer and is not kept.": [
+  "O microfone só fica aberto enquanto você segura a tecla. O áudio fica neste computador e não é guardado."
+ ],
+ "Move %d file to %s": [
+  "Mover %d arquivo para %s",
+  "Mover %d arquivos para %s"
+ ],
+ "Move %d file to %s? Check the list, then confirm. You can undo it afterwards.": [
+  "Mover %d arquivo para %s? Confira a lista e confirme. Você pode desfazer depois.",
+  "Mover %d arquivos para %s? Confira a lista e confirme. Você pode desfazer depois."
+ ],
+ "No mail account is set up for the assistant (skills.conf).": [
+  "Nenhuma conta de e-mail está configurada para o assistente (skills.conf)."
+ ],
+ "No mail account is set up for the assistant.": [
+  "Nenhuma conta de e-mail está configurada para o assistente."
+ ],
+ "No messages match in %s mail%s.": [
+  "Nenhuma mensagem corresponde no e-mail %s%s."
+ ],
+ "No speech model is installed. An administrator installs them with basalt-voice-fetch.": [
+  "Nenhum modelo de fala está instalado. Um administrador os instala com basalt-voice-fetch."
+ ],
+ "No voice for %1 is installed: answers in it are shown, not spoken.": [
+  "Nenhuma voz para %1 está instalada: as respostas nesse idioma aparecem na tela, sem fala."
+ ],
+ "Not sent: %s": [
+  "Não enviado: %s"
+ ],
+ "November": [
+  "novembro"
+ ],
+ "October": [
+  "outubro"
+ ],
+ "Off": [
+  "Desligado"
+ ],
+ "On": [
+  "Ligado"
+ ],
+ "Open %s with its default application": [
+  "Abrir %s com o aplicativo padrão"
+ ],
+ "Open %s?": [
+  "Abrir %s?"
+ ],
+ "Opening %s. Please confirm.": [
+  "Abrindo %s. Confirme."
+ ],
+ "Please confirm on the screen to put them back.": [
+  "Confirme na tela para devolver os arquivos."
+ ],
+ "Please confirm on the screen.": [
+  "Confirme na tela."
+ ],
+ "Please confirm on the screen: %s.": [
+  "Confirme na tela: %s."
+ ],
+ "Please say which one: %s": [
+  "Diga qual: %s"
+ ],
+ "Put %d file back where it was": [
+  "Devolver %d arquivo para onde estava",
+  "Devolver %d arquivos para onde estavam"
+ ],
+ "Put %d file back where it was?": [
+  "Devolver %d arquivo para onde estava?",
+  "Devolver %d arquivos para onde estavam?"
+ ],
+ "Read %s: %s. %s": [
+  "Li %s: %s. %s"
+ ],
+ "Reading mail failed: %s": [
+  "A leitura do e-mail falhou: %s"
+ ],
+ "Reading the page failed: %s": [
+  "A leitura da página falhou: %s"
+ ],
+ "Remote: %1": [
+  "Remoto: %1"
+ ],
+ "Rename %s to %s": [
+  "Renomear %s para %s"
+ ],
+ "Rename %s to %s? You can undo it afterwards.": [
+  "Renomear %s para %s? Você pode desfazer depois."
+ ],
+ "Replies need the account's address and sending server in skills.conf (address, smtp_host).": [
+  "Para responder, a conta precisa do endereço e do servidor de envio em skills.conf (address, smtp_host)."
+ ],
+ "Same as speech": [
+  "O mesmo da fala"
+ ],
+ "Saved in %1.": [
+  "Salvo em %1."
+ ],
+ "Saved. It applies to your next request.": [
+  "Salvo. Vale a partir do seu próximo pedido."
+ ],
+ "Saved. The multilingual speech model %1 is used for %2.": [
+  "Salvo. O modelo de fala multilíngue %1 será usado para %2."
+ ],
+ "Searching failed: %s": [
+  "A pesquisa falhou: %s"
+ ],
+ "Send a reply to %s: %s": [
+  "Enviar uma resposta para %s: %s"
+ ],
+ "Sending without TLS is only allowed to lab servers on reserved names.": [
+  "Enviar sem TLS só é permitido para servidores de laboratório com nomes reservados."
+ ],
+ "September": [
+  "setembro"
+ ],
+ "Shown underlined in the field. Nothing is typed until you choose Insert (Super+Shift+Return).": [
+  "Aparece sublinhado no campo. Nada é digitado até você escolher Inserir (Super+Shift+Return)."
+ ],
+ "Speaking": [
+  "Falando"
+ ],
+ "Speech language": [
+  "Idioma de fala"
+ ],
+ "Speech language: %1": [
+  "Idioma de fala: %1"
+ ],
+ "Speech language: detected automatically": [
+  "Idioma de fala: detectado automaticamente"
+ ],
+ "Speech model": [
+  "Modelo de fala"
+ ],
+ "Speech to text failed.": [
+  "A transcrição da fala falhou."
+ ],
+ "Spoken answers": [
+  "Respostas faladas"
+ ],
+ "System default": [
+  "Padrão do sistema"
+ ],
+ "System default (%1)": [
+  "Padrão do sistema (%1)"
+ ],
+ "That is not something the desktop does. Try: \"dark mode\", \"open text editor\", \"arrange windows side by side\", \"why nginx\".": [
+  "Isso não é algo que a área de trabalho faz. Experimente: \"modo escuro\", \"abra o editor de texto\", \"organize as janelas lado a lado\", \"por que o nginx\"."
+ ],
+ "That message has no sender to answer.": [
+  "Essa mensagem não tem remetente para responder."
+ ],
+ "The assistant answers in %1.": [
+  "O assistente responde em %1."
+ ],
+ "The focused field is for a password or code: it gets no dictation.": [
+  "O campo em foco é de senha ou código: não recebe ditado."
+ ],
+ "The key file %s cannot be read.": [
+  "Não é possível ler o arquivo de chave %s."
+ ],
+ "The key file %s must be private (mode 0600).": [
+  "O arquivo de chave %s precisa ser privado (modo 0600)."
+ ],
+ "The language you speak to the assistant. Automatic detection needs a multilingual model and is slower and less reliable on short requests.": [
+  "O idioma em que você fala com o assistente. A detecção automática precisa de um modelo multilíngue e é mais lenta e menos confiável em pedidos curtos."
+ ],
+ "The mail password file is missing or not private (0600).": [
+  "O arquivo de senha do e-mail não existe ou não é privado (0600)."
+ ],
+ "The message asks for replies to go to %s. This reply goes to the sender, %s.": [
+  "A mensagem pede que as respostas vão para %s. Esta resposta vai para o remetente, %s."
+ ],
+ "The message you are answering contains %s. The draft is made only from your words, and nothing it asks for was done.": [
+  "A mensagem que você está respondendo contém %s. O rascunho foi feito só com as suas palavras, e nada do que ela pede foi feito."
+ ],
+ "The model %s is not one your administrator offers.": [
+  "O modelo %s não é um dos oferecidos pelo administrador."
+ ],
+ "The model in use understands English only. Choose a multilingual model for %1.": [
+  "O modelo em uso só entende inglês. Escolha um modelo multilíngue para %1."
+ ],
+ "The model that understands your requests and writes the summaries. Your administrator decides which ones you may choose.": [
+  "O modelo que entende seus pedidos e escreve os resumos. O administrador decide quais você pode escolher."
+ ],
+ "The page dictates what the assistant should say. Its summary was withheld; read the page yourself.": [
+  "A página dita o que o assistente deve falar. O resumo foi retido; leia a página você mesmo."
+ ],
+ "The permission to read that folder has ended. Allow it again to open the file.": [
+  "A permissão para ler essa pasta terminou. Permita de novo para abrir o arquivo."
+ ],
+ "The permission to that folder has ended. Allow it again first.": [
+  "A permissão para essa pasta terminou. Permita de novo primeiro."
+ ],
+ "The screen is locked. Unlock it to talk.": [
+  "A tela está bloqueada. Desbloqueie para falar."
+ ],
+ "The speech model %s is not installed.": [
+  "O modelo de fala %s não está instalado."
+ ],
+ "The speech model %s is not installed. Choose another one in Settings, Voice and assistant.": [
+  "O modelo de fala %s não está instalado. Escolha outro em Configurações, Voz e assistente."
+ ],
+ "The speech model %s understands English only. Choose a multilingual model for %s.": [
+  "O modelo de fala %s só entende inglês. Escolha um modelo multilíngue para %s."
+ ],
+ "The speech model %s understands English only. Choose a multilingual model or English as your speech language in Settings, Voice and assistant.": [
+  "O modelo de fala %s só entende inglês. Escolha um modelo multilíngue, ou inglês como idioma de fala, em Configurações, Voz e assistente."
+ ],
+ "The suggested text was not used (%s); the draft has your own words.": [
+  "O texto sugerido não foi usado (%s); o rascunho tem as suas próprias palavras."
+ ],
+ "The system assistant (basalt) is not installed on this computer.": [
+  "O assistente do sistema (basalt) não está instalado neste computador."
+ ],
+ "The text field lost focus, so nothing was typed. Click in the field and dictate again.": [
+  "O campo de texto perdeu o foco, então nada foi digitado. Clique no campo e dite de novo."
+ ],
+ "The voice %s does not speak that language.": [
+  "A voz %s não fala esse idioma."
+ ],
+ "The voice %s is not installed.": [
+  "A voz %s não está instalada."
+ ],
+ "The voice service is not running.": [
+  "O serviço de voz não está rodando."
+ ],
+ "There are no results yet. Ask me to find the files first.": [
+  "Ainda não há resultados. Peça primeiro para eu encontrar os arquivos."
+ ],
+ "There is %d result; say 1.": [
+  "Há %d resultado; diga 1.",
+  "Há %d resultados; diga um número de 1 a %d."
+ ],
+ "There is no file result to open. Ask me to find a file first.": [
+  "Não há resultado de arquivo para abrir. Peça primeiro para eu encontrar um arquivo."
+ ],
+ "There is no result %d. Ask me to find the files first.": [
+  "Não há resultado %d. Peça primeiro para eu encontrar os arquivos."
+ ],
+ "There is nothing to undo.": [
+  "Não há nada para desfazer."
+ ],
+ "These settings are yours only. They do not change the language of the desktop: you can speak to the assistant and get answers in another language.": [
+  "Estas configurações são só suas. Elas não mudam o idioma da área de trabalho: você pode falar com o assistente e receber respostas em outro idioma."
+ ],
+ "This page contains %s. I ignored it and did nothing it asked.": [
+  "Esta página contém %s. Ignorei e não fiz nada do que ela pede."
+ ],
+ "This page contains %s. It tried to contact %s; the browser and the network filter blocked it. I ignored it and did nothing it asked.": [
+  "Esta página contém %s. Ela tentou contatar %s; o navegador e o filtro de rede bloquearam. Ignorei e não fiz nada do que ela pede."
+ ],
+ "Those files are already in %s.": [
+  "Esses arquivos já estão em %s."
+ ],
+ "To dictate into a text field, click in the field first. Say \"assistant\" first to ask the assistant from a text field.": [
+  "Para ditar num campo de texto, clique no campo primeiro. Diga \"assistente\" no começo para falar com o assistente a partir de um campo de texto."
+ ],
+ "To find the message to answer I need your permission to read %s mail (%s) for 1 hour. Nothing is sent without your confirmation.": [
+  "Para achar a mensagem a responder, preciso da sua permissão para ler o e-mail %s (%s) por 1 hora. Nada é enviado sem a sua confirmação."
+ ],
+ "To find those files I need your permission to read %s for 1 hour. Moving them will still ask you first.": [
+  "Para achar esses arquivos preciso da sua permissão para ler %s por 1 hora. Movê-los ainda vai pedir a sua confirmação antes."
+ ],
+ "To read %s I need your permission (read only, in a separate browser profile, for 1 hour).": [
+  "Para ler %s preciso da sua permissão (somente leitura, num perfil de navegador separado, por 1 hora)."
+ ],
+ "To read your mail I need your permission for %s mail (%s) for 1 hour (read only: nothing is sent, deleted or marked as read).": [
+  "Para ler seu e-mail preciso da sua permissão para o e-mail %s (%s) por 1 hora (somente leitura: nada é enviado, apagado ou marcado como lido)."
+ ],
+ "To search your files I need your permission to read %s for 1 hour (read only).": [
+  "Para pesquisar seus arquivos preciso da sua permissão para ler %s por 1 hora (somente leitura)."
+ ],
+ "Turning speech into text, on this computer": [
+  "Transformando a fala em texto, neste computador"
+ ],
+ "Turns your speech into text, on this computer. Larger models understand better and take longer. English-only models do not understand other languages.": [
+  "Transforma sua fala em texto, neste computador. Modelos maiores entendem melhor e demoram mais. Modelos só de inglês não entendem outros idiomas."
+ ],
+ "Type a request (at most 500 characters).": [
+  "Digite um pedido (no máximo 500 caracteres)."
+ ],
+ "Type the dictated text (%d character) into %s": [
+  "Digitar o texto ditado (%d caractere) em %s",
+  "Digitar o texto ditado (%d caracteres) em %s"
+ ],
+ "Type this into %1?": [
+  "Digitar isto em %1?"
+ ],
+ "Voice and assistant": [
+  "Voz e assistente"
+ ],
+ "Voice error": [
+  "Erro de voz"
+ ],
+ "What should the reply say? For example: reply to Ana: Thursday works for me.": [
+  "O que a resposta deve dizer? Por exemplo: responda à Ana: quinta-feira está bom para mim."
+ ],
+ "Which site? Say its address (for example news.example.org) or allow a site first.": [
+  "Qual site? Diga o endereço (por exemplo news.example.org) ou permita um site primeiro."
+ ],
+ "Which site? Say its address, for example news.example.org.": [
+  "Qual site? Diga o endereço, por exemplo news.example.org."
+ ],
+ "Working on it": [
+  "Trabalhando nisso"
+ ],
+ "Your administrator does not allow remote models on this computer.": [
+  "O administrador não permite modelos remotos neste computador."
+ ],
+ "Your administrator does not allow the speech model %s.": [
+  "O administrador não permite o modelo de fala %s."
+ ],
+ "Your administrator does not allow the speech model %s. Choose another one in Settings, Voice and assistant.": [
+  "O administrador não permite o modelo de fala %s. Escolha outro em Configurações, Voz e assistente."
+ ],
+ "Your administrator does not allow the voice %s.": [
+  "O administrador não permite a voz %s."
+ ],
+ "Your speech language setting is not a language. Choose one in Settings, Voice and assistant.": [
+  "O idioma de fala configurado não é um idioma válido. Escolha um em Configurações, Voz e assistente."
+ ],
+ "Your voice settings could not be read: %s": [
+  "Não foi possível ler suas configurações de voz: %s"
+ ],
+ "Your voice settings have a mistake (%s); the defaults are used.": [
+  "Suas configurações de voz têm um erro (%s); os valores padrão estão em uso."
+ ],
+ "deceptive links": [
+  "links enganosos"
+ ],
+ "hidden text": [
+  "texto oculto"
+ ],
+ "instructions addressed to the assistant": [
+  "instruções dirigidas ao assistente"
+ ],
+ "invisible characters": [
+  "caracteres invisíveis"
+ ],
+ "last month": [
+  "mês passado"
+ ],
+ "last week": [
+  "semana passada"
+ ],
+ "last year": [
+  "ano passado"
+ ],
+ "links or images that would send data out": [
+  "links ou imagens que enviariam dados para fora"
+ ],
+ "look-alike letters": [
+  "letras parecidas de outros alfabetos"
+ ],
+ "the default model": [
+  "o modelo padrão"
+ ],
+ "the focused app": [
+  "o aplicativo em foco"
+ ],
+ "the last two weeks": [
+  "as duas últimas semanas"
+ ],
+ "the mail password file is missing or not private (0600)": [
+  "o arquivo de senha do e-mail não existe ou não é privado (0600)"
+ ],
+ "this month": [
+  "este mês"
+ ],
+ "this week": [
+  "esta semana"
+ ],
+ "this year": [
+  "este ano"
+ ],
+ "today": [
+  "hoje"
+ ],
+ "yesterday": [
+  "ontem"
+ ],
+ "your home folder": [
+  "sua pasta pessoal"
+ ],
+ "“%1”": [
+  "“%1”"
+ ]
+}

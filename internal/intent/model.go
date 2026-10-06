@@ -14,6 +14,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/basalt-os/basalt-shell/internal/i18n"
 )
 
 // Model is the optional language-model translator of the command bar: an
@@ -35,6 +37,10 @@ type Model struct {
 	// AllowRemote permits a non-local endpoint (off by default).
 	AllowRemote bool
 	Timeout     time.Duration
+	// APIKeyFile holds a key for a remote endpoint (a private file, mode
+	// 0600): sent only to that endpoint, in the Authorization header, and
+	// never logged.
+	APIKeyFile string
 	// Helper posts a chat completions body to the system's model when
 	// this user cannot reach its socket (basalt-llm's socket is open to
 	// the assistant and administrators only): the shell's assistant-read
@@ -111,6 +117,13 @@ func (m *Model) Local() bool {
 	return false
 }
 
+func (m *Model) timeout() time.Duration {
+	if m.Timeout > 0 {
+		return m.Timeout
+	}
+	return 60 * time.Second
+}
+
 func (m *Model) client() (*http.Client, string) {
 	if strings.HasPrefix(m.Endpoint, "unix:") {
 		sock := strings.TrimPrefix(m.Endpoint, "unix:")
@@ -118,11 +131,11 @@ func (m *Model) client() (*http.Client, string) {
 			var d net.Dialer
 			return d.DialContext(ctx, "unix", sock)
 		}}
-		return &http.Client{Transport: tr, Timeout: m.Timeout}, "http://local"
+		return &http.Client{Transport: tr, Timeout: m.timeout()}, "http://local"
 	}
 	base := strings.TrimRight(m.Endpoint, "/")
 	base = strings.TrimSuffix(base, "/v1")
-	return &http.Client{Timeout: m.Timeout}, base
+	return &http.Client{Timeout: m.timeout()}, base
 }
 
 // post sends a chat completions body: directly, or through the helper
@@ -134,6 +147,13 @@ func (m *Model) post(ctx context.Context, body []byte) ([]byte, string, error) {
 		return nil, "", err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if m.APIKeyFile != "" && !strings.HasPrefix(m.Endpoint, "unix:") {
+		key, err := readKey(m.APIKeyFile)
+		if err != nil {
+			return nil, "", err
+		}
+		req.Header.Set("Authorization", "Bearer "+key)
+	}
 	resp, err := cl.Do(req)
 	if err != nil {
 		if m.Helper != nil && strings.HasPrefix(m.Endpoint, "unix:") && (errors.Is(err, os.ErrPermission) || errors.Is(err, os.ErrNotExist) ||
@@ -149,6 +169,19 @@ func (m *Model) post(ctx context.Context, body []byte) ([]byte, string, error) {
 		return nil, "", fmt.Errorf("translator: HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(rb)))
 	}
 	return rb, "direct", nil
+}
+
+// readKey reads an API key file, which must be private.
+func readKey(path string) (string, error) {
+	st, err := os.Stat(path)
+	if err != nil {
+		return "", fmt.Errorf("api key: %w", err)
+	}
+	if st.Mode().Perm()&0o077 != 0 {
+		return "", fmt.Errorf("api key file %s must be private (mode 0600)", path)
+	}
+	b, err := os.ReadFile(path)
+	return strings.TrimSpace(string(b)), err
 }
 
 // Intents is the closed set the model may answer with.
@@ -179,7 +212,7 @@ var arrangeWords = map[string]string{
 	"center": "center", "rows": "rows", "tile": "tile windows", "float": "float all",
 }
 
-var settingsPages = []string{"appearance", "tokens", "motion", "panel", "windows", "apps", "ai", "about"}
+var settingsPages = []string{"appearance", "tokens", "motion", "panel", "windows", "apps", "ai", "voice", "about"}
 
 // ModelIntent is one item of the model's answer. Each intent carries
 // only its own typed fields (the schema gives every intent its own
@@ -261,6 +294,29 @@ func schema(c Context) map[string]any {
 	}
 }
 
+// LanguageRule is the one line every system prompt gets when the
+// person's answer language is not English: the model answers the person
+// in that language, while everything machine-facing stays in English and
+// unchanged (the schemas, their keys and enums, the intents, identifiers,
+// paths and names are the same in every language, and the shell checks
+// them as such). Empty for English, the reference language.
+func LanguageRule(tag string) string {
+	if i18n.Tag(tag) == "" || i18n.IsEnglish(tag) {
+		return ""
+	}
+	return "Answer the person in " + i18n.EnglishName(tag) + ": write every human-facing text (answers, summaries, explanations, " +
+		"spoken text) in that language. Keep everything machine-facing exactly as specified, in English and unchanged: JSON keys, " +
+		"intent names, enum values, action and command identifiers, theme and setting names, file names and paths, web addresses and quoted names."
+}
+
+// WithLanguage appends the answer-language rule to a system prompt.
+func WithLanguage(system, tag string) string {
+	if r := LanguageRule(tag); r != "" {
+		return strings.TrimRight(system, "\n ") + "\n" + r
+	}
+	return system
+}
+
 // prompt explains the closed set with a few examples (English and
 // Brazilian Portuguese).
 func prompt(c Context) string {
@@ -287,7 +343,7 @@ use the lichen look -> {"intents":[{"intent":"use_theme","theme":"lichen"}]}
 por que o nginx caiu? -> {"intents":[{"intent":"system"}]}
 install steam -> {"intents":[{"intent":"none"}]}
 `)
-	return b.String()
+	return WithLanguage(b.String(), c.Lang)
 }
 
 // Translate asks the model and turns its answer into calls (through the

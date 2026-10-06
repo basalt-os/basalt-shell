@@ -161,6 +161,13 @@ daemon (the voice service by the user unit):
 | `basalt_skill_send_t` | basalt-skill-send | SMTP and DNS in a session that allows only the account's server | the index, the mailbox, web ports, home files |
 | `basalt_skill_files_t` | basalt-skill-files | list, create and rename in plain home content | open, read, write or delete a file; network |
 
+The person's voice and assistant settings (`~/.config/basalt`, type
+`basalt_user_conf_t`, given to the directory when the daemon creates it)
+are read and written only by the daemon; none of these domains opens
+them (they get the values with each request), and `neverallow` rules
+keep every agent domain and every domain of the family from writing
+them.
+
 None of them may run a general program. The few tools they need get
 types of their own, `basalt_voice_tool_exec_t` (whisper-cli, Piper,
 pw-cat), `basalt_pdf_tool_exec_t` (pdftotext, pdfinfo) and

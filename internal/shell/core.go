@@ -138,7 +138,9 @@ type Core struct {
 	voice            VoiceState
 	voicePress       time.Time
 	voiceRoute       voiceRoute
-	voiceLangNoticed bool
+	voiceLangNoticed map[string]bool // answer languages told "shown, not spoken" this session
+	// prefs are the person's voice and assistant settings (voiceprefs.go).
+	prefs prefsState
 	// im is the seat's input method (dictation); nil when not held.
 	im *wlime.IM
 	// placed remembers windows the shell maximized or snapped: their

@@ -150,12 +150,18 @@ func (c *Core) focusedApp() string {
 
 // reAssistantPrefix: an utterance addressed to the assistant while a text
 // field has focus ("assistant, find the PDF from the bank").
-var reAssistantPrefix = regexp.MustCompile(`(?i)^\s*(?:hey\s+|ok\s+|okay\s+)?(?:assistant|assistente|basalt)\b[\s,.:!]*`)
+// Speech recognition sometimes quotes what follows ("Assistente \"Abra o
+// resultado 2\""): the quotes go with the prefix.
+var reAssistantPrefix = regexp.MustCompile(`(?i)^\s*(?:hey\s+|ok\s+|okay\s+|ei\s+|oi\s+)?(?:assistant|assistente|basalt)\b[\s,.:!"“”']*`)
 
 // AssistantPrefix strips a leading "assistant" and reports whether it was there.
 func AssistantPrefix(text string) (string, bool) {
 	if loc := reAssistantPrefix.FindStringIndex(text); loc != nil {
-		return strings.TrimSpace(text[loc[1]:]), true
+		rest := strings.TrimSpace(text[loc[1]:])
+		if strings.ContainsAny(text[loc[1]:], "\"“”") {
+			rest = strings.TrimSpace(strings.Trim(strings.TrimRight(rest, ".!?"), "\"“”"))
+		}
+		return rest, true
 	}
 	return text, false
 }

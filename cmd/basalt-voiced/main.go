@@ -22,6 +22,18 @@
 //	BASALT_VOICE_TTS_MODEL  voice model
 //	BASALT_VOICE_MAX_HOLD   seconds (default 30)
 //	BASALT_VOICE_PEER       selinux (default when the policy is loaded), exe, insecure
+//	BASALT_VOICE_LANGUAGE   default speech language: auto or a tag (default en)
+//	BASALT_VOICE_ALLOWED_MODELS, BASALT_VOICE_MAX_MODEL_MB, BASALT_VOICE_MODEL_DIRS
+//	                        what a person may choose (see internal/voice.System)
+//
+// Per person: the shell daemon sends the person's speech language and
+// speech model with each "stop", and their voice with each "speak" (from
+// their settings file, which this service never reads: it has no access
+// to home files). Every choice is checked here against the system policy
+// above, on every request; a model outside it, or an English-only model
+// for another language, is refused with a coded error the shell shows on
+// the voice card. Changing the person's settings needs no restart; a
+// change of /etc/basalt/voice.conf needs a restart of the service.
 package main
 
 import (
@@ -66,6 +78,7 @@ type config struct {
 	runDir                     string
 	rate                       int
 	pwRecord, pwPlay           string
+	sys                        voice.System
 }
 
 func env(k, def string) string {
@@ -101,6 +114,8 @@ func load() config {
 		rd = os.TempDir()
 	}
 	c.runDir = filepath.Join(rd, "basalt-voice")
+	c.sys = voice.SystemFromEnv(os.Getenv)
+	c.sys.STTModel, c.sys.TTSModel = c.sttModel, c.ttsModel
 	return c
 }
 
@@ -117,6 +132,7 @@ type service struct {
 	holdTmr  *time.Timer
 	started  time.Time
 	tts      *tts
+	ttsModel string // the voice the warm Piper process speaks with
 	player   *exec.Cmd
 	speakGen int
 }
@@ -140,7 +156,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		t, err := s.transcribe(context.Background(), b[44:])
+		t, err := s.transcribe(context.Background(), b[44:], os.Getenv("BASALT_VOICE_TEST_LANG"), os.Getenv("BASALT_VOICE_TEST_MODEL"))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -287,23 +303,28 @@ func (s *service) handle(ctx context.Context, req voice.Request) voice.Reply {
 		}
 		return voice.Reply{OK: true}
 	case "stop":
-		t, err := s.stopListening(ctx, extraPrompt(req.Prompt), req.Dictation)
+		t, err := s.stopListening(ctx, extraPrompt(req.Prompt), req.Dictation, req.Lang, req.Model)
 		if err != nil {
-			return voice.Reply{Error: err.Error(), Transcript: t}
+			return voice.Reply{Error: err.Error(), Code: voice.ErrorCode(err), Transcript: t}
 		}
 		return voice.Reply{OK: true, Transcript: t}
 	case "cancel":
 		s.cancel()
 		return voice.Reply{OK: true}
 	case "speak":
-		sp, err := s.speak(ctx, req.Text)
+		sp, err := s.speak(ctx, req.Text, req.Voice)
 		if err != nil {
-			return voice.Reply{Error: err.Error()}
+			return voice.Reply{Error: err.Error(), Code: voice.ErrorCode(err)}
 		}
 		return voice.Reply{OK: true, Spoken: sp}
 	case "hush":
 		s.hush()
 		return voice.Reply{OK: true}
+	case "models":
+		// The installed models and voices with the policy's verdict, for
+		// the person's settings (names and sizes only).
+		m := s.cfg.sys.List()
+		return voice.Reply{OK: true, Models: &m}
 	case "status":
 		s.mu.Lock()
 		st := &voice.Status{State: s.state, STT: filepath.Base(s.cfg.sttModel), TTS: filepath.Base(s.cfg.ttsBin),
@@ -399,21 +420,34 @@ func (s *service) setState(st string) {
 	s.mu.Unlock()
 }
 
-func (s *service) stopListening(ctx context.Context, extra string, dictation bool) (*voice.Transcript, error) {
+func (s *service) stopListening(ctx context.Context, extra string, dictation bool, lang, model string) (*voice.Transcript, error) {
 	buf, held, capMS := s.closeMic()
 	if buf == nil {
 		return nil, errors.New("not listening")
 	}
 	defer buf.Reset()
+	// The person's choices, checked against the policy before anything
+	// runs (the recording is dropped on a refusal).
+	path, err := s.cfg.sys.Find(model, "stt")
+	if err != nil {
+		return nil, err
+	}
+	if lang == "" {
+		lang = s.cfg.sys.Language
+	}
+	wl, err := voice.WhisperLanguage(lang, path)
+	if err != nil {
+		return nil, err
+	}
 	s.setState("transcribing")
 	defer s.setState("idle")
 	pcm := buf.Bytes()
-	t := &voice.Transcript{AudioMS: held.Milliseconds(), CaptureMS: capMS.Milliseconds(), Model: filepath.Base(s.cfg.sttModel)}
+	t := &voice.Transcript{AudioMS: held.Milliseconds(), CaptureMS: capMS.Milliseconds(), Model: filepath.Base(path), Lang: wl}
 	t.Level = rms(pcm)
 	if len(pcm) < s.cfg.rate*2*3/10 { // under 0.3 s
 		return t, nil
 	}
-	tr, err := s.transcribeWith(ctx, pcm, extra, dictation)
+	tr, err := s.transcribeWith(ctx, pcm, extra, dictation, path, wl)
 	if tr != nil {
 		tr.AudioMS, tr.CaptureMS, tr.Level = t.AudioMS, t.CaptureMS, t.Level
 	}
@@ -453,9 +487,56 @@ func wav(pcm []byte, rate int) []byte {
 
 var reNoise = regexp.MustCompile(`\[[^\]]*\]|\([^)]*\)`)
 
-// transcribe runs whisper.cpp with Silero VAD on one utterance.
-func (s *service) transcribe(ctx context.Context, pcm []byte) (*voice.Transcript, error) {
-	return s.transcribeWith(ctx, pcm, os.Getenv("BASALT_VOICE_TEST_NAMES"), os.Getenv("BASALT_VOICE_TEST_DICTATION") == "1")
+// transcribe runs whisper.cpp with Silero VAD on one utterance (the
+// transcribe command for tests: language and model by name, checked
+// like a request).
+func (s *service) transcribe(ctx context.Context, pcm []byte, lang, model string) (*voice.Transcript, error) {
+	path, err := s.cfg.sys.Find(model, "stt")
+	if err != nil {
+		return nil, err
+	}
+	if lang == "" {
+		lang = s.cfg.sys.Language
+	}
+	wl, err := voice.WhisperLanguage(lang, path)
+	if err != nil {
+		return nil, err
+	}
+	return s.transcribeWith(ctx, pcm, os.Getenv("BASALT_VOICE_TEST_NAMES"), os.Getenv("BASALT_VOICE_TEST_DICTATION") == "1", path, wl)
+}
+
+// requestPrompts bias the recognizer toward the words of the desktop's
+// requests, per language (Whisper heard "PDF" as "PD of" in the lab
+// without it). A language without one gets no request prompt.
+var requestPrompts = map[string]string{
+	"en": "Find the PDF. Summarize my email, my inbox, the web page. Reply to the email. Open result 2. Documents, Downloads, Desktop.",
+	"pt": "Encontre o PDF. Resuma meus e-mails, a caixa de entrada, a página. Responda ao e-mail. Abra o resultado 2. Deixe mais escuro, use o tema. Documentos, Downloads, Área de trabalho.",
+}
+
+// requestPrompt is the recognizer prompt for a whisper language (en,
+// pt, auto); BASALT_VOICE_PROMPT replaces the English one.
+func (s *service) requestPrompt(wl string) string {
+	if wl == "en" || wl == "" {
+		return s.cfg.prompt
+	}
+	return requestPrompts[wl]
+}
+
+// whisperArgs builds whisper-cli's arguments for one utterance: the model,
+// the file, the language (-l auto, en, pt), the threads, greedy decoding,
+// the VAD, the prompt and the encoder window.
+func whisperArgs(model, file, lang string, threads int, vad, prompt string, audioCtx int) []string {
+	args := []string{"-m", model, "-f", file, "-l", lang, "-t", strconv.Itoa(threads), "-nt", "-np", "-bs", "1", "-bo", "1", "-ng"}
+	if vad != "" {
+		args = append(args, "--vad", "-vm", vad)
+	}
+	if prompt = strings.TrimSpace(prompt); prompt != "" {
+		args = append(args, "--prompt", prompt)
+	}
+	if audioCtx > 0 {
+		args = append(args, "-ac", strconv.Itoa(audioCtx))
+	}
+	return args
 }
 
 // extraPrompt keeps the shell's extra prompt words short and plain: names
@@ -474,7 +555,7 @@ func extraPrompt(p string) string {
 	return strings.TrimSpace(b.String())
 }
 
-func (s *service) transcribeWith(ctx context.Context, pcm []byte, extra string, dictation bool) (*voice.Transcript, error) {
+func (s *service) transcribeWith(ctx context.Context, pcm []byte, extra string, dictation bool, model, lang string) (*voice.Transcript, error) {
 	start := time.Now()
 	f, err := os.CreateTemp(s.cfg.runDir, "utt-*.wav")
 	if err != nil {
@@ -490,25 +571,16 @@ func (s *service) transcribeWith(ctx context.Context, pcm []byte, extra string, 
 	f.Close()
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	args := []string{"-m", s.cfg.sttModel, "-f", name, "-l", "en", "-t", strconv.Itoa(s.cfg.threads), "-nt", "-np", "-bs", "1", "-bo", "1", "-ng"}
-	if s.cfg.vadModel != "" {
-		args = append(args, "--vad", "-vm", s.cfg.vadModel)
-	}
-	// A short prompt with the words of the desktop's requests: Whisper
-	// heard "PDF" as "PD of" in the lab without it.
-	base := s.cfg.prompt
+	// A short prompt with the words of the desktop's requests, in the
+	// speech language; none for dictation (free text).
+	base := s.requestPrompt(lang)
 	if dictation {
 		base = ""
-	}
-	if prompt := strings.TrimSpace(base + " " + extra); prompt != "" {
-		args = append(args, "--prompt", prompt)
 	}
 	// The encoder normally works on a 30 s window whatever the length of
 	// the utterance; a window fitted to the recording (plus a margin)
 	// halved the CPU time in the lab at the same error rate.
-	if ac := audioCtx(len(pcm) / 2 / s.cfg.rate); ac > 0 {
-		args = append(args, "-ac", strconv.Itoa(ac))
-	}
+	args := whisperArgs(model, name, lang, s.cfg.threads, s.cfg.vadModel, base+" "+extra, audioCtx(len(pcm)/2/s.cfg.rate))
 	cmd := exec.CommandContext(ctx, s.cfg.sttBin, args...)
 	var out, errb bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errb
@@ -517,7 +589,7 @@ func (s *service) transcribeWith(ctx context.Context, pcm []byte, extra string, 
 	}
 	text := strings.TrimSpace(reNoise.ReplaceAllString(out.String(), " "))
 	text = strings.Join(strings.Fields(text), " ")
-	return &voice.Transcript{Text: text, Speech: text != "", STTMS: time.Since(start).Milliseconds(), Model: filepath.Base(s.cfg.sttModel)}, nil
+	return &voice.Transcript{Text: text, Speech: text != "", STTMS: time.Since(start).Milliseconds(), Model: filepath.Base(model), Lang: lang}, nil
 }
 
 // audioCtx is the encoder window for an utterance of secs seconds (1500
@@ -547,11 +619,16 @@ type tts struct {
 	out *bufio.Reader
 }
 
-func (s *service) ttsProc() (*tts, error) {
-	if s.tts != nil && s.tts.cmd.ProcessState == nil {
+func (s *service) ttsProc(model string) (*tts, error) {
+	if s.tts != nil && s.tts.cmd.ProcessState == nil && s.ttsModel == model {
 		return s.tts, nil
 	}
-	args := append([]string{"--model", s.cfg.ttsModel, "--json-input", "--output_dir", s.cfg.runDir, "--quiet"}, s.cfg.ttsArgs...)
+	if s.tts != nil && s.tts.cmd.Process != nil {
+		// Another voice: a new warm process for it.
+		_ = s.tts.cmd.Process.Kill()
+		s.tts = nil
+	}
+	args := append([]string{"--model", model, "--json-input", "--output_dir", s.cfg.runDir, "--quiet"}, s.cfg.ttsArgs...)
 	cmd := exec.Command(s.cfg.ttsBin, args...)
 	cmd.Env = append(os.Environ(), "LD_LIBRARY_PATH="+filepath.Dir(s.cfg.ttsBin))
 	in, err := cmd.StdinPipe()
@@ -566,7 +643,7 @@ func (s *service) ttsProc() (*tts, error) {
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("text to speech: %w", err)
 	}
-	s.tts = &tts{cmd: cmd, in: in, out: bufio.NewReader(out)}
+	s.tts, s.ttsModel = &tts{cmd: cmd, in: in, out: bufio.NewReader(out)}, model
 	go func(t *tts) { _ = t.cmd.Wait() }(s.tts)
 	return s.tts, nil
 }
@@ -601,7 +678,11 @@ func (s *service) synth(t *tts, sentence string, n int) (string, error) {
 
 // speak synthesizes sentence by sentence and plays them in order; it
 // returns when the first sentence starts playing.
-func (s *service) speak(ctx context.Context, text string) (*voice.Spoken, error) {
+func (s *service) speak(ctx context.Context, text, voiceName string) (*voice.Spoken, error) {
+	model, err := s.cfg.sys.Find(voiceName, "tts")
+	if err != nil {
+		return nil, err
+	}
 	s.hush()
 	start := time.Now()
 	parts := sentences(text)
@@ -611,7 +692,7 @@ func (s *service) speak(ctx context.Context, text string) (*voice.Spoken, error)
 	s.mu.Lock()
 	s.speakGen++
 	gen := s.speakGen
-	t, err := s.ttsProc()
+	t, err := s.ttsProc(model)
 	s.mu.Unlock()
 	if err != nil {
 		return nil, err
@@ -680,7 +761,7 @@ func (s *service) speak(ctx context.Context, text string) (*voice.Spoken, error)
 		return nil, ctx.Err()
 	}
 	return &voice.Spoken{FirstAudioMS: time.Since(start).Milliseconds(), SynthMS: synthFirst.Milliseconds(), Sentences: len(parts),
-		Voice: filepath.Base(s.cfg.ttsModel)}, nil
+		Voice: filepath.Base(model)}, nil
 }
 
 func (s *service) hush() {

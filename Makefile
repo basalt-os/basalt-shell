@@ -46,6 +46,7 @@ install:
 	install -Dm755 $(BUILD)/basalt-skill $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-files
 	install -Dm644 config/systemd/basalt-voice.service $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-voice.service
 	install -Dm644 config/voice/voice.conf $(DESTDIR)$(SYSCONFDIR)/basalt/voice.conf
+	install -Dm644 config/voice/desktop-models.conf $(DESTDIR)$(SYSCONFDIR)/basalt/desktop-models.conf
 	install -Dm755 bin/basalt-shell-ui $(DESTDIR)$(PREFIX)/bin/basalt-shell-ui
 	install -Dm755 bin/basalt-session $(DESTDIR)$(PREFIX)/bin/basalt-session
 	install -Dm755 bin/basalt-lock $(DESTDIR)$(PREFIX)/bin/basalt-lock
@@ -54,6 +55,8 @@ install:
 	install -m644 shell/*.qml $(DESTDIR)$(PREFIX)/share/basalt-shell/qml/
 	install -m644 shell/wallpapers/* $(DESTDIR)$(PREFIX)/share/basalt-shell/qml/wallpapers/
 	install -m644 themes/*.json $(DESTDIR)$(PREFIX)/share/basalt-shell/themes/
+	install -d $(DESTDIR)$(PREFIX)/share/basalt-shell/locale
+	install -m644 locale/*.json $(DESTDIR)$(PREFIX)/share/basalt-shell/locale/
 	install -Dm644 config/sway/config $(DESTDIR)$(PREFIX)/share/basalt-shell/sway/config
 	install -Dm644 config/niri/config.kdl $(DESTDIR)$(PREFIX)/share/basalt-shell/niri/config.kdl
 	install -Dm644 config/niri/basalt-theme.kdl $(DESTDIR)$(PREFIX)/share/basalt-shell/niri/basalt-theme.kdl

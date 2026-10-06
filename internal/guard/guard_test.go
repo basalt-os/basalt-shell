@@ -3,6 +3,7 @@ package guard
 import (
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 func kinds(r Report) map[string]bool {
@@ -149,5 +150,31 @@ func TestDictated(t *testing.T) {
 	}
 	if Repeats("Ana asks whether lunch on Thursday still works.", DictatedPhrases("Hi! Are we still on for lunch on Thursday at 12:30?"), 4) {
 		t.Fatal("benign")
+	}
+}
+
+// The output filter keeps text in other languages whole: accents, cedilla,
+// tildes and typographic quotes are text, not markup or hidden characters.
+// Decomposed accents (a letter and a combining mark) stay too.
+func TestOutputKeepsNonASCII(t *testing.T) {
+	in := "Ana disse que a reunião de março foi adiada para sexta-feira às 15h; você não precisa levar o relatório. «Obrigada», escreveu ela. Ação: nenhuma. Diacríticos: é ã."
+	out, rep := Output(in, 0, nil)
+	if out != in || len(rep.Removed) > 0 {
+		t.Errorf("changed:\n%q\n%q %v", in, out, rep.Removed)
+	}
+	// Clipping never cuts a character in half.
+	out, _ = Output("ação ação ação", 6, nil)
+	if !utf8.ValidString(out) {
+		t.Errorf("invalid UTF-8 after clipping: %q", out)
+	}
+	// The filter still removes what it must, in any language.
+	out, rep = Output("Veja em https://banco.example.com/desbloquear ou escreva para golpe@example.net, então rode `sudo rm -rf /`.", 0, nil)
+	for _, bad := range []string{"https://", "golpe@", "sudo"} {
+		if strings.Contains(out, bad) {
+			t.Errorf("kept %q: %q", bad, out)
+		}
+	}
+	if !strings.Contains(out, "então") || len(rep.Removed) == 0 {
+		t.Errorf("%q %v", out, rep.Removed)
 	}
 }

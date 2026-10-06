@@ -42,7 +42,12 @@ type Result struct {
 type Context struct {
 	Tokens theme.Tokens // resolved, current
 	Themes []theme.Meta
+	// Lang is the person's answer language (a tag); the model is told to
+	// answer in it and to keep every identifier in English.
+	Lang string
 }
+
+var reThemeComma = regexp.MustCompile(`\b(theme|tema)\s*,\s*`)
 
 var splitRe = regexp.MustCompile(`\s*(?:,|;|\band then\b|\bthen\b|\band\b|\bwith\b|\bplus\b|\be depois\b|\be\b|\bcom\b|\bmas\b)\s*`)
 
@@ -54,6 +59,9 @@ func Rules(text string, ctx Context) Result {
 	if t == "" {
 		return res
 	}
+	// Speech recognition writes "use o tema, Lichen": a comma right after
+	// "theme" or "tema" is not a new clause.
+	t = reThemeComma.ReplaceAllString(t, "$1 ")
 	// System requests go to the assistant whole.
 	if sys := systemRequest(t); sys != nil {
 		res.System = sys
@@ -116,7 +124,13 @@ var fillers = []string{
 	"please", "por favor", "can you", "could you", "pode", "make it", "make the desktop", "make everything",
 	"make", "deixa", "deixe", "deixar", "torne", "set the", "i want", "i'd like", "quero", "a bit", "um pouco",
 	"slightly", "the desktop", "o desktop", "tudo", "everything", "it",
+	// Brazilian Portuguese (spoken requests come with these).
+	"você pode", "voce pode", "poderia", "eu quero", "gostaria de", "a tela", "o sistema", "a área de trabalho", "um pouquinho",
 }
+
+// themeAliases are the Portuguese names people (and speech recognition)
+// give the shipped themes; the identifiers stay the English ones.
+var themeAliases = map[string]string{"líquen": "lichen", "liquen": "lichen", "maré": "tide", "mare": "tide", "basalto": "basalt"}
 
 func stripFiller(s string) string {
 	s = " " + s + " "
@@ -201,10 +215,16 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 
 	// Mode.
 	switch {
-	case has(c, "dark mode", "modo escuro", "dark theme", "tema escuro", "night mode"):
+	case c == "escuro" || c == "escura" || c == "dark":
 		*mode, *switched = "dark", "dark"
 		return nil, []string{"dark mode"}, true
-	case has(c, "light mode", "modo claro", "light theme", "tema claro", "day mode"):
+	case c == "claro" || c == "clara" || c == "light":
+		*mode, *switched = "light", "light"
+		return nil, []string{"light mode"}, true
+	case has(c, "dark mode", "modo escuro", "dark theme", "tema escuro", "night mode", "modo noturno", "modo dark"):
+		*mode, *switched = "dark", "dark"
+		return nil, []string{"dark mode"}, true
+	case has(c, "light mode", "modo claro", "light theme", "tema claro", "day mode", "modo diurno", "modo light"):
 		*mode, *switched = "light", "light"
 		return nil, []string{"light mode"}, true
 	case has(c, "toggle mode", "switch mode", "alternar modo", "inverte"):
@@ -217,7 +237,7 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 		return nil, []string{*mode + " mode"}, true
 	}
 	// Darker / lighter.
-	if has(c, "darker", "mais escuro", "escurec", "dimmer", "deeper") {
+	if has(c, "darker", "mais escuro", "mais escura", "escurec", "escureç", "dimmer", "deeper") {
 		if *mode == "light" {
 			*mode, *switched = "dark", "dark"
 			return nil, []string{"darker: switch to dark mode"}, true
@@ -225,7 +245,7 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 		ch := scaleColors(work, 0.72, setTok)
 		return nil, []string{"darker: surfaces 28% darker (" + strings.Join(ch, ", ") + ")"}, true
 	}
-	if has(c, "lighter", "brighter", "mais claro", "clarear", "clareia") {
+	if has(c, "lighter", "brighter", "mais claro", "mais clara", "clarear", "clareia", "clareie", "clareá") {
 		if *mode == "dark" && has(c, "much", "muito") {
 			*mode, *switched = "light", "light"
 			return nil, []string{"lighter: switch to light mode"}, true
@@ -253,12 +273,14 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 		return corner(0.5, 0, "sharper corners")
 	}
 	// Text size.
-	if has(c, "bigger text", "larger text", "bigger font", "larger font", "fonte maior", "texto maior", "letra maior", "zoom in") {
+	if has(c, "bigger text", "larger text", "bigger font", "larger font", "fonte maior", "texto maior", "letra maior", "letras maiores", "zoom in",
+		"aumente o texto", "aumentar o texto", "aumenta o texto", "aumente a fonte", "aumentar a fonte", "aumenta a fonte", "aumente as letras") {
 		nv := clampSpec("font.size", work.Num("font.size")+1)
 		setTok("current", "font.size", nv)
 		return nil, []string{fmt.Sprintf("text size %g", nv)}, true
 	}
-	if has(c, "smaller text", "smaller font", "fonte menor", "texto menor", "letra menor", "zoom out") {
+	if has(c, "smaller text", "smaller font", "fonte menor", "texto menor", "letra menor", "letras menores", "zoom out",
+		"diminua o texto", "diminuir o texto", "diminui o texto", "diminua a fonte", "diminuir a fonte", "diminua as letras") {
 		nv := clampSpec("font.size", work.Num("font.size")-1)
 		setTok("current", "font.size", nv)
 		return nil, []string{fmt.Sprintf("text size %g", nv)}, true
@@ -325,9 +347,14 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 		}
 	}
 	// Theme by name.
+	for alias, id := range themeAliases {
+		if strings.Contains(c, alias) && !strings.Contains(c, id) {
+			c = strings.ReplaceAll(c, alias, id)
+		}
+	}
 	for _, m := range ctx.Themes {
 		n := strings.ToLower(m.Name)
-		if (has(c, "theme", "tema", "use ", "switch to", "muda para", "usar")) && (strings.Contains(c, n) || strings.Contains(c, m.ID)) {
+		if (has(c, "theme", "tema", "use ", "switch to", "muda para", "mude para", "troque para", "troca para", "usar", "visual", "aparência")) && (strings.Contains(c, n) || strings.Contains(c, m.ID)) {
 			return []Call{{Action: "theme.switch", Args: map[string]any{"theme": m.ID}}}, []string{"theme " + m.Name}, true
 		}
 	}
@@ -346,7 +373,7 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 		layout string
 	}{
 		{[]string{"side by side", "lado a lado", "columns", "colunas"}, "columns"},
-		{[]string{"grid", "grade", "tile all", "organize", "organiza", "arrange"}, "grid"},
+		{[]string{"grid", "grade", "tile all", "organize", "organiza", "arrange", "arrume", "arruma", "arrumar", "ajeite", "ajeitar"}, "grid"},
 		{[]string{"cascade", "cascata"}, "cascade"},
 		{[]string{"center", "centraliz"}, "center"},
 		{[]string{"rows", "linhas", "stack"}, "rows"},
@@ -378,12 +405,15 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 	if m := regexp.MustCompile(`^(?:focus|foca|switch to|go to|vai para|mostra|show)\s+(.+)$`).FindStringSubmatch(c); m != nil {
 		return []Call{{Action: "window.focus", Args: map[string]any{"window": windowRef(m[1])}}}, []string{"focus " + m[1]}, true
 	}
-	if has(c, "settings", "configuraç", "preferences", "preferências") {
+	if has(c, "settings", "configuraç", "preferences", "preferências", "ajustes") {
 		page := "appearance"
-		for _, p := range []string{"tokens", "motion", "panel", "windows", "apps", "ai", "about"} {
+		for _, p := range []string{"tokens", "motion", "panel", "windows", "apps", "ai", "voice", "about"} {
 			if strings.Contains(c, p) {
 				page = p
 			}
+		}
+		if has(c, "voz", "fala", "idioma", "language", "speech") {
+			page = "voice"
 		}
 		return []Call{{Action: "settings.open", Args: map[string]any{"page": page}}}, []string{"open settings: " + page}, true
 	}

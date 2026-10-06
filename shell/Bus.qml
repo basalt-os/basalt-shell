@@ -30,6 +30,11 @@ Singleton {
     property var voice: ({ state: "idle", enabled: false })   // push to talk state
     property var grants: []           // scopes the person gave the read-only skills
     property bool skillsAvailable: false
+    // The UI's language is the session's (uiCatalog translates it, see
+    // Tr.qml); the voice and the answers follow the person's own
+    // settings (Settings, Voice and assistant).
+    property string uiLang: "en"
+    property var uiCatalog: ({})
 
     signal notify(var data)           // notification.show from an agent
     signal openRequested(string surface, string page)
@@ -38,6 +43,7 @@ Singleton {
     signal chooseDone(string id)
     signal agentActivity(var data)    // a screenshot or an input step by an agent
     signal voiceResult(var data)      // the answer to a spoken request
+    signal voiceSettings(var data)    // the person's voice and assistant settings changed
 
     property int _next: 1
     property var _callbacks: ({})
@@ -124,6 +130,7 @@ Singleton {
             case "voice": bus.voice = m.data; break;
             case "voice-result": bus.voiceResult(m.data); break;
             case "grants": bus.grants = m.data || []; break;
+            case "voice-settings": bus.voiceSettings(m.data); break;
             }
             return;
         }
@@ -159,6 +166,8 @@ Singleton {
             bus.voice = s.voice || ({ state: "idle", enabled: false });
             bus.grants = s.grants || [];
             bus.skillsAvailable = !!s.skills;
+            bus.uiLang = s.ui_lang || "en";
+            bus.uiCatalog = s.ui_catalog || ({});
             bus.ready = true;
             bus.call("ui.state", { modal: Ui.modal });
             bus.refreshAssistant();

@@ -181,7 +181,7 @@ var windowStates = []string{"normal", "minimized", "maximized", "left", "right"}
 
 var layouts = []string{"grid", "columns", "rows", "cascade", "center", "tile", "float"}
 var surfaces = []string{"launcher", "commandbar", "quicksettings", "activity", "notifications", "settings"}
-var pages = []string{"appearance", "tokens", "motion", "panel", "windows", "apps", "ai", "about"}
+var pages = []string{"appearance", "tokens", "motion", "panel", "windows", "apps", "ai", "voice", "about"}
 
 // Actions is the closed set, in display order.
 var Actions = []*ActionDef{

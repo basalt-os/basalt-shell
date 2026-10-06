@@ -213,11 +213,25 @@ type VoiceState struct {
 	Note   string `json:"note,omitempty"`
 	// Proposal is the dictation waiting for Insert or Discard.
 	Proposal string `json:"proposal,omitempty"`
+	// Lang is the speech language in force (auto or a tag) and Answer
+	// the answer language, shown on the card.
+	Lang   string `json:"lang,omitempty"`
+	Answer string `json:"answer_lang,omitempty"`
+	// LangName is the speech language's own name ("" for auto).
+	LangName string `json:"lang_name,omitempty"`
 }
 
 func (c *Core) setVoice(st VoiceState) {
 	st.Since = time.Now().UTC()
 	st.Enabled = c.Voice != nil && c.Voice.Available()
+	if st.Lang == "" {
+		c.prefs.mu.Lock()
+		st.Lang, st.Answer = c.prefs.eff.SpeechLang, c.prefs.eff.AnswerLang
+		c.prefs.mu.Unlock()
+	}
+	if st.Lang != "" && st.Lang != "auto" {
+		st.LangName = nativeName(st.Lang)
+	}
 	c.mu.Lock()
 	c.voice = st
 	c.mu.Unlock()
@@ -247,6 +261,21 @@ func (c *Core) VoicePress(ctx context.Context, commandBar bool) error {
 		err := errors.New(i18n.G("The screen is locked. Unlock it to talk."))
 		c.setVoice(VoiceState{State: "error", Error: err.Error()})
 		return err
+	}
+	// The person's speech language and model; an English-only model for
+	// another language is refused before the microphone opens.
+	eff := c.refreshPrefs()
+	model := eff.SpeechModel
+	if model == "" {
+		c.prefs.mu.Lock()
+		model = voice.ModelName(c.prefs.system.STTModel)
+		c.prefs.mu.Unlock()
+	}
+	if _, err := voice.WhisperLanguage(eff.SpeechLang, model); err != nil {
+		msg := voiceError(err, model)
+		_, _ = c.Audit.Append("refuse", "ui", "microphone not opened: "+err.Error(), map[string]any{"speech_language": eff.SpeechLang, "speech_model": model})
+		c.setVoice(VoiceState{State: "error", Error: msg})
+		return errors.New(msg)
 	}
 	// A dictation still waiting for Insert is dropped by a new press.
 	for _, pr := range c.Pending() {
@@ -306,12 +335,18 @@ func (c *Core) voiceTurn(release time.Time) {
 	c.mu.Lock()
 	rt := c.voiceRoute
 	c.mu.Unlock()
-	rep, err := c.Voice.Do(ctx, voice.Request{Op: "stop", Prompt: c.speechPrompt(rt.Mode == "dictation"), Dictation: rt.Mode == "dictation"})
+	eff := c.refreshPrefs()
+	rep, err := c.Voice.Do(ctx, voice.Request{Op: "stop", Prompt: c.speechPrompt(rt.Mode == "dictation"), Dictation: rt.Mode == "dictation",
+		Lang: eff.SpeechLang, Model: eff.SpeechModel})
 	_, _ = c.Audit.Append("voice", "ui", "microphone closed", nil)
 	if err != nil || rep.Transcript == nil {
 		msg := i18n.G("Speech to text failed.")
 		if err != nil {
-			msg = err.Error()
+			model := eff.SpeechModel
+			if model == "" {
+				model = i18n.G("the default model")
+			}
+			msg = voiceError(err, model)
 		}
 		c.setVoice(VoiceState{State: "error", Error: msg})
 		return
@@ -360,42 +395,105 @@ func (c *Core) voiceTurn(release time.Time) {
 	speech := spokenAnswer(res)
 	timing["release_to_answer"] = time.Since(release).Milliseconds()
 	var sp *voice.Spoken
-	if speech != "" && !strings.HasPrefix(i18n.Lang(), "en") && !c.voiceLangNoticed {
-		// ADR 0014: speak the person's language when a voice for it is
-		// installed, and say so when not. The spike ships English speech
-		// models only (Whisper .en, Piper en_US voices).
-		c.voiceLangNoticed = true
-		speech = i18n.G("Spoken answers are in English: no voice for your language is installed.") + " " + speech
+	// The answer is spoken in the answer language with a voice for it
+	// (the person's, else an installed one), never by a voice of another
+	// language. Without one the answer is shown only, and the card says
+	// so once per language and session.
+	note := ""
+	voiceName := ""
+	if speech != "" && eff.Spoken {
+		models := c.voiceModels(ctx)
+		c.prefs.mu.Lock()
+		chosen := c.prefs.prefs.Voices
+		c.prefs.mu.Unlock()
+		v, ok := voiceFor(eff, chosen, models)
+		if !ok {
+			c.mu.Lock()
+			if c.voiceLangNoticed == nil {
+				c.voiceLangNoticed = map[string]bool{}
+			}
+			first := !c.voiceLangNoticed[eff.AnswerLang]
+			c.voiceLangNoticed[eff.AnswerLang] = true
+			c.mu.Unlock()
+			if first {
+				note = i18n.G("Answers are shown, not spoken: no voice for %s is installed.", nativeName(eff.AnswerLang))
+			}
+			speech = ""
+		}
+		voiceName = v
+	} else {
+		speech = ""
 	}
 	if speech != "" {
 		c.setVoice(VoiceState{State: "speaking", Text: tr.Text, Timing: timing})
-		r, err := c.Voice.Do(ctx, voice.Request{Op: "speak", Text: speech})
+		r, err := c.Voice.Do(ctx, voice.Request{Op: "speak", Text: speech, Voice: voiceName})
 		if err == nil && r.Spoken != nil {
 			sp = r.Spoken
 			timing["tts_first_audio"] = sp.FirstAudioMS
 			timing["release_to_first_audio"] = time.Since(release).Milliseconds()
 		}
 	}
-	_, _ = c.Audit.Append("voice", "voice", tr.Text, map[string]any{"timing": timing, "stt_model": tr.Model, "kind": res.Kind,
-		"spoken": speech, "level": tr.Level, "tts": sp})
-	c.setVoice(VoiceState{State: "idle", Text: tr.Text, Timing: timing})
+	_, _ = c.Audit.Append("voice", "voice", tr.Text, map[string]any{"timing": timing, "stt_model": tr.Model, "stt_language": tr.Lang,
+		"answer_language": eff.AnswerLang, "kind": res.Kind, "spoken": speech, "level": tr.Level, "tts": sp})
+	c.setVoice(VoiceState{State: "idle", Text: tr.Text, Timing: timing, Note: note})
+}
+
+// nativeName is a language's own name for the person ("Português
+// (Brasil)"), or its tag.
+func nativeName(tag string) string {
+	for _, l := range i18n.Languages {
+		if l.Tag == i18n.Tag(tag) {
+			return l.Native
+		}
+	}
+	for _, l := range i18n.Languages {
+		if i18n.Base(l.Tag) == i18n.Base(tag) {
+			return l.Native
+		}
+	}
+	return tag
 }
 
 // speechPrompt is the extra speech-recognition prompt of this utterance:
-// the names the person may say (contacts, senders of the granted mailbox).
+// the names the person may say (contacts, senders of the granted
+// mailbox) and, for requests, the names of the installed themes (the lab
+// heard "lichen" as "like and" in English and "lixem" in Portuguese
+// without them).
 func (c *Core) speechPrompt(dictation bool) string {
-	if c.Skills == nil {
-		return ""
+	var names []string
+	if c.Skills != nil {
+		names = c.Skills.SpeechNames(24)
 	}
-	names := c.Skills.SpeechNames(24)
-	if len(names) == 0 {
-		return ""
+	// In the speech language: an English lead-in biased Portuguese
+	// speech toward English words.
+	c.prefs.mu.Lock()
+	pt := i18n.Base(c.prefs.eff.SpeechLang) == "pt"
+	c.prefs.mu.Unlock()
+	hi, lead, themesLead := "Hi ", "Names: ", "Themes: "
+	if pt {
+		hi, lead, themesLead = "Oi ", "Nomes: ", "Temas: "
 	}
 	if dictation {
+		if len(names) == 0 {
+			return ""
+		}
 		// Free text: the names as the start of a message.
-		return "Hi " + strings.Join(names, ", ") + "."
+		return hi + strings.Join(names, ", ") + "."
 	}
-	return "Names: " + strings.Join(names, ", ") + "."
+	var parts []string
+	if len(names) > 0 {
+		parts = append(parts, lead+strings.Join(names, ", ")+".")
+	}
+	if c.Themes != nil {
+		var ts []string
+		for _, t := range c.Themes.Themes() {
+			ts = append(ts, t.Name)
+		}
+		if len(ts) > 0 && len(ts) <= 12 {
+			parts = append(parts, themesLead+strings.Join(ts, ", ")+".")
+		}
+	}
+	return strings.Join(parts, " ")
 }
 
 // spokenAnswer is the short text read aloud for a result.

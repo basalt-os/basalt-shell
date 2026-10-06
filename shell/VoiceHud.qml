@@ -9,7 +9,10 @@ import Quickshell.Wayland
 // being spoken. Dictated text waits on the card (and in the field, as
 // underlined pre-edit text) until the person presses Insert or Discard.
 // The card never takes the keyboard; it takes clicks only while a
-// dictation waits for a decision.
+// dictation waits for a decision. It shows the speech language in force
+// (the person's own setting, independent of the desktop's language) and,
+// for a few seconds, a note after an answer (an answer shown and not
+// spoken, for example). Its texts go through the UI catalog (Tr).
 PanelWindow {
     id: hud
     readonly property var v: Bus.voice || ({ state: "idle" })
@@ -17,7 +20,8 @@ PanelWindow {
     readonly property bool dictating: v.mode === "dictation"
     readonly property bool waiting: st === "dictation" && !!v.proposal
     property bool showError: false
-    visible: st === "listening" || st === "transcribing" || st === "thinking" || st === "speaking" || waiting || showError
+    property bool showNote: false
+    visible: st === "listening" || st === "transcribing" || st === "thinking" || st === "speaking" || waiting || showError || showNote
     anchors { top: true; left: true; right: true }
     implicitHeight: card.y + card.height + Theme.s4
     color: "transparent"
@@ -28,8 +32,18 @@ PanelWindow {
     // Clicks pass through, except on the card while a dictation waits.
     mask: Region { item: hud.waiting ? card : null }
 
-    onStChanged: if (st === "error" || (st === "idle" && v.error)) { showError = true; errTimer.restart(); }
-    Timer { id: errTimer; interval: 3500; onTriggered: hud.showError = false }
+    onStChanged: {
+        if (st === "error" || (st === "idle" && v.error)) { showError = true; errTimer.restart(); }
+        else if (st === "idle" && v.note) { showNote = true; noteTimer.restart(); }
+    }
+    Timer { id: errTimer; interval: 5000; onTriggered: hud.showError = false }
+    Timer { id: noteTimer; interval: 4500; onTriggered: hud.showNote = false }
+
+    // The speech language, as the person reads it.
+    function langLine() {
+        if (!v.lang || v.lang === "auto") return Tr.t("Speech language: detected automatically");
+        return Tr.t("Speech language: %1").arg(v.lang_name || v.lang);
+    }
 
     property int held: 0
     Timer {
@@ -38,16 +52,17 @@ PanelWindow {
     }
 
     function title() {
-        if (showError) return v.error || qsTr("Voice error");
+        if (showError) return v.error || Tr.t("Voice error");
+        if (showNote && st === "idle") return v.note;
         if (st === "listening") {
             const t = (held / 1000).toFixed(1);
-            return dictating ? qsTr("Dictating into %1. Release to stop (%2 s)").arg(v.target || "").arg(t)
-                             : qsTr("Listening for the assistant. Release to send (%1 s)").arg(t);
+            return dictating ? Tr.t("Dictating into %1. Release to stop (%2 s)").arg(v.target || "").arg(t)
+                             : Tr.t("Listening for the assistant. Release to send (%1 s)").arg(t);
         }
-        if (st === "transcribing") return qsTr("Turning speech into text, on this computer");
-        if (st === "thinking") return qsTr("Working on it");
-        if (st === "dictation") return qsTr("Type this into %1?").arg(v.target || "");
-        return qsTr("Speaking");
+        if (st === "transcribing") return Tr.t("Turning speech into text, on this computer");
+        if (st === "thinking") return Tr.t("Working on it");
+        if (st === "dictation") return Tr.t("Type this into %1?").arg(v.target || "");
+        return Tr.t("Speaking");
     }
 
     Surface {
@@ -67,7 +82,7 @@ PanelWindow {
                 width: Theme.fontSize * 2.6; height: width; radius: width / 2
                 anchors.top: parent.top
                 color: hud.st === "listening" ? Theme.danger : Theme.accentSoft
-                Icon { anchors.centerIn: parent; name: hud.showError ? "info" : (hud.waiting ? "list" : "mic"); size: Theme.fontSize * 1.5; color: hud.st === "listening" ? "#ffffff" : Theme.accent }
+                Icon { anchors.centerIn: parent; name: (hud.showError || hud.showNote) ? "info" : (hud.waiting ? "list" : "mic"); size: Theme.fontSize * 1.5; color: hud.st === "listening" ? "#ffffff" : Theme.accent }
                 SequentialAnimation on scale {
                     running: hud.st === "listening" && Theme.normal > 0
                     loops: Animation.Infinite
@@ -92,14 +107,24 @@ PanelWindow {
                     wrapMode: Text.Wrap
                     role: "small"
                     color: Theme.textMuted
-                    text: hud.v.note ? hud.v.note : qsTr("To dictate into a text field, click in the field first. Say \"assistant\" first to ask the assistant from a text field.")
+                    text: hud.v.note ? hud.v.note : Tr.t("To dictate into a text field, click in the field first. Say \"assistant\" first to ask the assistant from a text field.")
+                }
+                // The speech language in force, while the key is held and
+                // when speech to text failed.
+                Txt {
+                    visible: hud.st === "listening" || hud.st === "transcribing" || hud.showError
+                    width: parent.width
+                    wrapMode: Text.Wrap
+                    role: "small"
+                    color: Theme.textMuted
+                    text: hud.langLine()
                 }
                 Txt {
                     visible: hud.st !== "listening" && (hud.v.text || "") !== ""
                     width: parent.width
                     wrapMode: Text.Wrap
                     color: hud.waiting ? Theme.text : Theme.textMuted
-                    text: qsTr("“%1”").arg(hud.v.text || "")
+                    text: Tr.t("“%1”").arg(hud.v.text || "")
                 }
                 Txt {
                     visible: hud.st === "listening"
@@ -107,7 +132,7 @@ PanelWindow {
                     wrapMode: Text.Wrap
                     role: "small"
                     color: Theme.textMuted
-                    text: qsTr("Microphone open only while you hold the key. Audio stays on this computer and is not kept.")
+                    text: Tr.t("Microphone open only while you hold the key. Audio stays on this computer and is not kept.")
                 }
                 Txt {
                     visible: hud.waiting
@@ -115,13 +140,13 @@ PanelWindow {
                     wrapMode: Text.Wrap
                     role: "small"
                     color: Theme.textMuted
-                    text: qsTr("Shown underlined in the field. Nothing is typed until you choose Insert (Super+Shift+Return).")
+                    text: Tr.t("Shown underlined in the field. Nothing is typed until you choose Insert (Super+Shift+Return).")
                 }
                 Row {
                     visible: hud.waiting
                     spacing: Theme.s2
-                    Btn { text: qsTr("Insert"); icon: "check"; variant: "primary"; e2e: "voice-insert"; onClicked: Bus.dictationDecide(true) }
-                    Btn { text: qsTr("Discard"); variant: "outline"; e2e: "voice-discard"; onClicked: Bus.dictationDecide(false) }
+                    Btn { text: Tr.t("Insert"); icon: "check"; variant: "primary"; e2e: "voice-insert"; onClicked: Bus.dictationDecide(true) }
+                    Btn { text: Tr.t("Discard"); variant: "outline"; e2e: "voice-discard"; onClicked: Bus.dictationDecide(false) }
                 }
             }
         }

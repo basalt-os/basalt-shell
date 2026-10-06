@@ -22,8 +22,16 @@ import (
 // Request to basalt-voiced.
 type Request struct {
 	ID   int64  `json:"id"`
-	Op   string `json:"op"` // listen, stop, cancel, speak, hush, status
+	Op   string `json:"op"` // listen, stop, cancel, speak, hush, status, models
 	Text string `json:"text,omitempty"`
+	// Lang (stop) is the person's speech language: "auto" or a language
+	// tag ("pt-BR"); empty means the system's default. Model (stop) is
+	// the person's speech model and Voice (speak) their voice, by name;
+	// empty means the system's default. The service checks both against
+	// the administrator's policy on every request.
+	Lang  string `json:"lang,omitempty"`
+	Model string `json:"model,omitempty"`
+	Voice string `json:"voice,omitempty"`
 	// Prompt (stop) adds words to the speech-to-text prompt: the names
 	// the person is likely to say (granted contacts and mail senders).
 	Prompt string `json:"prompt,omitempty"`
@@ -41,7 +49,8 @@ type Transcript struct {
 	CaptureMS int64   `json:"capture_ms"` // from stop to the audio being complete
 	STTMS     int64   `json:"stt_ms"`     // speech to text (VAD included)
 	Model     string  `json:"model"`
-	Level     float64 `json:"level"` // RMS of the recording (0..1)
+	Level     float64 `json:"level"`          // RMS of the recording (0..1)
+	Lang      string  `json:"lang,omitempty"` // the -l given to the recognizer (auto, en, pt)
 }
 
 // Spoken is the result of speak.
@@ -67,6 +76,8 @@ type Reply struct {
 	ID         int64           `json:"id"`
 	OK         bool            `json:"ok"`
 	Error      string          `json:"error,omitempty"`
+	Code       string          `json:"code,omitempty"` // error code (CodeEnglishOnly and the others)
+	Models     *Models         `json:"models,omitempty"`
 	Transcript *Transcript     `json:"transcript,omitempty"`
 	Spoken     *Spoken         `json:"spoken,omitempty"`
 	Status     *Status         `json:"status,omitempty"`
@@ -140,6 +151,9 @@ func (c *Client) Do(ctx context.Context, req Request) (Reply, error) {
 			return Reply{}, err
 		}
 		if !rep.OK {
+			if rep.Code != "" {
+				return rep, &CodedError{Code: rep.Code, Msg: rep.Error}
+			}
 			return rep, errors.New(rep.Error)
 		}
 		return rep, nil

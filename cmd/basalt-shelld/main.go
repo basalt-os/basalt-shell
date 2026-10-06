@@ -99,6 +99,9 @@ func run(ctx context.Context) error {
 		core.Skills = skills.New(home, core.Translator)
 		core.WireSkills()
 	}
+	// The person's own voice and assistant settings (language, models)
+	// over the system's: ~/.config/basalt/voice-and-assistant.conf.
+	core.SetLocalModel(core.Translator)
 	if os.Getenv("BASALT_SHELL_VOICE") != "0" {
 		core.Voice = &voice.Client{Path: voice.DefaultSocket()}
 	}
