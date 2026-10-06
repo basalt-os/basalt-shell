@@ -1,0 +1,5 @@
+# The login screen's runtime files (ready and status, the failure count of
+# this boot) and what it remembers (last user and session, accessibility
+# choices; never a password), owned by greetd's greeter user.
+d /run/basalt-greeter 0750 greetd greetd -
+d /var/cache/basalt-greeter 0750 greetd greetd -

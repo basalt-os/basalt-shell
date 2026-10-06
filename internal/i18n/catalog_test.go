@@ -199,3 +199,60 @@ func TestLoadByTag(t *testing.T) {
 		t.Error("English")
 	}
 }
+
+// TestGreeterCatalogs: the login screen has its own catalogs
+// (greeter/locale/<lang>.json, installed in /usr/share/basalt-greeter):
+// every I18n.t("...") of its QML and every N_("...") of its JavaScript has
+// a translation with the same placeholders, and no entry is unused.
+func TestGreeterCatalogs(t *testing.T) {
+	root := filepath.Join("..", "..", "greeter")
+	reT := regexp.MustCompile(`I18n\.t\("((?:[^"\\]|\\.)*)"\)`)
+	reN := regexp.MustCompile(`N_\("((?:[^"\\]|\\.)*)"\)`)
+	ids := map[string]string{}
+	files, _ := filepath.Glob(filepath.Join(root, "*.qml"))
+	js, _ := filepath.Glob(filepath.Join(root, "*.js"))
+	for _, p := range append(files, js...) {
+		b, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, re := range []*regexp.Regexp{reT, reN} {
+			for _, m := range re.FindAllStringSubmatch(string(b), -1) {
+				ids[qmlUnquote(m[1])] = p
+			}
+		}
+	}
+	if len(ids) < 20 {
+		t.Fatalf("only %d messages found: is the scan broken?", len(ids))
+	}
+	cats, _ := filepath.Glob(filepath.Join(root, "locale", "*.json"))
+	if len(cats) == 0 {
+		t.Fatal("no catalogs in greeter/locale/")
+	}
+	for _, f := range cats {
+		b, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var cat map[string][]string
+		if err := json.Unmarshal(b, &cat); err != nil {
+			t.Fatalf("%s: %v", f, err)
+		}
+		name := filepath.Base(f)
+		for id, where := range ids {
+			tr := cat[id]
+			if len(tr) == 0 || tr[0] == "" {
+				t.Errorf("%s: missing translation of %q (%s)", name, id, where)
+				continue
+			}
+			if verbs(tr[0]) != verbs(id) {
+				t.Errorf("%s: placeholders differ: %q -> %q", name, id, tr[0])
+			}
+		}
+		for id := range cat {
+			if _, ok := ids[id]; !ok {
+				t.Errorf("%s: %q is not used anywhere", name, id)
+			}
+		}
+	}
+}

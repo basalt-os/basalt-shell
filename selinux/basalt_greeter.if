@@ -1,0 +1,19 @@
+## <summary>Basalt OS login screen (basalt-greeter).</summary>
+
+########################################
+## <summary>
+##	Run the graphical greeter in its domain (basalt_greeter_t).
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`basalt_greeter_domtrans',`
+	gen_require(`
+		type basalt_greeter_t, basalt_greeter_exec_t;
+	')
+
+	domtrans_pattern($1, basalt_greeter_exec_t, basalt_greeter_t)
+')

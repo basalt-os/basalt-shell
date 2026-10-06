@@ -182,6 +182,34 @@ not used: on Fedora it grants every `base_ro_file_type`, the shell
 included. The lab's escape matrix (`lab/voice/tests/escape-test.sh`)
 checks each domain against what it may do.
 
+## The login screen (basalt_greeter, 0.7)
+
+The graphical greeter has its own module, `basalt_greeter` (package
+basalt-greeter-selinux), independent of the agent family. greetd's
+greeter runs in `xdm_t` on Fedora; executing
+`/usr/libexec/basalt-greeter/basalt-greeter` (`basalt_greeter_exec_t`)
+moves it, its sway and Quickshell into `basalt_greeter_t`, a confined
+domain (not `unconfined_domain`). It may use the DRM and input devices
+logind hands over, connect to greetd's socket (`xdm_var_run_t`), read
+`/etc/passwd`, AccountsService pictures, session files, themes, fonts and
+the X11 keyboard configuration, talk to logind, NetworkManager and UPower
+on the system bus, run systemctl for suspend, restart and power off
+(logind and polkit decide), and manage `/run/basalt-greeter`
+(`basalt_greeter_runtime_t`, also its XDG runtime directory) and
+`/var/cache/basalt-greeter` (`basalt_greeter_cache_t`). It is given no
+access to `shadow_t`, home directories or user runtime directories, no
+session bus and no network sockets. Qt's probe for executable memory
+(QML and regular expression JIT) is refused and not audited: QML runs
+interpreted. The text fallback (`greeter-session` running tuigreet)
+stays in `xdm_t`, so a broken policy cannot lock anyone out.
+
+Lab (Basalt OS VM, enforcing, `lab/greeter/`): boot with the splash and a
+LUKS prompt, the greeter, two people, wrong passwords, the session and
+power menus, restart from the greeter, on virtio-gpu with virgl and
+without a GPU (llvmpipe): no denials for `basalt_greeter_t` with the
+dontaudit rules in place; with them off (`semodule -DB`), only the JIT
+probe and Quickshell's file watch, both deliberate.
+
 ## Limits
 
 - This is a boundary against confined agents. Code running unconfined as

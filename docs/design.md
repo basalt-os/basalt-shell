@@ -453,7 +453,8 @@ idle lock. Local additions: `~/.config/basalt-shell/sway.d/*` (sway) and
 is loaded (the NVIDIA driver, even on a laptop where the integrated GPU
 drives the display), sway and SwayFX start with `--unsupported-gpu`,
 without which they refuse to start; niri needs no flag. The desktop profile of the Basalt
-installer uses greetd with tuigreet. Run inside another desktop (a nested
+installer uses greetd with the Basalt login screen, basalt-greeter
+([greeter.md](greeter.md)), and tuigreet as its text fallback. Run inside another desktop (a nested
 window), the session does not export anything to the host's systemd user
 manager and does not change the host's application settings.
 

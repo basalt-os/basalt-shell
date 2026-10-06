@@ -1,11 +1,12 @@
-# Basalt OS desktop edition: the login screen (greetd with tuigreet on
-# the first virtual terminal), starting the Basalt session on sway. Read by
-# greetd through /usr/lib/systemd/system/greetd.service.d/50-basalt.conf.
-# Other installed sessions (Basalt (niri) from basalt-shell-niri) appear in
-# tuigreet's session menu (F3).
+# Basalt OS desktop edition: the login screen (greetd with basalt-greeter
+# on the first virtual terminal; the text login, tuigreet, when the
+# graphical one cannot run), starting the Basalt session on sway or the
+# session the person picks. Read by greetd through
+# /usr/lib/systemd/system/greetd.service.d/50-basalt.conf. Settings of the
+# login screen: /etc/basalt/greeter.conf.
 [terminal]
 vt = 1
 
 [default_session]
-command = "tuigreet --time --remember --remember-session --sessions /usr/share/wayland-sessions --cmd 'basalt-session sway'"
+command = "/usr/libexec/basalt-greeter/greeter-session"
 user = "greetd"

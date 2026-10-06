@@ -1,0 +1,113 @@
+{
+ "Accessibility": [
+  "Acessibilidade"
+ ],
+ "Basalt on Sway": [
+  "Basalt no Sway"
+ ],
+ "Basalt on niri": [
+  "Basalt no niri"
+ ],
+ "Battery at %1 percent": [
+  "Bateria em %1 por cento"
+ ],
+ "Caps Lock is on": [
+  "Caps Lock está ativado"
+ ],
+ "Charging, %1 percent": [
+  "Carregando, %1 por cento"
+ ],
+ "Connected by cable": [
+  "Conectado por cabo"
+ ],
+ "Connected to %1": [
+  "Conectado a %1"
+ ],
+ "dddd, MMMM d": [
+  "dddd, d 'de' MMMM"
+ ],
+ "Hide password": [
+  "Ocultar senha"
+ ],
+ "High contrast": [
+  "Alto contraste"
+ ],
+ "Keyboard layout: %1": [
+  "Layout do teclado: %1"
+ ],
+ "Keyboard layout: %1. Press to switch.": [
+  "Layout do teclado: %1. Pressione para trocar."
+ ],
+ "Language": [
+  "Idioma"
+ ],
+ "Language: %1": [
+  "Idioma: %1"
+ ],
+ "Large text": [
+  "Texto grande"
+ ],
+ "Log in": [
+  "Entrar"
+ ],
+ "No desktop session is installed. Ask an administrator for help.": [
+  "Nenhuma sessão de área de trabalho está instalada. Peça ajuda a um administrador."
+ ],
+ "No network": [
+  "Sem rede"
+ ],
+ "Other user": [
+  "Outro usuário"
+ ],
+ "Password": [
+  "Senha"
+ ],
+ "Power": [
+  "Energia"
+ ],
+ "Power off": [
+  "Desligar"
+ ],
+ "Press Enter to log in": [
+  "Pressione Enter para entrar"
+ ],
+ "Restart": [
+  "Reiniciar"
+ ],
+ "Session": [
+  "Sessão"
+ ],
+ "Session: %1": [
+  "Sessão: %1"
+ ],
+ "Show password": [
+  "Mostrar senha"
+ ],
+ "Something went wrong while logging in. Try again.": [
+  "Algo deu errado ao entrar. Tente de novo."
+ ],
+ "Starting your session": [
+  "Iniciando sua sessão"
+ ],
+ "Suspend": [
+  "Suspender"
+ ],
+ "That password did not work. Check Caps Lock and the keyboard layout (%1).": [
+  "Essa senha não funcionou. Confira o Caps Lock e o layout do teclado (%1)."
+ ],
+ "That password did not work. Try again.": [
+  "Essa senha não funcionou. Tente de novo."
+ ],
+ "The login service is not available.": [
+  "O serviço de login não está disponível."
+ ],
+ "Too many attempts. Wait a few minutes, then try again.": [
+  "Muitas tentativas. Espere alguns minutos e tente de novo."
+ ],
+ "User name": [
+  "Nome de usuário"
+ ],
+ "Who is logging in?": [
+  "Quem vai entrar?"
+ ]
+}

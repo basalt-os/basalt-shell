@@ -88,7 +88,8 @@ Requires:       (%{name}-selinux = %{version}-%{release} if selinux-policy-%{sel
 # The session's compositor: SwayFX (Provides sway) from the Basalt repository.
 Requires:       swayfx
 Requires:       greetd
-Requires:       tuigreet
+# The login screen (tuigreet comes with it, as the text fallback).
+Requires:       basalt-greeter = %{version}-%{release}
 Requires:       xorg-x11-server-Xwayland
 Requires:       xdg-desktop-portal-wlr
 Requires:       xdg-desktop-portal-gtk
@@ -130,10 +131,52 @@ Requires(post): systemd
 
 %description -n basalt-desktop
 The Basalt OS desktop edition on top of the server system: the Basalt
-shell on SwayFX, the greetd login screen (tuigreet) starting it, portals,
+shell on SwayFX, the greetd login screen (basalt-greeter) starting it, portals,
 PipeWire, fonts and themes so GTK and Qt apps follow the shell, and the
 default apps (foot, Files, Text Editor, Firefox). The graphical target is
 set by the installer.
+
+%package -n basalt-greeter
+Summary:        Basalt OS login screen: a graphical greetd greeter
+BuildArch:      noarch
+# Themes and wallpapers come from the shell.
+Requires:       %{name} = %{version}-%{release}
+Requires:       (basalt-greeter-selinux = %{version}-%{release} if selinux-policy-%{selinuxtype})
+Requires:       greetd
+Requires:       quickshell
+Requires:       sway
+# The text login, when the graphical one cannot run.
+Requires:       tuigreet
+Requires:       util-linux
+Requires:       rsms-inter-fonts
+Requires:       adwaita-cursor-theme
+Recommends:     NetworkManager
+Recommends:     upower
+Recommends:     accountsservice
+Requires(post): systemd
+
+%description -n basalt-greeter
+The login screen of the Basalt OS desktop edition: a greetd greeter drawn
+with Quickshell in a locked-down sway, in the Basalt theme. The people of
+the computer with their pictures, the password with a Caps Lock warning
+and clear messages, the session (Basalt on Sway or on niri), keyboard
+layout, network and battery, large text and high contrast, language
+(English, Brazilian Portuguese), suspend, restart and power off, and a
+fade into the session. It runs confined in its own SELinux domain; when
+it cannot start or fails, the text login (tuigreet) takes its place.
+
+%package -n basalt-greeter-selinux
+Summary:        SELinux policy for the Basalt OS login screen
+BuildArch:      noarch
+Requires:       selinux-policy-%{selinuxtype}
+Requires(post): selinux-policy-%{selinuxtype}
+%{?selinux_requires}
+
+%description -n basalt-greeter-selinux
+SELinux module basalt_greeter: the graphical greeter runs in
+basalt_greeter_t, entered from greetd's greeter, with access to the
+screen, greetd's socket and what it shows, never to password databases or
+people's home directories.
 
 %package selinux
 Summary:        SELinux policy for the Basalt desktop shell and its agent clients
@@ -165,7 +208,7 @@ make install DESTDIR=%{buildroot} PREFIX=%{_prefix} SYSCONFDIR=%{_sysconfdir} LI
 install -Dpm 0644 config/desktop/greetd.toml %{buildroot}%{_sysconfdir}/basalt/greetd.toml
 install -Dpm 0644 config/desktop/greetd-basalt.conf %{buildroot}%{_unitdir}/greetd.service.d/50-basalt.conf
 install -Dpm 0644 config/desktop/80-basalt-desktop.preset %{buildroot}%{_presetdir}/80-basalt-desktop.preset
-for m in basalt_shell; do
+for m in basalt_shell basalt_greeter; do
     bzip2 -9 -c build/selinux/$m.pp >$m.pp.bz2
     install -Dpm 0644 $m.pp.bz2 %{buildroot}%{_datadir}/selinux/packages/%{selinuxtype}/$m.pp.bz2
     install -Dpm 0644 selinux/$m.if %{buildroot}%{_datadir}/selinux/devel/include/distributed/$m.if
@@ -182,6 +225,28 @@ done
 # service for every person once.
 %triggerun -- basalt-shell < 0.6.0
 systemctl --no-reload --global preset basalt-voice.service >/dev/null 2>&1 || :
+
+%post -n basalt-greeter
+systemd-tmpfiles --create %{_tmpfilesdir}/basalt-greeter.conf >/dev/null 2>&1 || :
+
+%pre -n basalt-greeter-selinux
+%selinux_relabel_pre -s %{selinuxtype}
+
+%post -n basalt-greeter-selinux
+%selinux_modules_install -s %{selinuxtype} %{_datadir}/selinux/packages/%{selinuxtype}/basalt_greeter.pp.bz2
+
+%postun -n basalt-greeter-selinux
+if [ $1 -eq 0 ]; then
+    %selinux_modules_uninstall -s %{selinuxtype} basalt_greeter
+fi
+
+%posttrans -n basalt-greeter-selinux
+%selinux_relabel_post -s %{selinuxtype}
+if [ -x %{_sbindir}/selinuxenabled ] && %{_sbindir}/selinuxenabled; then
+    for p in %{_libexecdir}/basalt-greeter /run/basalt-greeter %{_localstatedir}/cache/basalt-greeter; do
+        [ -e "$p" ] && %{_sbindir}/restorecon -R "$p" >/dev/null 2>&1 || :
+    done
+fi
 
 %post -n basalt-desktop
 # greetd may be installed in the same transaction, before this preset.
@@ -251,11 +316,48 @@ fi
 %{_unitdir}/greetd.service.d/50-basalt.conf
 %{_presetdir}/80-basalt-desktop.preset
 
+%files -n basalt-greeter
+%license LICENSE
+%doc docs/greeter.md
+%{_datadir}/basalt-greeter/
+%dir %{_libexecdir}/basalt-greeter
+%{_libexecdir}/basalt-greeter/greeter-session
+%{_libexecdir}/basalt-greeter/basalt-greeter
+%{_libexecdir}/basalt-greeter/greeter-ui
+%dir %{_sysconfdir}/basalt
+%config(noreplace) %{_sysconfdir}/basalt/greeter.conf
+%{_tmpfilesdir}/basalt-greeter.conf
+
+%files -n basalt-greeter-selinux
+%{_datadir}/selinux/packages/%{selinuxtype}/basalt_greeter.pp.bz2
+%{_datadir}/selinux/devel/include/distributed/basalt_greeter.if
+
 %files selinux
 %{_datadir}/selinux/packages/%{selinuxtype}/basalt_shell.pp.bz2
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Tue Oct 06 2026 Basalt OS developers - 0.7.0-1
+- basalt-greeter: the graphical login screen of the desktop edition
+  (greetd greeter in Quickshell, run by a locked-down sway as the greeter
+  user): blurred Basalt wallpaper, clock and date, the people of the
+  computer with their pictures or initials and "Other user", the password
+  with show and hide, a Caps Lock warning (keyboard LEDs, else the typed
+  letters), plain messages for a wrong password, a locked account and
+  PAM's own notices, the session (Basalt on Sway, Basalt on niri and the
+  other installed sessions), keyboard layout, network and battery, large
+  text and high contrast, English and Brazilian Portuguese, suspend,
+  restart and power off, and a fade into the session. It remembers the
+  last person and each person's session, never a password.
+- basalt-greeter-selinux: the greeter runs confined in basalt_greeter_t
+  (entered from greetd's xdm_t); no password database, no home
+  directories, no session bus.
+- The text login (tuigreet) takes over when there is no display device,
+  when the graphical greeter fails or never draws its screen (watchdog),
+  after two failures in one boot, or with GREETER=text in
+  /etc/basalt/greeter.conf.
+- basalt-desktop: greetd starts basalt-greeter instead of tuigreet.
+
 * Tue Oct 06 2026 Basalt OS developers - 0.6.1-1
 - Settings, Additional drivers: with a system assistant older than
   basalt drivers (0.9.0 and before), or while the basalt-nonfree
