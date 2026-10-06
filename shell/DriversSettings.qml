@@ -67,7 +67,7 @@ ColumnLayout {
         busy = true;
         status = apply ? Tr.t("Waiting for authentication. Installing can take a few minutes.") : "";
         statusError = false;
-        Bus.call(apply ? "assistant.apply" : "assistant.ignore", apply ? { id: proposal.id, code: proposal.code } : { id: proposal.id }, (ok, res) => {
+        const handle = (ok, res) => {
             busy = false;
             const good = ok && res.ok;
             if (apply) {
@@ -81,7 +81,9 @@ ColumnLayout {
             proposal = null;
             Bus.refreshAssistant();
             load();
-        });
+        };
+        if (apply) Bus.assistantApply(proposal.id, proposal.code, handle);
+        else Bus.call("assistant.ignore", { id: proposal.id }, handle);
     }
     property string result: ""
 

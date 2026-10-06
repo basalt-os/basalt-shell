@@ -311,6 +311,41 @@ func (b *Bridge) Apply(ctx context.Context, id, code string) (string, error) {
 	return b.run(ctx, []string{b.Pkexec, b.Basalt, "apply", id, "--yes", "--confirm", code})
 }
 
+// Submitted is a proposal queued in the approval gate.
+type Submitted struct {
+	Proposal string `json:"proposal"`
+	ID       string `json:"id"` // the gate's request id
+	Decision string `json:"decision"`
+	Class    string `json:"class"`
+	Reason   string `json:"reason"`
+	By       string `json:"by"`
+	Enforced bool   `json:"enforced"`
+}
+
+var reGateID = regexp.MustCompile(`^g-[0-9a-f]{12}$`)
+
+// Submit queues a proposal in the approval gate through the read helper
+// (`basalt submit ID --json`, as root): queueing changes nothing; the
+// person then decides on the shell's sheet, which answers the gate, and
+// the gate's executor applies it.
+func (b *Bridge) Submit(ctx context.Context, id string) (Submitted, error) {
+	var s Submitted
+	if !reID.MatchString(id) {
+		return s, errors.New("invalid proposal id")
+	}
+	if b.Pkexec == "" {
+		return s, errors.New("pkexec is not installed")
+	}
+	out, err := b.run(ctx, []string{b.Pkexec, b.Helper, "submit", id})
+	if err != nil {
+		return s, fmt.Errorf("%v: %s", err, strings.TrimSpace(out))
+	}
+	if err := json.Unmarshal([]byte(out), &s); err != nil || !reGateID.MatchString(s.ID) {
+		return s, fmt.Errorf("unexpected answer from basalt submit: %s", strings.TrimSpace(out))
+	}
+	return s, nil
+}
+
 // Ignore closes a proposal without running it (recorded by the assistant).
 func (b *Bridge) Ignore(ctx context.Context, id string) (string, error) {
 	if !reID.MatchString(id) {

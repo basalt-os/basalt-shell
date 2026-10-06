@@ -337,6 +337,20 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Tue Oct 06 2026 Basalt OS developers - 0.8.0-1
+- The approval gate (Basalt OS basalt-gate, ADR 0020 phase 2): where the
+  gate decides the shell's proposals, the daemon asks it for the person
+  or the agent, the sheet, the command bar and the voice card send the
+  person's decision from the shell UI straight to the gate (the desktop
+  decider), and the daemon claims and runs only what the gate allowed;
+  "Approve and remember" where the gate offers it; the activity log names
+  the rule or the person that decided. Elsewhere the shell decides as
+  before and tells the gate (shadow mode). Assistant proposals can be
+  queued in the gate and approved there (assistant-read submit). Without
+  a gate nothing changes. Vendored gate client (internal/gateclient,
+  MIT OR Apache-2.0); the SELinux module connects the daemon and the UI
+  to the gate when its policy is loaded.
+
 * Tue Oct 06 2026 Basalt OS developers - 0.7.0-1
 - basalt-greeter: the graphical login screen of the desktop edition
   (greetd greeter in Quickshell, run by a locked-down sway as the greeter

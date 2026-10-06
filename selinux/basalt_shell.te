@@ -1,4 +1,4 @@
-policy_module(basalt_shell, 0.5.0)
+policy_module(basalt_shell, 0.6.0)
 
 ########################################
 #
@@ -95,6 +95,24 @@ optional_policy(`
 # command line is written by the caller's redirection, MCP clients get the
 # PNG inline).
 dontaudit basalt_agent_mcp_t self:capability { dac_override dac_read_search };
+
+########################################
+#
+# The approval gate (basalt-gate, when installed): the daemon asks it on
+# behalf of the person or an agent and claims what it allowed; the UI is
+# the gate's desktop decider. Both are unconfined_domain today, so this
+# states the intent and keeps working once they are confined. The rules
+# are those of basalt_gate_stream_connect, written out so this module
+# builds without the gate's interface file.
+#
+
+optional_policy(`
+	gen_require(`
+		type basalt_gate_t, basalt_gate_runtime_t;
+	')
+	files_search_pids({ basalt_shell_t basalt_shell_ui_t })
+	stream_connect_pattern({ basalt_shell_t basalt_shell_ui_t }, basalt_gate_runtime_t, basalt_gate_runtime_t, basalt_gate_t)
+')
 
 ########################################
 #

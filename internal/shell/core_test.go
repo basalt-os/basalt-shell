@@ -33,6 +33,8 @@ func newCore(t *testing.T) (*Core, *fake.Adapter, string) {
 	fk := fake.New()
 	c := New(fk, st, lg, hw.Report{}, filepath.Join(dir, "xdg"))
 	c.ApplyApps = false
+	// No approval gate unless a test starts a fake one.
+	c.GateSocket = filepath.Join(dir, "no-gate.sock")
 	return c, fk, dir
 }
 

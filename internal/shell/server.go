@@ -426,6 +426,35 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 			return nil, err
 		}
 		return c.DecideEdited(ctx, a.ID, a.Approve, "ui", a.Edits)
+	case "edit":
+		// The person's edits of an editable proposal (an e-mail draft)
+		// before deciding; where the gate decides, the edited plan becomes
+		// the request the person then approves.
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		var a struct {
+			ID    string         `json:"id"`
+			Edits map[string]any `json:"edits"`
+		}
+		if err := decode(req.Args, &a); err != nil {
+			return nil, err
+		}
+		return c.EditProposal(ctx, a.ID, a.Edits, "ui")
+	case "gate":
+		return c.Gate(), nil
+	case "assistant.submit":
+		// Queue a system assistant proposal in the approval gate; the shell
+		// UI then decides there (administrator authentication through
+		// polkit) and the gate's executor applies it.
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		var a struct {
+			ID string `json:"id"`
+		}
+		_ = decode(req.Args, &a)
+		return c.AssistantSubmit(ctx, a.ID)
 	case "ask":
 		if err := ss.requireUI(); err != nil {
 			return nil, err

@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -49,6 +50,7 @@ const (
 	StatusExpired  = "expired"
 	StatusFailed   = "failed"
 	StatusStale    = "stale"
+	StatusRefused  = "refused" // the approval gate refused it (a rule, a hard limit)
 )
 
 // Proposal is a set of actions waiting for the person's decision.
@@ -74,6 +76,12 @@ type Proposal struct {
 	// Editable are the parameters the person may change when confirming.
 	Editable []string `json:"editable,omitempty"`
 	Edited   bool     `json:"edited,omitempty"`
+	// Gate is the proposal's request in the approval gate, when the gate
+	// decides this path (the shell UI decides there, not here).
+	Gate *GateInfo `json:"gate,omitempty"`
+	// GateMode: "enforce" (the gate decides), "observe" (the shell decides
+	// and tells the gate) or "" (no gate).
+	GateMode string `json:"gate_mode,omitempty"`
 
 	base theme.Settings
 	next *theme.Settings
@@ -131,6 +139,11 @@ type Core struct {
 	// PowerRun runs a session or power command (loginctl, systemctl,
 	// basalt-lock); tests replace it.
 	PowerRun func(ctx context.Context, argv []string) error
+	// GateSocket is the approval gate's socket ("" : $BASALT_GATE_SOCKET or
+	// the default); GateOff ignores the gate (tests).
+	GateSocket string
+	GateOff    bool
+	gate       gateState
 
 	mu        sync.Mutex
 	proposals map[string]*Proposal
@@ -606,9 +619,23 @@ func (c *Core) Propose(ctx context.Context, m Meta, calls []Call) (*Proposal, er
 		c.order = c.order[1:]
 		delete(c.proposals, old)
 	}
+	pr.GateMode = c.gateMode(gatePath(calls))
 	c.mu.Unlock()
-	_, _ = c.Audit.Append("request", actor, pr.summary(), map[string]any{"proposal": pr.ID, "origin": origin, "calls": calls, "diff": pr.Diff, "request": request, "pid": m.PID, "domain": m.Domain, "previews": pr.Previews})
+	_, _ = c.Audit.Append("request", actor, pr.summary(), map[string]any{"proposal": pr.ID, "origin": origin, "calls": calls, "diff": pr.Diff, "request": request, "pid": m.PID, "domain": m.Domain, "previews": pr.Previews, "gate_mode": pr.GateMode})
+	var gateErr error
+	if pr.GateMode == gateEnforce {
+		// The gate decides: a rule may allow or refuse it at once; else the
+		// person decides on the sheet, which answers the gate directly.
+		gateErr = c.gateSubmit(pr)
+	}
 	c.Broadcast("proposal", pr.public())
+	switch {
+	case gateErr != nil:
+		c.finish(pr, StatusRefused, "gate", gateErr.Error())
+		return pr, nil
+	case pr.GateMode == gateEnforce:
+		c.gateAct(pr)
+	}
 	go func() {
 		t := time.NewTimer(time.Until(pr.Expires))
 		defer t.Stop()
@@ -647,7 +674,16 @@ func (c *Core) finish(pr *Proposal, status, by, msg string) bool {
 	}
 	close(pr.done)
 	ends := pr.ends
+	cancelID := ""
+	if pr.GateMode == gateEnforce && pr.Gate != nil && pr.Gate.Decision == "asked" {
+		// Ended here (expired, replaced): withdraw it from the gate's queue.
+		cancelID = pr.Gate.ID
+	}
 	c.mu.Unlock()
+	c.gateCancel(cancelID)
+	if pr.GateMode == gateObserve {
+		c.gateObserve(pr, status, by)
+	}
 	if status != StatusApplied {
 		for _, e := range ends {
 			e(status)
@@ -698,10 +734,18 @@ func (c *Core) DecideEdited(ctx context.Context, id string, approve bool, by str
 	if !ok {
 		return Proposal{}, fmt.Errorf("no proposal %s", id)
 	}
+	if pr.GateMode == gateEnforce {
+		return pr.public(), errGateDecides
+	}
 	if approve && len(edits) > 0 {
 		if err := c.applyEdits(ctx, pr, edits, by); err != nil {
 			return pr.public(), err
 		}
+	}
+	if pr.GateMode == gateEnforce {
+		// The shell UI decides at the gate (the only desktop decider);
+		// this daemon only runs what the gate allowed.
+		return pr.public(), errGateDecides
 	}
 	if !approve {
 		if !c.finish(pr, StatusDeclined, by, "") {
@@ -723,6 +767,12 @@ func (c *Core) DecideEdited(ctx context.Context, id string, approve bool, by str
 		_, _ = c.Audit.Append("refuse", by, "confirmation right after synthetic input ignored", map[string]any{"proposal": pr.ID})
 		return pr.public(), errors.New("a confirmation right after agent input is not accepted; confirm again")
 	}
+	return c.execute(ctx, pr, by)
+}
+
+// execute runs a confirmed proposal (confirmed here, or allowed by the
+// approval gate and claimed).
+func (c *Core) execute(ctx context.Context, pr *Proposal, by string) (Proposal, error) {
 	// A theme change was computed against the settings of that moment:
 	// if they changed since, the diff the person saw is not what would
 	// happen, so refuse instead of applying something else.
@@ -741,6 +791,40 @@ func (c *Core) DecideEdited(ctx context.Context, id string, approve bool, by str
 		// What was done, as it was shown: the activity timeline and the
 		// ledger keep the exact preview of every acting step.
 		_, _ = c.Audit.Append("done", by, pr.summary(), map[string]any{"proposal": pr.ID, "previews": pr.Previews, "result": pr.Result})
+	}
+	return pr.public(), nil
+}
+
+// EditProposal applies the person's edits of the editable parameters
+// (the shell UI only) before the decision. Where the gate decides, the
+// edited plan is a new request (the old one is withdrawn): the person
+// approves exactly what will be sent.
+func (c *Core) EditProposal(ctx context.Context, id string, edits map[string]any, by string) (Proposal, error) {
+	c.mu.Lock()
+	pr, ok := c.proposals[id]
+	c.mu.Unlock()
+	if !ok {
+		return Proposal{}, fmt.Errorf("no proposal %s", id)
+	}
+	c.mu.Lock()
+	old := ""
+	if pr.Gate != nil {
+		old = pr.Gate.ID
+	}
+	c.mu.Unlock()
+	before, _ := json.Marshal(pr.Calls)
+	if err := c.applyEdits(ctx, pr, edits, by); err != nil {
+		return pr.public(), err
+	}
+	after, _ := json.Marshal(pr.Calls)
+	if pr.GateMode == gateEnforce && (string(before) != string(after) || old == "") {
+		c.gateCancel(old)
+		if err := c.gateSubmit(pr); err != nil {
+			c.finish(pr, StatusRefused, "gate", err.Error())
+			return pr.public(), err
+		}
+		c.Broadcast("proposal", pr.public())
+		c.gateAct(pr)
 	}
 	return pr.public(), nil
 }

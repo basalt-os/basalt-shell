@@ -33,6 +33,10 @@ Singleton {
     // now, and the downloads the person agreed to.
     property var models: ({ offers: [], jobs: [], ask: "person" })
     property bool skillsAvailable: false
+    // The approval gate (basalt-gate): present, which paths it decides.
+    // Where it decides, this UI sends the person's decisions to it
+    // (GateBus), and the daemon runs what the gate allowed.
+    property var gate: ({ present: false, enforce: [] })
     // The UI's language is the session's (uiCatalog translates it, see
     // Tr.qml); the voice and the answers follow the person's own
     // settings (Settings, Voice and assistant).
@@ -71,13 +75,73 @@ Singleton {
     // Direct actions started by the person in the UI (no proposal).
     function execute(calls, cb) { call("execute", { calls: calls }, cb); }
     function act(action, args, cb) { execute([{ action: action, args: args || {} }], cb); }
-    function decide(id, approve, cb) { call("decide", { id: id, approve: approve }, cb); }
-    // Confirm with the person's edits of the editable fields (an e-mail draft's text).
-    function decideEdited(id, edits, cb) { call("decide", { id: id, approve: true, edits: edits }, cb); }
+    function _proposal(id) {
+        for (const p of bus.pending) if (p.id === id) return p;
+        return null;
+    }
+    // A proposal the approval gate decides: the decision goes to the gate
+    // from this UI (the desktop decider), then the daemon's final state
+    // comes back (it runs what the gate allowed).
+    function _gateDecide(p, approve, remember, cb) {
+        GateBus.decide(p.gate.id, approve, remember, (ok, res) => {
+            if (!ok) { if (cb) cb(false, res); return; }
+            call("wait", { id: p.id, wait: 120 }, cb);
+        });
+    }
+    function decide(id, approve, cb) {
+        const p = bus._proposal(id);
+        if (p && p.gate_mode === "enforce" && p.gate && p.gate.id) { bus._gateDecide(p, approve, false, cb); return; }
+        call("decide", { id: id, approve: approve }, cb);
+    }
+    // "Approve and remember": only where the gate offers it (a rule that
+    // asks once and then remembers).
+    function decideRemember(id, cb) {
+        const p = bus._proposal(id);
+        if (p && p.gate && p.gate.id && p.gate.remember) bus._gateDecide(p, true, true, cb);
+        else decide(id, true, cb);
+    }
+    // Confirm with the person's edits of the editable fields (an e-mail
+    // draft's text). Where the gate decides, the edited draft becomes the
+    // request first, so the approval covers exactly what is sent.
+    function decideEdited(id, edits, cb) {
+        const p = bus._proposal(id);
+        if (p && p.gate_mode === "enforce") {
+            call("edit", { id: id, edits: edits }, (ok, np) => {
+                if (!ok || !np.gate || !np.gate.id) { if (cb) cb(false, ok ? Tr.t("The edited draft could not be sent for approval.") : np); return; }
+                bus._gateDecide(np, true, false, cb);
+            });
+            return;
+        }
+        call("decide", { id: id, approve: true, edits: edits }, cb);
+    }
     // The dictation shown on the voice card: type it, or drop it.
     function dictationDecide(approve) {
         const id = bus.voice ? bus.voice.proposal : "";
-        if (id) call("decide", { id: id, approve: approve });
+        if (id) bus.decide(id, approve, null);
+    }
+    // Apply a system assistant proposal the person accepted. Where the gate
+    // decides those (path "apply"), the proposal is queued there, this UI
+    // approves it (an administrator's password, through polkit) and the
+    // gate's executor applies it; else the assistant's own confirmation
+    // (pkexec, the code) as before. cb(ok, { ok, output }).
+    function assistantApply(id, code, cb) {
+        if (!GateBus.enforced("apply") || !GateBus.connected) {
+            call("assistant.apply", { id: id, code: code }, cb);
+            return;
+        }
+        call("assistant.submit", { id: id }, (ok, s) => {
+            if (!ok) { cb(false, s); return; }
+            const follow = () => GateBus.follow(s.id, (fok, v) => {
+                const good = fok && typeof v === "object" && String(v.result).indexOf("exit code 0") === 0;
+                cb(true, { ok: good, output: fok ? (v.result || "") : String(v), gate: s.id });
+            });
+            if (s.decision === "refused") { cb(true, { ok: false, output: Tr.t("Refused: %1").arg(s.reason) }); return; }
+            if (s.decision === "allowed") { follow(); return; }
+            GateBus.decide(s.id, true, false, (dok, r) => {
+                if (!dok) { cb(true, { ok: false, output: String(r) }); return; }
+                follow();
+            });
+        });
     }
     function ask(text, cb) { call("ask", { text: text }, cb); }
     // Push to talk: only this UI may open the microphone. The daemon
@@ -193,6 +257,7 @@ Singleton {
             bus.skillsAvailable = !!s.skills;
             bus.uiLang = s.ui_lang || "en";
             bus.uiCatalog = s.ui_catalog || ({});
+            bus.gate = s.gate || ({ present: false, enforce: [] });
             bus.ready = true;
             bus.call("ui.state", { modal: Ui.modal });
             bus.refreshAssistant();
@@ -228,6 +293,14 @@ Singleton {
         running: !sock.connected
         repeat: true
         onTriggered: { sock.connected = false; sock.connected = true; }
+    }
+
+    // The gate may be installed, started or reconfigured while the shell runs.
+    Timer {
+        interval: 30000
+        running: bus.connected
+        repeat: true
+        onTriggered: bus.call("gate", {}, (ok, g) => { if (ok && JSON.stringify(g) !== JSON.stringify(bus.gate)) bus.gate = g; })
     }
 
     Timer {

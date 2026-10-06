@@ -195,6 +195,39 @@ The MCP write tool blocks until the decision (default 180 s) and tells
 the model plainly what happened ("declined: nothing changed, do not
 retry without asking").
 
+### With the approval gate (Basalt OS)
+
+On Basalt OS the approval gate (basalt-gate, the basalt-os repository's
+`docs/gate.md`) is the one place where a request becomes a decision. When
+it is installed, the daemon asks the gate which approval paths it decides
+(its `hello` answer, checked again every few seconds):
+
+- where the gate decides (`shell` for desktop and person actions), a new proposal becomes a gate request. The daemon
+  (`basalt_shell_t`, one of the gate's trusted relays) asks on behalf of
+  the person (the command bar, push to talk) or of an agent (MCP and IPC
+  clients, named after the client), with the shell's own plan as the
+  preview (summary, steps, exact previews of acting steps, the token
+  diff). A rule may allow or refuse it at once; otherwise the sheet, the
+  command bar or the voice card shows it as before, and the person's
+  decision goes from the shell UI (`basalt_shell_ui_t`, the gate's
+  desktop decider) straight to the gate, never through the daemon, which
+  refuses to decide such a proposal itself. The daemon waits for the
+  gate's decision, claims it with exactly the calls and preview it is
+  about to run (the gate compares them with what was approved), runs it
+  and reports the result. A confirmation within 1.5 s of synthetic input
+  is not trusted: the request is asked again. When the gate offers it,
+  the sheet has "Approve and remember". The activity log names who
+  decided: `gate:person:shell`, `gate:rule:<id>@<hash>`. Editing an
+  e-mail draft makes the edited draft the request before the approval.
+  Person-only actions stay person-only: the gate's registry refuses them
+  from anyone but the person, before any rule.
+- where it does not (shadow mode), the shell decides exactly as before
+  and tells the gate what was decided (`observe`), so the gate's dry runs
+  have real data before the switch.
+- agent control sessions and screenshots stay with the shell in this
+  version (observed only).
+- without a gate, nothing changes.
+
 ## Audit log
 
 `$XDG_STATE_HOME/basalt-shell/audit.jsonl`: one JSON record per line with
@@ -241,6 +274,15 @@ Apply runs `pkexec basalt apply ID --yes --confirm CODE`, so the person
 authenticates (in the shell's own polkit dialog) and the assistant
 re-checks that the code matches the commands, takes snapshots, runs,
 verifies and audits. The shell never applies system changes itself.
+
+Where the approval gate decides the system assistant's proposals
+(`apply`), Apply first queues the proposal in the gate (`assistant-read
+submit ID`, which runs `basalt submit ID --json` as root: queueing changes
+nothing), then the shell UI approves it at the gate (an administrator's
+password through polkit, in the shell's own dialog), the gate starts the
+assistant's executor (`basalt-gate-exec@REQUEST.service`, which applies
+it with its snapshots, checks and audit record), and the shell follows
+the request to its result. No pkexec of `basalt apply` then.
 
 ### Additional drivers
 

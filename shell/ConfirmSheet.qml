@@ -38,9 +38,17 @@ PanelWindow {
         onTriggered: win.remaining = win.current ? Math.max(0, Math.round((new Date(win.current.expires) - new Date()) / 1000)) : 0
     }
 
+    // Where the approval gate decides, the decision goes to it from here
+    // (Bus routes it); the gate may offer "Approve and remember".
+    readonly property bool viaGate: shown !== null && shown.gate_mode === "enforce" && !!shown.gate
+    readonly property string remember: viaGate && shown.gate.remember ? shown.gate.remember : ""
     function decide(approve) {
         if (!current || !armed) return;
         Bus.decide(current.id, approve, () => {});
+    }
+    function decideRemember() {
+        if (!current || !armed) return;
+        Bus.decideRemember(current.id, () => {});
     }
 
     Rectangle {
@@ -119,7 +127,8 @@ PanelWindow {
                 wrapMode: Text.Wrap
                 role: "small"
                 color: Theme.textMuted
-                text: "Nothing runs unless you confirm. Your decision is recorded in the activity log." +
+                text: (win.viaGate ? Tr.t("Nothing runs unless you confirm. Your decision goes to the approvals queue and is recorded.")
+                                   : "Nothing runs unless you confirm. Your decision is recorded in the activity log.") +
                       (win.remaining > 0 ? "  Expires in " + Math.floor(win.remaining / 60) + ":" + ("0" + win.remaining % 60).slice(-2) + "." : "")
             }
 
@@ -127,6 +136,7 @@ PanelWindow {
                 spacing: Theme.s2
                 anchors.right: parent.right
                 Btn { text: "Decline"; variant: "outline"; focusable: true; onClicked: win.decide(false); Keys.onEscapePressed: win.decide(false) }
+                Btn { visible: win.remember !== ""; text: Tr.t("Approve and remember (%1)").arg(win.remember); variant: "outline"; focusable: true; e2e: "confirm-remember"; opacity: win.armed ? 1 : 0.5; onClicked: win.decideRemember(); Keys.onEscapePressed: win.decide(false) }
                 Btn { id: confirmBtn; text: win.asksControl ? "Allow control" : (win.asksScreen ? "Show screenshot" : "Confirm"); icon: "check"; variant: "primary"; focusable: true; opacity: win.armed ? 1 : 0.5; onClicked: win.decide(true); Keys.onEscapePressed: win.decide(false) }
             }
         }

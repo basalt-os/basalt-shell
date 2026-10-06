@@ -210,6 +210,19 @@ without a GPU (llvmpipe): no denials for `basalt_greeter_t` with the
 dontaudit rules in place; with them off (`semodule -DB`), only the JIT
 probe and Quickshell's file watch, both deliberate.
 
+## The approval gate (0.8)
+
+On Basalt OS with basalt-gate installed, the gate decides who decides,
+from the kernel's view of each peer: `basalt_shell_ui_t` is one of its
+desktop deciders, `basalt_shell_t` one of its trusted relays (it may say
+it asks for the person, the assistant, an agent or an app) and the
+executor of the shell's actions. Agent domains, including
+`basalt_agent_mcp_t`, may ask the gate but never decide there (the gate
+refuses and records it; its SELinux module keeps agents out of its
+decider domains and its rule store). The shell module connects the daemon
+and the UI to the gate's socket when the gate's policy is loaded
+(`optional_policy`).
+
 ## Limits
 
 - This is a boundary against confined agents. Code running unconfined as

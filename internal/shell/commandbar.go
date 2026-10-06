@@ -173,6 +173,21 @@ func (c *Core) AssistantApply(ctx context.Context, id, code string) (string, err
 	return out, err
 }
 
+// AssistantSubmit queues an assistant proposal in the approval gate
+// (where the gate decides the system assistant's proposals).
+func (c *Core) AssistantSubmit(ctx context.Context, id string) (assistant.Submitted, error) {
+	if c.Assistant == nil {
+		return assistant.Submitted{}, fmt.Errorf("the system assistant is not installed")
+	}
+	s, err := c.Assistant.Submit(ctx, id)
+	data := map[string]any{"assistant_proposal": id, "gate_id": s.ID, "decision": s.Decision}
+	if err != nil {
+		data["error"] = err.Error()
+	}
+	_, _ = c.Audit.Append("propose", "ui", "queue assistant proposal "+id+" in the approval gate", data)
+	return s, err
+}
+
 // AssistantIgnore closes an assistant proposal.
 func (c *Core) AssistantIgnore(ctx context.Context, id string) (string, error) {
 	if c.Assistant == nil {

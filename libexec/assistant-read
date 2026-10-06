@@ -3,7 +3,8 @@
 # assistant. Runs as root through pkexec (polkit action
 # org.openbasalt.shell.assistant-read) and accepts only read commands:
 # status, why UNIT, fix selinux, disk, snapshots, pending, show ID, audit N,
-# ask TEXT (the assistant's translator, which itself never runs a
+# submit ID (queue the proposal in the approval gate: a person decides
+# there, nothing runs here), ask TEXT (the assistant's translator, which itself never runs a
 # change) and translate (the desktop command bar's request to the same
 # local model: a chat completions body on stdin, forwarded to the model's
 # Unix socket, which only the assistant and administrators may open; the
@@ -23,6 +24,9 @@ case "$cmd" in
   status|disk|snapshots|pending)
     for a in "$@"; do case "$a" in --json|--all) ;; *) echo "refused argument" >&2; exit 3 ;; esac; done
     exec basalt "$cmd" "$@" ;;
+  submit)
+    [ $# -eq 1 ] && [[ $1 =~ ^p-[0-9a-f]{6}$ ]] || { echo "refused argument" >&2; exit 3; }
+    exec basalt submit "$1" --json ;;
   why|show)
     [ $# -ge 1 ] && [[ $1 =~ $word ]] || { echo "refused argument" >&2; exit 3; }
     arg=$1; shift

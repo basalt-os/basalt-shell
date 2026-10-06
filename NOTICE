@@ -13,3 +13,7 @@ Apache-2.0.
 
 Quickshell (LGPL-3.0), sway (MIT) and niri (GPL-3.0) are separate programs
 the shell runs on; they are not part of this repository.
+
+internal/gateclient is a copy of the Basalt approval gate's reference
+client (basalt-os repository, packages/basalt-gate/pkg/gate), dual-licensed
+MIT OR Apache-2.0 (internal/gateclient/LICENSE-MIT).

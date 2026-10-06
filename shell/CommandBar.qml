@@ -93,13 +93,15 @@ PanelWindow {
         if (!assist) return;
         busy = true;
         status = apply ? "Waiting for authentication..." : "";
-        Bus.call(apply ? "assistant.apply" : "assistant.ignore", apply ? { id: assist.id, code: assist.code } : { id: assist.id }, (ok, res) => {
+        const handle = (ok, res) => {
             busy = false;
             statusOk = ok && res.ok;
             status = (statusOk ? (apply ? "Applied by the system assistant." : "Ignored.") : "Not applied.") ;
             if (ok && res.output) win.result = { kind: "system", text: res.output };
             Bus.refreshAssistant();
-        });
+        };
+        if (apply) Bus.assistantApply(assist.id, assist.code, handle);
+        else Bus.call("assistant.ignore", { id: assist.id }, handle);
     }
 
     Timer { id: closeTimer; interval: 1400; onTriggered: Ui.commandBar = false }

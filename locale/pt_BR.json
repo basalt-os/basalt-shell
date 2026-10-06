@@ -153,6 +153,9 @@
  "Answers are shown, not spoken: no voice for %s is installed.": [
   "As respostas aparecem na tela, sem fala: nenhuma voz para %s está instalada."
  ],
+ "Approve and remember (%1)": [
+  "Aprovar e lembrar (%1)"
+ ],
  "April": [
   "abril"
  ],
@@ -504,6 +507,9 @@
  "No messages match in %s mail%s.": [
   "Nenhuma mensagem corresponde no e-mail %s%s."
  ],
+ "No result yet from the program that applies it.": [
+  "Ainda sem resultado do programa que aplica a mudança."
+ ],
  "No speech model for %s is installed, and this computer cannot download one. Ask your administrator.": [
   "Nenhum modelo de fala para %s está instalado, e este computador não consegue baixar um. Fale com o seu administrador."
  ],
@@ -524,6 +530,9 @@
  ],
  "Not sent: %s": [
   "Não enviado: %s"
+ ],
+ "Nothing runs unless you confirm. Your decision goes to the approvals queue and is recorded.": [
+  "Nada é executado sem a sua confirmação. Sua decisão vai para a fila de aprovações e fica registrada."
  ],
  "November": [
   "novembro"
@@ -622,6 +631,9 @@
  ],
  "Recommended: NVIDIA driver %1 (proprietary)": [
   "Recomendado: driver NVIDIA %1 (proprietário)"
+ ],
+ "Refused: %1": [
+  "Recusado: %1"
  ],
  "Remote: %1": [
   "Remoto: %1"
@@ -773,6 +785,9 @@
  "The administrator turned model downloads off on this computer.": [
   "O administrador desligou os downloads de modelos neste computador."
  ],
+ "The approvals service is not connected.": [
+  "O serviço de aprovações não está conectado."
+ ],
  "The assistant answers in %1.": [
   "O assistente responde em %1."
  ],
@@ -814,6 +829,9 @@
  ],
  "The downloaded file arrived damaged or altered, so it was deleted. Nothing was installed.": [
   "O arquivo baixado chegou danificado ou alterado e foi apagado. Nada foi instalado."
+ ],
+ "The edited draft could not be sent for approval.": [
+  "O rascunho editado não pôde ser enviado para aprovação."
  ],
  "The focused field is for a password or code: it gets no dictation.": [
   "O campo em foco é de senha ou código: não recebe ditado."
