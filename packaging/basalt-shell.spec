@@ -256,6 +256,25 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Tue Oct 06 2026 Basalt OS developers - 0.6.3-1
+- Every window can be closed with the mouse. foot draws its own title
+  bar with buttons ([csd] preferred=client in Basalt's foot settings,
+  in the theme's colors, the title in GTK's header size and weight)
+  instead of sway's bar without buttons; GTK 3 windows without a header
+  bar do the same (the session sets GTK_CSD=1). Apps show the buttons
+  the compositor honors: close on sway, maximize and close on niri.
+- sway title bars (X11 apps, tiled windows): a middle click closes the
+  window, a right click opens the window menu as before; clicks inside
+  apps are untouched and a left click still drags.
+- Panel window list: the entry under the pointer shows a close button;
+  entries stop before the clock instead of running under it.
+- Window menu: in English and Brazilian Portuguese; it opens under the
+  window's title bar where the window is now (sway sends no event when a
+  floating window is dragged, so it used to open where the window had
+  been).
+- docs/design.md: who draws title bars, and why the shell does not draw
+  buttons over sway's own.
+
 * Tue Oct 06 2026 Basalt OS developers - 0.6.2-1
 - Push to talk: each person chooses Hold to talk (the default, as
   before) or Press to start and stop in Settings, Voice and assistant

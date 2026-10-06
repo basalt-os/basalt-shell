@@ -362,36 +362,76 @@ domain (docs/selinux.md, "Applications the shell starts").
 
 ## Window decorations and window states
 
-Who draws the title bar (package `internal/decor`): an app that can draw
-a proper one with buttons does (client-side decorations): GTK 4 /
-libadwaita, GTK 3 headerbars, Firefox, Chromium and Electron ask for it
-themselves; Qt asks for server-side decorations whenever the compositor
-offers them, so the daemon switches a new Qt window to client-side when
-the Adwaita decoration plugin of its Qt version is installed
-(`qt6-qtwayland-adwaita-decoration`, `qadwaitadecorations-qt5`; found
-through /proc/PID/maps and the plugin directories under
-/proc/PID/root, so Flatpak runtimes count too). The session sets
-`QT_WAYLAND_DECORATION=adwaita`.
+Every normal window can be closed with the mouse, and maximized and
+minimized where the compositor allows it, on sway (SwayFX) and niri.
 
-- sway draws a title bar for every other window (X11, terminals, plain
-  GTK 3), themed from the tokens: font (`font.family` SemiBold, one point
-  under `font.size`), centered title, padding from `spacing.unit`, the
-  focused title on `color.surfaceAlt` with `color.text`, inactive ones on
+Who draws the title bar (package `internal/decor`): the app, whenever it
+can draw a proper one with buttons (client-side decorations, CSD), in
+the theme's colors:
+
+- GTK 4 / libadwaita, GTK 3 headerbars, Firefox, Chromium and Electron
+  ask for it themselves.
+- GTK 3 windows without a header bar (Mousepad, older apps): the session
+  sets `GTK_CSD=1`, so GTK 3 draws its own title bar (adw-gtk3) instead
+  of asking for the compositor's.
+- foot: Basalt's foot settings (`~/.config/foot/basalt-theme.ini`,
+  included by a foot.ini the daemon creates only when there is none)
+  say `[csd] preferred=client`, with the title bar and flat buttons in
+  the theme's colors and the title in GTK's header size and weight
+  (rewritten on every theme change).
+- Qt asks for server-side decorations whenever the compositor offers
+  them, so the daemon switches a new Qt window to client-side when the
+  Adwaita decoration plugin of its Qt version is installed
+  (`qt6-qtwayland-adwaita-decoration`, `qadwaitadecorations-qt5`, both
+  required by the desktop edition; found through /proc/PID/maps and the
+  plugin directories under /proc/PID/root, so Flatpak runtimes count
+  too). The session sets `QT_WAYLAND_DECORATION=adwaita`.
+
+So every app Basalt installs (foot, Files, Text Editor, Firefox) and
+every GTK, libadwaita, Qt, Electron or Chromium app draws its own title
+bar with buttons. Apps show only the buttons the compositor honors
+(xdg_toplevel wm_capabilities, and GTK's button layout
+`org.gnome.desktop.wm.preferences button-layout`, which the daemon sets
+to match): sway 1.11 advertises only fullscreen and ignores maximize and
+minimize requests, so close (`appmenu:close`); niri maximizes (to the
+screen's edges, as a tiled column; the button again puts the window
+back where it floated), so maximize and close (`appmenu:maximize,close`).
+
+- sway draws a title bar for the rest: X11 apps, and tiled windows
+  (sway grants client-side decorations only while a window floats, which
+  is the default). sway cannot draw buttons on it, so the mouse gets
+  there another way: a right click on it opens the window menu of that
+  window, a middle click closes it (sway mouse bindings without
+  `--whole-window` act only on title bars and frames, so clicks inside
+  apps are untouched); a left click still drags. It is themed from the
+  tokens: font (`font.family` SemiBold, one point under `font.size`),
+  centered title, padding from `spacing.unit`, the focused title on
+  `color.surfaceAlt` with `color.text`, inactive ones on
   `color.surface` with `color.textMuted`, a frame of `window.border`
   pixels in `color.border` (a little stronger when focused). Re-applied
   on every theme change, by the person or a model; a window that draws
   its own decorations never gets a `border` command (that would switch
   it back to server-side).
 - niri has no title bars: every app is asked for client-side
-  decorations (no `prefer-no-csd`); X11 apps get the frame
-  xwayland-satellite draws; foot's own title bar follows the theme
-  (`~/.config/foot/basalt-theme.ini`, included by a foot.ini the daemon
-  creates only when there is none). The focus ring is the accent.
-- GTK's button layout (`org.gnome.desktop.wm.preferences button-layout`)
-  shows only buttons the compositor honors: sway 1.11 advertises only
-  fullscreen and ignores maximize and minimize requests, so
-  `appmenu:close`; niri maximizes (to edges), so `appmenu:maximize,close`.
-  GTK 4 and Qt's Adwaita plugin hide unsupported buttons on their own.
+  decorations (no `prefer-no-csd`) and xwayland-satellite gives X11
+  apps a title bar with maximize and close. The focus ring is the
+  accent.
+- Everywhere, the panel's window list has a close button on the entry
+  under the pointer, and its right click opens the window menu, so any
+  window, whatever draws its title bar, can be closed, maximized or
+  minimized with the mouse.
+
+Why not draw buttons on sway's own title bars: sway has no buttons and
+no way to add them from a config (patching SwayFX is a separate
+decision). A layer of the shell drawing buttons over them was weighed
+and left out: sway sends no event while a floating window is dragged or
+resized, so buttons would trail or float away from their window; a
+layer surface does not know the stacking of overlapping floating
+windows, so a button would cover the window above; and every click on
+it would have to be kept apart from the app below. With client-side
+decorations for every toolkit that has them, sway's bar is left to X11
+apps and tiled windows, where the right click menu and middle click
+cover the same actions without any of those risks.
 
 Window states (`window.set_state`), the same everywhere: maximize and
 snap to a half are floating placements on the usable area (the shell
@@ -401,9 +441,12 @@ the window on a workspace named "minimized" at the end of the output,
 hidden from the workspace list. The panel's window list shows the
 windows of the visible workspace and the minimized ones: click focuses,
 minimizes the focused one or restores a minimized one; middle click
-closes; right click opens the window menu (minimize, maximize, snap,
-float or tile, move to workspace 1 to 5, close), also on a right click
-on a sway title bar and with Super+Alt+Space. Keys: Super+Up maximize or
+closes; hovering an entry shows its close button; right click opens the
+window menu (minimize, maximize, snap, float or tile, move to workspace
+1 to 5, close; English and Brazilian Portuguese), also on a right click
+on a sway title bar and with Super+Alt+Space. The menu opens under the
+window's title bar, from its rectangle asked of the compositor at that
+moment. Keys: Super+Up maximize or
 restore, Super+Left / Super+Right snap, Super+Down restore or minimize,
 Super+H minimize; focus moves with Super+Alt+arrows. The command bar
 understands "minimize firefox", "maximize", "snap terminal to the left",

@@ -253,6 +253,9 @@
  "February": [
   "fevereiro"
  ],
+ "Float": [
+  "Flutuante"
+ ],
  "GeForce and Titan software is not licensed for datacenter deployment (NVIDIA Driver License Agreement, section 2.8).": [
   "O software para GeForce e Titan não é licenciado para uso em datacenter (NVIDIA Driver License Agreement, seção 2.8)."
  ],
@@ -442,11 +445,17 @@
  "March": [
   "março"
  ],
+ "Maximize": [
+  "Maximizar"
+ ],
  "May": [
   "maio"
  ],
  "Microphone open only while you hold the key. Audio stays on this computer and is not kept.": [
   "O microfone só fica aberto enquanto você segura a tecla. O áudio fica neste computador e não é guardado."
+ ],
+ "Minimize": [
+  "Minimizar"
  ],
  "Mode: press to start and stop.": [
   "Modo: apertar para começar e parar."
@@ -461,6 +470,9 @@
  "Move %d file to %s? Check the list, then confirm. You can undo it afterwards.": [
   "Mover %d arquivo para %s? Confira a lista e confirme. Você pode desfazer depois.",
   "Mover %d arquivos para %s? Confira a lista e confirme. Você pode desfazer depois."
+ ],
+ "Move to": [
+  "Mover para"
  ],
  "NVIDIA Driver License Agreement": [
   "NVIDIA Driver License Agreement"
@@ -641,6 +653,9 @@
  "Restart the computer now?": [
   "Reiniciar o computador agora?"
  ],
+ "Restore size": [
+  "Restaurar tamanho"
+ ],
  "Retry now": [
   "Tentar agora"
  ],
@@ -676,6 +691,12 @@
  ],
  "Shown underlined in the field. Nothing is typed until you choose Insert (Super+Shift+Return).": [
   "Aparece sublinhado no campo. Nada é digitado até você escolher Inserir (Super+Shift+Return)."
+ ],
+ "Snap left": [
+  "Encaixar à esquerda"
+ ],
+ "Snap right": [
+  "Encaixar à direita"
  ],
  "Snapshot %1 holds the system as it was before the install. Rolling back returns to it at the next start; your files in your home folder stay as they are.": [
   "O snapshot %1 guarda o sistema como estava antes da instalação. Voltar a ele vale a partir da próxima inicialização; os seus arquivos na pasta pessoal ficam como estão."
@@ -926,6 +947,9 @@
  ],
  "Those files are already in %s.": [
   "Esses arquivos já estão em %s."
+ ],
+ "Tile": [
+  "Lado a lado"
  ],
  "To dictate into a text field, click in the field first. Say \"assistant\" first to ask the assistant from a text field.": [
   "Para ditar num campo de texto, clique no campo primeiro. Diga \"assistente\" no começo para falar com o assistente a partir de um campo de texto."

@@ -63,9 +63,17 @@ Singleton {
         case "float": Bus.act("window.set_floating", { window: w.id, floating: !w.floating }); break;
         case "menu": {
             // Under the window's title bar (sway's mouse bindings and keys
-            // do not say where the pointer is).
-            const r = w.rect || { x: 0, y: 0, width: 0, height: 0 };
-            openWindowMenu(w.id, r.x + Theme.s2, r.y + Theme.s6 + Theme.s2);
+            // do not say where the pointer is). The rectangle comes fresh
+            // from the compositor: sway sends no event when a floating
+            // window is dragged, so the last known one may be old.
+            const at = win => {
+                const r = win.rect || { x: 0, y: 0, width: 0, height: 0 };
+                openWindowMenu(win.id, r.x + Theme.s2, r.y + Theme.s6 + Theme.s2);
+            };
+            Bus.call("desktop", {}, (ok, d) => {
+                const fresh = ok && d ? (d.windows || []).find(x => x.id === w.id) : null;
+                at(fresh || w);
+            });
             break;
         }
         }

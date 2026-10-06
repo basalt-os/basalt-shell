@@ -29,10 +29,15 @@ layout {
 }
 
 // Window decorations: apps draw their own title bar with buttons
-// (client-side decorations; niri has no title bars of its own). GTK,
-// libadwaita, Firefox, Chromium, Electron and Qt (Adwaita plugin) do;
-// niri draws the themed focus ring around every window. X11 apps
-// (xwayland-satellite) have no title bar here: move them with Super+drag.
+// (client-side decorations; niri has no title bars of its own). GTK 4,
+// libadwaita, GTK 3 (GTK_CSD=1 from the session), Firefox, Chromium,
+// Electron, foot (Basalt's foot settings) and Qt (Adwaita plugin) do,
+// showing maximize and close; xwayland-satellite gives X11 apps a title
+// bar with the same buttons. niri draws the themed focus ring around
+// every window. Any window can also be closed from its entry in the
+// panel's window list (hover, or middle click), and the window menu
+// (right click on that entry, or Super+Alt+Space) minimizes, maximizes,
+// snaps, moves and closes it.
 // Mouse: drag a title bar to move, its edges to resize, double click to
 // maximize; Super+drag moves, Super+right-drag resizes.
 

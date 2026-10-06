@@ -4,8 +4,8 @@ import Quickshell.Wayland
 
 // The window menu: minimize, maximize, snap, float or tile, move to a
 // workspace, close. Opened by a right click on a window's title bar
-// (compositor title bars), on its button in the panel's window list, or
-// with Super+Alt+Space. Every entry is a typed action, as from an agent
+// (compositor title bars; a middle click there closes the window), on its
+// entry in the panel's window list, or with Super+Alt+Space. Every entry is a typed action, as from an agent
 // or the command bar, but run directly because the person clicked it.
 PanelWindow {
     id: win
@@ -54,11 +54,11 @@ PanelWindow {
 
     readonly property string st: target ? (target.state || "") : ""
     readonly property var entries: [
-        { op: "minimize", label: "Minimize", key: "Super+H", show: (Bus.desktop.caps || {}).minimize === true },
-        { op: "maximize", label: st === "maximized" ? "Restore size" : "Maximize", key: "Super+Up", show: true },
-        { op: "left", label: st === "left" ? "Restore size" : "Snap left", key: "Super+Left", show: true },
-        { op: "right", label: st === "right" ? "Restore size" : "Snap right", key: "Super+Right", show: true },
-        { op: "float", label: target && target.floating ? "Tile" : "Float", key: "Super+T", show: true },
+        { op: "minimize", label: Tr.t("Minimize"), key: "Super+H", show: (Bus.desktop.caps || {}).minimize === true },
+        { op: "maximize", label: st === "maximized" ? Tr.t("Restore size") : Tr.t("Maximize"), key: "Super+Up", show: true },
+        { op: "left", label: st === "left" ? Tr.t("Restore size") : Tr.t("Snap left"), key: "Super+Left", show: true },
+        { op: "right", label: st === "right" ? Tr.t("Restore size") : Tr.t("Snap right"), key: "Super+Right", show: true },
+        { op: "float", label: target && target.floating ? Tr.t("Tile") : Tr.t("Float"), key: "Super+T", show: true },
     ]
 
     Surface {
@@ -99,6 +99,7 @@ PanelWindow {
                     required property var modelData
                     label: modelData.label
                     hint: modelData.key
+                    e2e: "window-menu-" + modelData.op
                     onTriggered: win.run(modelData.op)
                 }
             }
@@ -110,11 +111,12 @@ PanelWindow {
                 spacing: Theme.s1
                 leftPadding: Theme.s2
                 height: Theme.fontSize * 2.6
-                Txt { text: "Move to"; role: "small"; color: Theme.textMuted; anchors.verticalCenter: parent.verticalCenter; rightPadding: Theme.s1 }
+                Txt { text: Tr.t("Move to"); role: "small"; color: Theme.textMuted; anchors.verticalCenter: parent.verticalCenter; rightPadding: Theme.s1 }
                 Repeater {
                     model: [1, 2, 3, 4, 5]
                     delegate: Rectangle {
                         required property var modelData
+                        property string e2e: "window-menu-ws-" + modelData
                         readonly property bool here: {
                             const ws = (Bus.desktop.workspaces || []).find(w => w.id === (win.target ? win.target.workspace : ""));
                             return ws ? ws.index === modelData : false;
@@ -141,8 +143,9 @@ PanelWindow {
             Rectangle { width: parent.width; height: 1; color: Theme.border; opacity: 0.7 }
 
             MenuRow {
-                label: "Close"
+                label: Tr.t("Close")
                 hint: "Super+Q"
+                e2e: "window-menu-close"
                 danger: true
                 onTriggered: win.run("close")
             }
@@ -167,6 +170,7 @@ PanelWindow {
         id: row
         property string label: ""
         property string hint: ""
+        property string e2e: ""
         property bool danger: false
         signal triggered()
         width: parent ? parent.width : 0

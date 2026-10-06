@@ -24,6 +24,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -154,25 +155,37 @@ func Apply(ctx context.Context, t, lightT, darkT theme.Tokens, configDir string,
 	return r
 }
 
-// FootINI is foot's title bar (when the compositor asks foot to draw its
-// own decorations, as niri does) in the theme's colors and font. foot
-// takes colors as AARRGGBB.
+// FootINI is foot's own title bar in the theme's colors and font. foot
+// asks for client-side decorations (preferred=client), so it draws a
+// title bar with buttons, like GTK and libadwaita apps, instead of the
+// compositor's bar without buttons: sway grants it while the window
+// floats (the default) and draws its own bar when the window is tiled;
+// niri always lets apps draw their own. foot shows only the buttons the
+// compositor supports (xdg_toplevel wm_capabilities): close on sway,
+// maximize and close on niri. The buttons are flat on the title bar
+// color, with the glyphs in the text color, like the libadwaita headers
+// next to them. foot takes colors as AARRGGBB.
 func FootINI(t theme.Tokens) string {
 	hex := func(k string) string { return "ff" + strings.TrimPrefix(t.Str(k), "#") }
-	size := t.Num("font.size") - 1
+	// The title in the size GTK uses for its headers (font.size - 1
+	// points at 96 dpi) and its bold weight: foot's point sizes come out
+	// larger than GTK's, so the size is given in pixels.
+	px := int(math.Round((t.Num("font.size") - 1) * 96 / 72))
+	bar := int(t.Num("spacing.unit") * 8)
 	return fmt.Sprintf(`# Managed by basalt-shell: rewritten on every theme change. Do not edit.
 [csd]
-preferred=server
+preferred=client
 size=%d
-font=%s:weight=semibold:size=%g
+font=%s:weight=bold:pixelsize=%d
 color=%s
 border-width=0
+button-width=%d
 button-color=%s
 button-minimize-color=%s
 button-maximize-color=%s
 button-close-color=%s
-`, int(t.Num("spacing.unit")*8), t.Str("font.family"), size,
-		hex("color.surfaceAlt"), hex("color.text"), hex("color.surfaceAlt"), hex("color.surfaceAlt"), hex("color.surfaceAlt"))
+`, bar, t.Str("font.family"), px,
+		hex("color.surfaceAlt"), bar, hex("color.text"), hex("color.surfaceAlt"), hex("color.surfaceAlt"), hex("color.surfaceAlt"))
 }
 
 // writeFoot writes ~/.config/foot/basalt-theme.ini and, when the person

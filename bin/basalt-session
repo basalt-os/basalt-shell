@@ -35,6 +35,11 @@ export QT_QPA_PLATFORMTHEME="qt6ct:qt5ct"
 # so without it they keep the compositor's title bar.
 unset QT_WAYLAND_DISABLE_WINDOWDECORATION
 export QT_WAYLAND_DECORATION=adwaita
+# GTK 3 windows without a header bar (Mousepad, older apps) draw their
+# own title bar with buttons too (in the adw-gtk3 theme), like every
+# GTK 4 window does; otherwise GTK 3 asks the compositor for its title
+# bar, which has no buttons on sway and does not exist on niri.
+export GTK_CSD=1
 export MOZ_ENABLE_WAYLAND=1
 export ELECTRON_OZONE_PLATFORM_HINT=auto
 export SDL_VIDEODRIVER="wayland,x11"

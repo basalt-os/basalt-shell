@@ -103,11 +103,17 @@ PanelWindow {
             // Window list (taskbar): the windows of the workspace shown on
             // this screen, then the minimized ones. Click: focus, or
             // minimize the focused one, or restore a minimized one; middle
-            // click closes; right click opens the window menu.
+            // click closes; right click opens the window menu. Hovering an
+            // entry shows a close button, so any window can be closed with
+            // the mouse, also one without a title bar of its own (X11 apps
+            // on niri) or with a compositor title bar (sway cannot draw
+            // buttons on it).
             Row {
                 id: taskbar
                 spacing: Theme.s1
-                readonly property real maxWidth: bar.width * 0.42
+                // Up to the clock in the middle (many windows used to run
+                // under it).
+                readonly property real maxWidth: Math.max(0, pill.width / 2 - clockBox.width / 2 - Theme.s3 - Theme.s1 - x)
                 readonly property real itemWidth: bar.tasks.length > 0
                     ? Math.max(Theme.panelHeight * 1.2, Math.min(Theme.fontSize * 15, (maxWidth - spacing * (bar.tasks.length - 1)) / bar.tasks.length))
                     : 0
@@ -116,12 +122,13 @@ PanelWindow {
                     delegate: Rectangle {
                         id: task
                         required property var modelData
+                        property string e2e: "task"
                         readonly property bool min: modelData.state === "minimized"
                         readonly property var entry: DesktopEntries.heuristicLookup(modelData.app_id || "")
                         height: Theme.panelHeight - Theme.s3
                         width: taskbar.itemWidth
                         radius: Theme.radiusSm
-                        color: modelData.focused ? Theme.accentSoft : (taskMa.containsMouse ? Theme.hover : "transparent")
+                        color: modelData.focused ? Theme.accentSoft : (task.hot ? Theme.hover : "transparent")
                         Behavior on color { ColorAnimation { duration: Theme.fast } }
                         // Focus underline.
                         Rectangle {
@@ -133,10 +140,14 @@ PanelWindow {
                             radius: 1
                             color: Theme.accent
                         }
+                        readonly property bool hot: taskMa.containsMouse || closeMa.containsMouse
+                        // Room for the close button, shown on hover when the
+                        // entry is wide enough for a title.
+                        readonly property bool showClose: hot && width > Theme.fontSize * 6
                         Row {
                             anchors.fill: parent
                             anchors.leftMargin: Theme.s2
-                            anchors.rightMargin: Theme.s2
+                            anchors.rightMargin: task.showClose ? closeBtn.width + Theme.s1 : Theme.s2
                             spacing: Theme.s2
                             IconImage {
                                 anchors.verticalCenter: parent.verticalCenter
@@ -177,6 +188,33 @@ PanelWindow {
                                 }
                             }
                         }
+                        // Close button (hover). Declared after the entry's
+                        // MouseArea so it takes the click.
+                        Rectangle {
+                            id: closeBtn
+                            property string e2e: "task-close"
+                            visible: task.showClose
+                            anchors.right: parent.right
+                            anchors.rightMargin: Theme.s1
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Theme.fontSize * 1.7
+                            height: width
+                            radius: width / 2
+                            color: closeMa.pressed ? Theme.pressed : (closeMa.containsMouse ? Theme.hover : "transparent")
+                            Icon {
+                                anchors.centerIn: parent
+                                name: "close"
+                                size: Theme.fontSize * 1.05
+                                color: closeMa.containsMouse ? Theme.danger : Theme.textMuted
+                            }
+                            MouseArea {
+                                id: closeMa
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: Bus.act("window.close", { window: task.modelData.id })
+                            }
+                        }
                     }
                 }
             }
@@ -184,6 +222,7 @@ PanelWindow {
 
         // Center: clock.
         Item {
+            id: clockBox
             anchors.centerIn: parent
             width: clockText.implicitWidth + Theme.s4
             height: parent.height
