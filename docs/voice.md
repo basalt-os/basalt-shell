@@ -311,6 +311,11 @@ desktop downloads them only after a person chose Download:
 - Settings, Voice and assistant: every speech model of the manifest and
   the local model, with Download and Remove.
 
+Any person in an active local session may use the local model (the read
+helper's `translate` command, polkit rule in `50-basalt-shell.rules`),
+without a password; the other read commands of the helper stay
+passwordless for administrators only.
+
 The person's consent goes to the activity log and to basalt-ledger
 (`model.download.consent`, from the shell), the request and the result
 come from basalt-models (`model.download.request`, `model.download`,

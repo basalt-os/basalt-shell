@@ -7,3 +7,16 @@ polkit.addRule(function(action, subject) {
         return polkit.Result.YES;
     }
 });
+
+// Any person in an active local session may ask the local language model
+// through the read helper's translate command (the desktop's command bar
+// and skills): the model has no power and every answer is validated by
+// the shell. Zero setup: a person who is not an administrator gets no
+// password prompt for it. Every other read command keeps the rule above.
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.openbasalt.shell.assistant-read" &&
+        subject.active && subject.local &&
+        action.lookup("command_line") == "/usr/libexec/basalt-shell/assistant-read translate") {
+        return polkit.Result.YES;
+    }
+});
