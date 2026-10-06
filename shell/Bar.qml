@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Widgets
@@ -360,13 +361,43 @@ PanelWindow {
                 Repeater {
                     model: SystemTray.items
                     delegate: Item {
+                        id: trayItem
                         required property var modelData
                         width: Theme.panelHeight - Theme.s3
                         height: width
+                        // The theme icon the item names, if any. Apps in a
+                        // Flatpak name icons their sandbox has but the
+                        // host theme lacks (VLC names "vlc"; Flatpak
+                        // exports only "org.videolan.VLC"), which drew
+                        // the missing-icon checkerboard: then the icon of
+                        // the app's launcher is used. Symbolic icons
+                        // (Telegram) are drawn in the panel's text color,
+                        // not their dark default.
+                        readonly property string themeName: {
+                            const u = String(modelData.icon || "");
+                            return u.startsWith("image://icon/") ? decodeURIComponent(u.substring(13).split("?")[0]) : "";
+                        }
+                        // Items that ship their own icon directory
+                        // (IconThemePath, "?path=": JetBrains Toolbox) are
+                        // found there.
+                        readonly property bool missing: themeName !== "" && !themeName.startsWith("/")
+                            && String(modelData.icon).indexOf("path=") < 0 && Quickshell.iconPath(themeName, true) === ""
+                        readonly property var entry: missing ? DesktopEntries.heuristicLookup(modelData.id || themeName) : null
+                        readonly property bool symbolic: !missing && themeName.endsWith("-symbolic")
                         IconImage {
                             anchors.centerIn: parent
                             implicitSize: parent.width * 0.75
-                            source: modelData.icon
+                            source: trayItem.missing
+                                ? Quickshell.iconPath(trayItem.entry ? trayItem.entry.icon : "", "application-x-executable")
+                                : trayItem.modelData.icon
+                            layer.enabled: trayItem.symbolic
+                            layer.effect: MultiEffect {
+                                // White first, then the text color
+                                // (colorization keeps the dark luminance).
+                                brightness: 1.0
+                                colorization: 1.0
+                                colorizationColor: Theme.text
+                            }
                         }
                         MouseArea {
                             anchors.fill: parent
