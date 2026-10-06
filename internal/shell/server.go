@@ -539,7 +539,13 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		if c.Assistant == nil || !c.Assistant.Available() {
 			return nil, errors.New(i18n.G("The system assistant (basalt) is not installed: Additional drivers needs it."))
 		}
-		return c.Assistant.Drivers(ctx)
+		raw, err := c.Assistant.Drivers(ctx)
+		if errors.Is(err, assistant.ErrDriversUnsupported) {
+			// An assistant older than `basalt drivers`: the page says
+			// driver installation is coming soon, never an error.
+			return map[string]any{"coming_soon": true, "reason": "assistant"}, nil
+		}
+		return raw, err
 	case "drivers.propose", "drivers.rollback":
 		// Store the assistant's proposal; the shell UI then shows it on the
 		// confirmation sheet and applies it with assistant.apply.

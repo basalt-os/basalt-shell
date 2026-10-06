@@ -13,6 +13,11 @@ import Quickshell
 // person authenticates; basalt apply takes a snapshot first). After a
 // failed first start the page explains why and offers the rollback to the
 // snapshot taken before the install, the same way.
+//
+// Until the basalt-nonfree repository is published (or with an assistant
+// older than `basalt drivers`), the page says driver installation is
+// coming soon and never offers Install: the button shows only when the
+// assistant reports that the repository's definition can be installed.
 ColumnLayout {
     id: ds
     spacing: Theme.s4
@@ -33,6 +38,12 @@ ColumnLayout {
     readonly property var gpus: info ? (info.gpus || []) : []
     readonly property bool geforce: gpus.some(g => g.geforce)
     readonly property bool caBlocked: sb !== null && sb.enabled && !sb.ca_enrolled && !sb.ca_pending
+    // The assistant cannot do this yet (no `basalt drivers`), or the
+    // driver's repository is not published: an older report without
+    // nonfree_available counts as not published.
+    readonly property bool assistantTooOld: info !== null && info.coming_soon === true
+    readonly property bool comingSoon: assistantTooOld
+        || (rec !== null && (rec.action === "unavailable" || (rec.action === "install" && (st === null || st.nonfree_available !== true))))
 
     function load() {
         loading = true;
@@ -96,6 +107,29 @@ ColumnLayout {
         text: Tr.t("Looking at the hardware.")
         color: Theme.textMuted
     }
+    // Driver installation is not available yet: a calm card, no button.
+    Rectangle {
+        property string e2e: "drivers-coming-soon"
+        visible: ds.comingSoon
+        Layout.fillWidth: true
+        implicitHeight: ccol.implicitHeight + Theme.s3 * 2
+        radius: Theme.radiusMd; color: Theme.bg; border.width: 1; border.color: Theme.border
+        ColumnLayout {
+            id: ccol
+            anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
+            anchors.margins: Theme.s3
+            spacing: Theme.s2
+            Row {
+                spacing: Theme.s2
+                Icon { name: "info"; color: Theme.textMuted; size: Theme.fontSize * 1.4 }
+                Txt { text: Tr.t("Driver installation is coming soon"); font.weight: Font.DemiBold }
+            }
+            Txt {
+                Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone
+                text: Tr.t("A coming update of Basalt OS installs drivers such as NVIDIA's from this page. Until then the open drivers in use keep your hardware working, and nothing needs to be done.")
+            }
+        }
+    }
     Txt {
         visible: ds.status !== ""
         text: ds.status
@@ -104,7 +138,7 @@ ColumnLayout {
     }
 
     // The hardware.
-    Section { title: Tr.t("Graphics hardware") }
+    Section { visible: !ds.assistantTooOld; title: Tr.t("Graphics hardware") }
     Repeater {
         model: ds.gpus
         delegate: Rectangle {
@@ -126,7 +160,7 @@ ColumnLayout {
         }
     }
     Txt {
-        visible: ds.info !== null && ds.gpus.length === 0
+        visible: ds.info !== null && !ds.assistantTooOld && ds.gpus.length === 0
         text: Tr.t("No display controller was found.")
         color: Theme.textMuted
     }
@@ -219,7 +253,7 @@ ColumnLayout {
 
     // Install: what changes, the license, one button.
     ColumnLayout {
-        visible: ds.rec !== null && ds.rec.action === "install" && !ds.installed
+        visible: ds.rec !== null && ds.rec.action === "install" && !ds.comingSoon && !ds.installed
         Layout.fillWidth: true
         spacing: Theme.s3
 
@@ -358,7 +392,7 @@ ColumnLayout {
     }
 
     Txt {
-        visible: ds.info !== null
+        visible: ds.info !== null && !ds.comingSoon
         Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.textMuted; role: "small"
         text: Tr.t("Packaged by OpenBasalt, not supported by NVIDIA. NVIDIA, GeForce and CUDA are trademarks of NVIDIA Corporation.")
     }

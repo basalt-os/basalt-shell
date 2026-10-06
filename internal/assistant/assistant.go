@@ -167,12 +167,20 @@ func driversArgs(rest []string) error {
 	return bad
 }
 
+// ErrDriversUnsupported: the installed assistant is older than `basalt
+// drivers` (before 0.10.0). The Additional drivers page then says that
+// driver installation is coming soon instead of showing an error.
+var ErrDriversUnsupported = errors.New("the system assistant does not support basalt drivers yet")
+
 // Drivers is `basalt drivers --json`: the graphics hardware, the driver
 // that fits, what installing it changes, the NVIDIA license text, the
 // Secure Boot state and the driver's state (trial, in use, fallback).
 func (b *Bridge) Drivers(ctx context.Context) (json.RawMessage, error) {
 	out, err := b.Read(ctx, []string{"drivers", "--json"})
 	if err != nil {
+		if strings.Contains(out, `unknown command "drivers"`) {
+			return nil, ErrDriversUnsupported
+		}
 		return nil, fmt.Errorf("%v: %s", err, strings.TrimSpace(out))
 	}
 	var v json.RawMessage

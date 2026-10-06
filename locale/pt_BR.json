@@ -99,6 +99,9 @@
  ", ": [
   ", "
  ],
+ "A coming update of Basalt OS installs drivers such as NVIDIA's from this page. Until then the open drivers in use keep your hardware working, and nothing needs to be done.": [
+  "Uma próxima atualização do Basalt OS instala drivers como o da NVIDIA por esta página. Até lá, os drivers abertos em uso mantêm o seu hardware funcionando, e não é preciso fazer nada."
+ ],
  "A kernel update waits for its NVIDIA module": [
   "Uma atualização do kernel aguarda o seu módulo NVIDIA"
  ],
@@ -215,6 +218,9 @@
  ],
  "Driver in use: %1": [
   "Driver em uso: %1"
+ ],
+ "Driver installation is coming soon": [
+  "A instalação de drivers chega em breve"
  ],
  "Drivers that are not free software but make your hardware work better. Nothing is installed until you read what changes and confirm.": [
   "Drivers que não são software livre, mas fazem o seu hardware funcionar melhor. Nada é instalado até você ler o que muda e confirmar."

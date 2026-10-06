@@ -96,7 +96,7 @@ Newline-delimited JSON over a Unix socket (mode 0600, directory 0700).
 | `chosen` | ui | the person's answer to a `choose` |
 | `assistant.pending`, `assistant.show` | any | the system assistant's proposals |
 | `assistant.apply`, `assistant.ignore` | ui | the system assistant's own confirmation flow |
-| `drivers.state` | any | Additional drivers: the assistant's `basalt drivers --json` (GPUs, the driver that fits, its state, the NVIDIA license text) |
+| `drivers.state` | any | Additional drivers: the assistant's `basalt drivers --json` (GPUs, the driver that fits, its state, the NVIDIA license text), or `{"coming_soon": true}` with an assistant older than `basalt drivers` |
 | `drivers.propose`, `drivers.rollback` | ui | store the assistant's driver.install proposal, or the rollback to the snapshot taken before it, for the confirmation step |
 | `toplevels` | any | the windows (with their foreign-toplevel identifiers) |
 | `capture` | agent | a screenshot for this agent: confirmed by the person, or inside its control session |
@@ -254,6 +254,15 @@ and applies it like any other proposal (pkexec, `basalt apply ID --yes
 --confirm CODE`). GPUs that need NVIDIA's 580 legacy driver (Maxwell,
 Pascal, Volta, for example a GTX 1070) get an explanation and a link: the
 assistant will guide that path later; nothing is packaged for them.
+
+Install shows only when the report says the basalt-nonfree repository's
+definition can be installed (`state.nonfree_available`). While that
+repository is not published (the assistant then reports the action
+`unavailable`; an older report without the field counts the same), or
+with an assistant older than `basalt drivers` (it answers `unknown
+command "drivers"`, and `drivers.state` returns `{"coming_soon": true}`),
+the page says that driver installation is coming soon, with no button and
+no error.
 
 After a failed first start the driver falls back to nouveau (basalt-nvidia
 in Basalt OS). The daemon reads basalt-nvidia's state at the start of a

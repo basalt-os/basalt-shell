@@ -256,6 +256,15 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Tue Oct 06 2026 Basalt OS developers - 0.6.1-1
+- Settings, Additional drivers: with a system assistant older than
+  basalt drivers (0.9.0 and before), or while the basalt-nonfree
+  repository is not published, the page says that driver installation
+  is coming soon (English and Brazilian Portuguese) instead of the error
+  "basalt: unknown command drivers", and never offers Install. Install
+  shows only when the assistant reports that the repository's
+  definition can be installed (nonfree_available).
+
 * Tue Oct 06 2026 Basalt OS developers - 0.6.0-1
 - basalt-shell-selinux labels the voice and skill programs under
   /usr/lib64 (whisper-cli, Chromium) after its module is loaded: when

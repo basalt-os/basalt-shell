@@ -2,6 +2,7 @@ package assistant
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -72,6 +73,28 @@ esac
 	}
 	if _, err := b.DriversPropose(ctx, "everything"); err == nil {
 		t.Error("bad variant accepted")
+	}
+}
+
+// An assistant older than `basalt drivers` (0.9.0 answers `unknown
+// command "drivers"`) is ErrDriversUnsupported, which the page shows as
+// "coming soon"; any other failure stays an error.
+func TestDriversOldAssistant(t *testing.T) {
+	dir := t.TempDir()
+	basalt := filepath.Join(dir, "basalt")
+	script := "#!/bin/sh\necho 'basalt: unknown command \"drivers\" (basalt help)' >&2\nexit 2\n"
+	if err := os.WriteFile(basalt, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	b := &Bridge{Basalt: basalt, Helper: filepath.Join(dir, "missing")}
+	if _, err := b.Drivers(context.Background()); !errors.Is(err, ErrDriversUnsupported) {
+		t.Fatalf("old assistant: %v", err)
+	}
+	if err := os.WriteFile(basalt, []byte("#!/bin/sh\necho 'basalt: cannot read the state' >&2\nexit 1\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.Drivers(context.Background()); err == nil || errors.Is(err, ErrDriversUnsupported) {
+		t.Fatalf("other failure: %v", err)
 	}
 }
 
