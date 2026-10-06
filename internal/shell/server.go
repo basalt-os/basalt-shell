@@ -794,11 +794,22 @@ func (c *Core) modelsOp(ctx context.Context, op string, raw json.RawMessage) (an
 		return c.ModelsList(ctx), nil
 	case "models.download":
 		// An offer the person accepted (the voice card, the model card),
-		// or a model chosen in Settings.
-		if a.ID != "" {
-			return c.AcceptOffer(a.ID)
+		// or a model chosen in Settings. Where the approval gate decides
+		// model downloads, the Download is the person's decision there.
+		if c.gateMode("models") == gateEnforce {
+			return c.modelsDownloadViaGate(ctx, a.ID, a.Kind, a.Target)
 		}
-		return c.StartDownload(ctx, a.Kind, a.Target)
+		var j models.Job
+		var err error
+		if a.ID != "" {
+			j, err = c.AcceptOffer(a.ID)
+		} else {
+			j, err = c.StartDownload(ctx, a.Kind, a.Target)
+		}
+		if err == nil {
+			c.modelsObserve(j.Kind, j.Target, j.Purpose)
+		}
+		return j, err
 	case "models.dismiss":
 		c.DismissOffer(a.ID)
 		return nil, nil

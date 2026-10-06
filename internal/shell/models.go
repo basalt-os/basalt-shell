@@ -8,6 +8,7 @@ import (
 	"os/user"
 	"time"
 
+	"github.com/basalt-os/basalt-shell/internal/gateclient"
 	"github.com/basalt-os/basalt-shell/internal/i18n"
 	"github.com/basalt-os/basalt-shell/internal/intent"
 	"github.com/basalt-os/basalt-shell/internal/models"
@@ -406,4 +407,77 @@ func (c *Core) ModelsList(ctx context.Context) map[string]any {
 	st := c.Models.Snapshot()
 	return map[string]any{"available": true, "voice": c.Models.Available(models.Voice), "llm": c.Models.Available(models.LLM),
 		"catalog": cat, "state": st, "llm_installed": models.HasLLMModel()}
+}
+
+// modelRequest is a model download as an approval gate request: the
+// person asks (the card's Download is their decision); the preview is the
+// consent the card shows: what, how big, from where, why.
+func (c *Core) modelRequest(kind, target, purpose string, bytes int64, host string) gateclient.Proposal {
+	mb := (bytes + 1<<20 - 1) >> 20
+	text := i18n.G("Download the model %s (%d MB) from %s. It is checked against its published checksum before use, by a system service that cannot read your files.", target, mb, host)
+	pv := &gateclient.Preview{TitleKey: "models.download.title",
+		TitleArgs: map[string]any{"kind": kind, "what": target, "mb": mb, "host": host, "purpose": purpose},
+		Lines:     []gateclient.Line{{Key: "models.download.consent", Args: map[string]any{"text": text}}}}
+	return gateclient.Proposal{Calls: []gateclient.Call{{Action: "model.download",
+		Args: map[string]any{"kind": kind, "what": target, "purpose": clipStr(purpose, 40)}}},
+		Preview: pv, OnBehalf: &gateclient.OnBehalf{Kind: "person"}}
+}
+
+// modelsDownloadViaGate: where the approval gate decides model downloads,
+// Download asks the gate (the shell UI then approves it there, which is
+// the person's consent); once allowed, the daemon claims it and starts
+// the download as before (basalt-models-request still applies the
+// administrator's models.conf and polkit).
+func (c *Core) modelsDownloadViaGate(ctx context.Context, id, kind, target string) (any, error) {
+	if c.Models == nil {
+		return nil, errors.New("model downloads are not available")
+	}
+	var purpose, host string
+	var bytes int64
+	if id != "" {
+		o, ok := c.Models.Offer(id)
+		if !ok {
+			return nil, errors.New(i18n.G("This download offer is no longer open."))
+		}
+		if o.Ask == models.AskNone {
+			return nil, errors.New(i18n.G("The administrator turned model downloads off on this computer."))
+		}
+		kind, target, purpose, bytes, host = o.Kind, o.Target, o.Purpose, o.Bytes, o.Host
+	} else {
+		p, err := c.Models.Plan(ctx, kind, target)
+		if err != nil {
+			return nil, err
+		}
+		purpose, bytes, host = "settings", p.Missing(), p.Host()
+	}
+	req := c.modelRequest(kind, target, purpose, bytes, host)
+	info, err := c.gateDecideThen(req, "model download: "+kind+" "+target, func() error {
+		var err error
+		if id != "" {
+			_, err = c.AcceptOffer(id)
+		} else {
+			_, err = c.StartDownload(context.Background(), kind, target)
+		}
+		return err
+	})
+	if err != nil {
+		_, _ = c.Audit.Append("refuse", "gate", "model download not started: "+err.Error(), map[string]any{"kind": kind, "what": target})
+		return nil, err
+	}
+	return map[string]any{"gate": info, "kind": kind, "target": target}, nil
+}
+
+// modelsObserve tells the gate (shadow mode) that the person agreed to a
+// download on the card.
+func (c *Core) modelsObserve(kind, target, purpose string) {
+	if c.gateMode("models") != gateObserve {
+		return
+	}
+	req := c.modelRequest(kind, target, purpose, 0, "")
+	go func() {
+		if cl, err := c.gateDial(); err == nil {
+			_, _ = cl.Observe(req, "approved", "the shell (the consent card)")
+			cl.Close()
+		}
+	}()
 }

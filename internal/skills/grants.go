@@ -49,6 +49,9 @@ type Store struct {
 	OnExpire func(Grant)
 	// OnChange is called after any change.
 	OnChange func([]Grant)
+	// OnRevoke is called (outside the lock) with the grants a person
+	// revoked.
+	OnRevoke func([]Grant)
 }
 
 // NewStore returns an empty store.
@@ -188,11 +191,12 @@ func (s *Store) Use(id string) {
 // Revoke removes grants by id ("" removes all); returns how many.
 func (s *Store) Revoke(id string) int {
 	s.mu.Lock()
-	var keep []Grant
+	var keep, gone []Grant
 	n := 0
 	for _, g := range s.grants {
 		if id == "" || g.ID == id {
 			n++
+			gone = append(gone, g)
 			continue
 		}
 		keep = append(keep, g)
@@ -202,6 +206,9 @@ func (s *Store) Revoke(id string) int {
 	s.mu.Unlock()
 	if n > 0 && s.OnChange != nil {
 		s.OnChange(list)
+	}
+	if len(gone) > 0 && s.OnRevoke != nil {
+		s.OnRevoke(gone)
 	}
 	return n
 }

@@ -33,6 +33,7 @@ import (
 	"time"
 
 	"github.com/basalt-os/basalt-shell/internal/gateclient"
+	"github.com/basalt-os/basalt-shell/internal/i18n"
 )
 
 // Gate modes of an approval path.
@@ -120,12 +121,18 @@ func (c *Core) gateMode(path string) string {
 }
 
 // gatePath names the approval path of a proposal's calls (ADR 0020:
-// shell for desktop and person actions, control for agent control and
+// shell for desktop and person actions, skills for grants, consent for
+// knowledge packs and remote content, control for agent control and
 // screenshots, which stay with the shell in this version).
 func gatePath(calls []Call) string {
 	for _, call := range calls {
-		if call.Action == "agent.control" || call.Action == "screen.capture" {
+		switch {
+		case call.Action == "agent.control" || call.Action == "screen.capture":
 			return "control"
+		case strings.HasPrefix(call.Action, "grant."):
+			return "skills"
+		case call.Action == "knowledge.fetch" || call.Action == "remote.consent":
+			return "consent"
 		}
 	}
 	return "shell"
@@ -139,11 +146,19 @@ func personOrigin(origin string) bool {
 // gateRequest is the proposal as a gate request.
 func (c *Core) gateRequest(pr *Proposal) gateclient.Proposal {
 	ob := &gateclient.OnBehalf{Kind: "person"}
-	if !personOrigin(pr.Origin) {
+	switch {
+	case pr.Origin == "assistant":
+		// The assistant loop (it reads web pages, mail and files: tainted).
+		ob = &gateclient.OnBehalf{Kind: "assistant"}
+	case !personOrigin(pr.Origin):
 		ob = &gateclient.OnBehalf{Kind: "agent", Name: agentName(pr.Actor)}
 	}
 	pv := pr.gatePreview()
-	return gateclient.Proposal{Calls: gateCalls(pr.Calls), Preview: &pv, OnBehalf: ob}
+	gp := gateclient.Proposal{Calls: gateCalls(pr.Calls), Preview: &pv, OnBehalf: ob}
+	if pr.Origin == "assistant" {
+		gp.Taint = "web"
+	}
+	return gp
 }
 
 // agentName is the client's own label from the actor ("agent:NAME (type)").
@@ -171,9 +186,25 @@ func gateCalls(calls []Call) []gateclient.Call {
 	return out
 }
 
-// gateActionOf maps a shell action to its gate action (identity unless a
-// registry splits it).
-var gateActionOf = func(action string, args map[string]any) (string, map[string]any) { return action, args }
+// gateActionOf maps a shell action to its gate action: grant.add is
+// grant.folder, grant.mailbox or grant.site there (each with its own
+// resource kind, so a rule can name the folder, the mailbox or the host).
+func gateActionOf(action string, args map[string]any) (string, map[string]any) {
+	if action == "grant.add" {
+		kind, _ := args["kind"].(string)
+		out := map[string]any{}
+		for k, v := range args {
+			if k != "kind" {
+				out[k] = v
+			}
+		}
+		if t, ok := out["targets"].(string); ok {
+			out["targets"] = []any{t}
+		}
+		return "grant." + kind, out
+	}
+	return action, args
+}
 
 // gateValue converts a decoded JSON value to the gate's canonical subset.
 func gateValue(v any) any {
@@ -397,7 +428,22 @@ func (c *Core) gateRun(pr *Proposal, id, by string) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
-	_, runErr := c.execute(ctx, pr, gateBy(by))
+	res, runErr := c.execute(ctx, pr, gateBy(by))
+	if runErr == nil && gatePath(pr.Calls) == "skills" {
+		// The person's approval of a grant is a rule in the gate too
+		// (ending with the grant), which also allows asking again for the
+		// same scope; revoking the grant removes it.
+		rule := ""
+		switch {
+		case strings.HasPrefix(by, "person:"):
+			rule = gateGrantRule(id)
+		case strings.HasPrefix(by, "rule:r-grant-"):
+			rule, _, _ = strings.Cut(strings.TrimPrefix(by, "rule:"), "@")
+		}
+		if rule != "" {
+			c.rememberGrantRule(res.Result, rule)
+		}
+	}
 	ok, exit, detail := runErr == nil, 0, "done"
 	if runErr != nil {
 		exit, detail = 1, runErr.Error()
@@ -449,3 +495,142 @@ func init() {
 }
 
 var gateDisabled bool
+
+// gateGrantRule is the rule the gate keeps for a person's approval of a
+// grant (basalt-gate: "r-grant-" and the request id's digits).
+func gateGrantRule(id string) string { return "r-grant-" + strings.TrimPrefix(id, "g-") }
+
+// rememberGrantRule notes the gate rule of the grants a run created.
+func (c *Core) rememberGrantRule(result []any, rule string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.grantRules == nil {
+		c.grantRules = map[string]string{}
+	}
+	for _, r := range result {
+		b, _ := json.Marshal(r)
+		var gs []struct {
+			ID string `json:"id"`
+		}
+		if json.Unmarshal(b, &gs) != nil {
+			continue
+		}
+		for _, g := range gs {
+			c.grantRules[g.ID] = rule
+		}
+	}
+}
+
+// GrantRules returns (and forgets) the gate rules of revoked grants
+// ("" : all).
+func (c *Core) GrantRules(id string) []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	seen := map[string]bool{}
+	var out []string
+	for g, r := range c.grantRules {
+		if id != "" && g != id {
+			continue
+		}
+		delete(c.grantRules, g)
+		if !seen[r] {
+			seen[r] = true
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// gateRemoveRules removes the person's own allow rules at the gate (a
+// tightening: it takes effect at once, from the person's own programs).
+func (c *Core) gateRemoveRules(ids []string) {
+	if len(ids) == 0 {
+		return
+	}
+	go func() {
+		cl, err := c.gateDial()
+		if err != nil {
+			return
+		}
+		defer cl.Close()
+		for _, id := range ids {
+			raw, _ := json.Marshal(map[string]any{"op": "remove", "scope": "user", "id": id})
+			rep, err := cl.Do(gateclient.Request{Op: "rules.apply", Rule: raw})
+			if err != nil || !rep.OK {
+				_, _ = c.Audit.Append("fail", "gate", "the grant's rule "+id+" was not removed: "+rep.Error, nil)
+				continue
+			}
+			_, _ = c.Audit.Append("apply", "gate", "the grant's rule "+id+" was removed", nil)
+		}
+	}()
+}
+
+// gateDecideThen asks the gate for one request the person is deciding
+// right now on a card of their own (a model download's Download): the
+// shell UI then approves it at the gate. Once allowed, the daemon claims
+// it and runs run; a refusal is an error. The reply carries the request
+// for the UI.
+func (c *Core) gateDecideThen(req gateclient.Proposal, what string, run func() error) (*GateInfo, error) {
+	cl, err := c.gateDial()
+	if err != nil {
+		return nil, fmt.Errorf("the approval gate did not answer: %w", err)
+	}
+	rep, err := cl.Propose(req)
+	cl.Close()
+	if err != nil {
+		return nil, fmt.Errorf("the approval gate: %w", err)
+	}
+	info := &GateInfo{ID: rep.ID, Decision: rep.Decision, By: rep.By, Class: rep.Class, Reason: rep.Reason}
+	_, _ = c.Audit.Append("gate", "ui", what, map[string]any{"gate_id": rep.ID, "decision": rep.Decision, "by": rep.By})
+	claimRun := func(id, by string) {
+		cl, err := c.gateDial()
+		if err != nil {
+			return
+		}
+		defer cl.Close()
+		if _, err := cl.ClaimCalls(id, req.Calls, req.Preview, "basalt-shell"); err != nil {
+			_, _ = c.Audit.Append("refuse", gateBy(by), what+": the approval gate refused the claim: "+err.Error(), map[string]any{"gate_id": id})
+			return
+		}
+		err = run()
+		detail := "done"
+		if err != nil {
+			detail = err.Error()
+		}
+		exit := 0
+		if err != nil {
+			exit = 1
+		}
+		_, _ = cl.Result(id, err == nil, exit, clipStr(detail, 400))
+	}
+	switch rep.Decision {
+	case gateclient.Refused:
+		return info, errors.New(i18n.G("Not allowed: %s", rep.Reason))
+	case gateclient.Allowed:
+		go claimRun(rep.ID, rep.By)
+	case gateclient.Asked:
+		go func() {
+			for {
+				cl, err := c.gateDial()
+				if err != nil {
+					return
+				}
+				w, err := cl.Wait(rep.ID, 120)
+				cl.Close()
+				if err != nil {
+					return
+				}
+				switch w.Decision {
+				case gateclient.Asked:
+					continue
+				case gateclient.Allowed:
+					claimRun(rep.ID, w.By)
+				default:
+					_, _ = c.Audit.Append("decline", gateBy(w.By), what+": "+w.Decision, map[string]any{"gate_id": rep.ID})
+				}
+				return
+			}
+		}()
+	}
+	return info, nil
+}

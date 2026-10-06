@@ -350,6 +350,12 @@ fi
   a gate nothing changes. Vendored gate client (internal/gateclient,
   MIT OR Apache-2.0); the SELinux module connects the daemon and the UI
   to the gate when its policy is loaded.
+- Skill grants, model downloads and consent requests go through the gate
+  where it decides them: a grant's approval becomes a rule that ends with
+  the grant (revoking removes it), Download is the person's approval of a
+  model.download request with the card's consent as its preview, and the
+  typed actions knowledge.fetch and remote.consent carry the consent text
+  for the assistant loop.
 
 * Tue Oct 06 2026 Basalt OS developers - 0.7.0-1
 - basalt-greeter: the graphical login screen of the desktop edition

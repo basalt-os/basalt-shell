@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -13,6 +15,8 @@ import (
 	"time"
 
 	"github.com/basalt-os/basalt-shell/internal/gateclient"
+	"github.com/basalt-os/basalt-shell/internal/models"
+	"github.com/basalt-os/basalt-shell/internal/skills"
 )
 
 // fakeGate is a minimal approval gate: hello says what it enforces,
@@ -263,9 +267,136 @@ func TestGateRuleAndRefusal(t *testing.T) {
 
 // Agent control sessions stay with the shell in this version (observed).
 func TestGatePathOfCalls(t *testing.T) {
-	for calls, want := range map[string]string{"agent.control": "control", "screen.capture": "control", "theme.switch": "shell", "session.power": "shell"} {
+	for calls, want := range map[string]string{"agent.control": "control", "screen.capture": "control", "grant.add": "skills", "remote.consent": "consent", "theme.switch": "shell", "session.power": "shell"} {
 		if got := gatePath([]Call{{Action: calls}}); got != want {
 			t.Errorf("%s: %s, want %s", calls, got, want)
 		}
 	}
+}
+
+// A skill grant through the gate: grant.add is grant.folder there; the
+// person's approval runs it and the grant's rule is remembered, so
+// revoking the grant removes the rule at the gate.
+func TestGateGrant(t *testing.T) {
+	c, _, dir := newCore(t)
+	f, sock := newFakeGate(t, "skills")
+	c.GateSocket = sock
+	home := filepath.Join(dir, "home")
+	_ = os.MkdirAll(filepath.Join(home, "Documents"), 0o755)
+	c.Skills = &skills.Engine{Store: skills.NewStore(), Home: home, Runner: &skills.Runner{NoScope: true}}
+	c.WireSkills()
+	ctx := context.Background()
+	pr, err := c.Propose(ctx, Meta{Origin: "commandbar", Actor: "commandbar"},
+		[]Call{{Action: "grant.add", Args: map[string]any{"kind": "folder", "targets": []any{filepath.Join(home, "Documents")}, "duration": "1h"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pr.GateMode != gateEnforce || pr.Gate == nil {
+		t.Fatalf("%+v", pr)
+	}
+	prop := f.find("propose")[0]
+	if prop.Calls[0].Action != "grant.folder" || prop.Calls[0].Args["kind"] != nil || prop.OnBehalf.Kind != "person" {
+		t.Fatalf("%+v", prop.Calls)
+	}
+	f.decide(pr.Gate.ID, gateclient.Allowed)
+	if p := waitStatus(t, c, pr.ID); p.Status != StatusApplied {
+		t.Fatalf("%s %s", p.Status, p.Error)
+	}
+	gs := c.Skills.Store.Active("")
+	if len(gs) != 1 {
+		t.Fatalf("grants: %+v", gs)
+	}
+	eventually(t, "rule not remembered", func() bool {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		return c.grantRules[gs[0].ID] == "r-grant-"+strings.TrimPrefix(pr.Gate.ID, "g-")
+	})
+	c.Skills.Store.Revoke(gs[0].ID)
+	eventually(t, "rule not removed at the gate", func() bool { return len(f.find("rules.apply")) == 1 })
+	var m map[string]any
+	_ = json.Unmarshal(f.find("rules.apply")[0].Rule, &m)
+	if m["op"] != "remove" || m["id"] != "r-grant-"+strings.TrimPrefix(pr.Gate.ID, "g-") {
+		t.Fatalf("%v", m)
+	}
+}
+
+// A consent request from the assistant loop goes on behalf of the
+// assistant, tainted (it reads the web); MCP clients cannot ask for it.
+func TestGateConsent(t *testing.T) {
+	c, _, _ := newCore(t)
+	f, sock := newFakeGate(t, "skills", "models", "consent")
+	c.GateSocket = sock
+	ctx := context.Background()
+	call := Call{Action: "remote.consent", Args: map[string]any{"what": "web.search", "host": "search.example.org", "scope": "conversation"}}
+	if _, err := c.Propose(ctx, Meta{Origin: "mcp", Actor: "agent:x"}, []Call{call}); err == nil {
+		t.Fatal("an agent asked for consent")
+	}
+	pr, err := c.Propose(ctx, Meta{Origin: "assistant", Actor: "assistant"}, []Call{call})
+	if err != nil || pr.GateMode != gateEnforce {
+		t.Fatalf("%v %+v", err, pr)
+	}
+	prop := f.find("propose")[0]
+	if prop.OnBehalf.Kind != "assistant" || prop.Taint != "web" || prop.Preview == nil || len(prop.Preview.Lines) < 2 {
+		t.Fatalf("%+v", prop)
+	}
+	f.decide(pr.Gate.ID, gateclient.Allowed)
+	if p := waitStatus(t, c, pr.ID); p.Status != StatusApplied {
+		t.Fatalf("%s", p.Status)
+	}
+	// Without a gate the same request is the shell's own sheet.
+	c2, _, _ := newCore(t)
+	pr2, err := c2.Propose(ctx, Meta{Origin: "assistant", Actor: "assistant"}, []Call{call})
+	if err != nil || pr2.GateMode != "" {
+		t.Fatalf("%v %+v", err, pr2)
+	}
+}
+
+// A model download where the gate decides: Download asks the gate (the
+// consent is the preview), the person's approval starts it, after a claim.
+func TestGateModelDownload(t *testing.T) {
+	c, _, dir := newCore(t)
+	f, sock := newFakeGate(t, "models")
+	c.GateSocket = sock
+	m, fm := newFakeModels(t, dir)
+	c.Models = m
+	c.WireModels()
+	res, err := c.modelsOp(context.Background(), "models.download", json.RawMessage(`{"kind":"voice","target":"english"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	info := res.(map[string]any)["gate"].(*GateInfo)
+	prop := f.find("propose")[0]
+	if prop.Calls[0].Action != "model.download" || prop.Preview.TitleKey != "models.download.title" || !strings.Contains(fmt.Sprint(prop.Preview.Lines), "checksum") {
+		t.Fatalf("%+v", prop)
+	}
+	fm.mu.Lock()
+	for _, call := range fm.calls {
+		if strings.HasPrefix(call, "pkexec") {
+			t.Fatal("download before the decision")
+		}
+	}
+	fm.mu.Unlock()
+	f.decide(info.ID, gateclient.Allowed)
+	eventually(t, "download not started", func() bool {
+		fm.mu.Lock()
+		defer fm.mu.Unlock()
+		for _, call := range fm.calls {
+			if strings.Contains(call, "download voice english") {
+				return true
+			}
+		}
+		return false
+	})
+	if len(f.find("claim")) != 1 {
+		t.Error("not claimed")
+	}
+	// Let the download finish before the fake tools go away.
+	eventually(t, "download not done", func() bool {
+		for _, j := range m.Snapshot().Jobs {
+			if j.State == models.StateDone {
+				return true
+			}
+		}
+		return false
+	})
 }

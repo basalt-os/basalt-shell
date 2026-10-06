@@ -144,6 +144,8 @@ type Core struct {
 	GateSocket string
 	GateOff    bool
 	gate       gateState
+	// grantRules: grant id -> the gate rule its approval became.
+	grantRules map[string]string
 
 	mu        sync.Mutex
 	proposals map[string]*Proposal

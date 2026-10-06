@@ -224,6 +224,23 @@ it is installed, the daemon asks the gate which approval paths it decides
 - where it does not (shadow mode), the shell decides exactly as before
   and tells the gate what was decided (`observe`), so the gate's dry runs
   have real data before the switch.
+- skill grants (`skills`): the grant request is `grant.folder`,
+  `grant.mailbox` or `grant.site` at the gate (each names its folder,
+  mailbox or host, so a person's rule can pre-approve exactly that). The
+  person's approval is kept by the gate as a rule that ends with the
+  grant: asking again for the same scope before then is allowed without a
+  new question. Revoking the grant (End, or "stop reading") removes the
+  rule at once.
+- model downloads (`models`): the card's Download asks the gate with the
+  card's consent (what, size, from where) as the preview, and the shell UI
+  approves it there; the daemon claims it and starts the download as
+  before (basalt-models-request still applies the administrator's
+  `models.conf` and polkit).
+- knowledge packs and remote content (`consent`): the typed actions
+  `knowledge.fetch` and `remote.consent` carry the consent text as their
+  step; the assistant loop (ADR 0018, 0019) proposes them on behalf of
+  the assistant (tainted: it reads the web) or the person's words do;
+  never an agent connection.
 - agent control sessions and screenshots stay with the shell in this
   version (observed only).
 - without a gate, nothing changes.

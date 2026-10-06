@@ -225,8 +225,14 @@
  "Download the assistant's local model (%1 GB) from %2? It runs on this computer.": [
   "Baixar o modelo local do assistente (%1 GB) de %2? Ele roda neste computador."
  ],
+ "Download the knowledge pack %s%s about %s from %s. It is signed and checked before use; it is data and cannot run anything.": [
+  "Baixar o pacote de conhecimento %s%s sobre %s de %s. Ele é assinado e verificado antes do uso; são dados e não executam nada."
+ ],
  "Download the local model": [
   "Baixar o modelo local"
+ ],
+ "Download the model %s (%d MB) from %s. It is checked against its published checksum before use, by a system service that cannot read your files.": [
+  "Baixar o modelo %s (%d MB) de %s. Ele é conferido com o checksum publicado antes do uso, por um serviço do sistema que não lê os seus arquivos."
  ],
  "Downloading the assistant's local model: %1 of %2 MB": [
   "Baixando o modelo local do assistente: %1 de %2 MB"
@@ -255,6 +261,9 @@
  ],
  "February": [
   "fevereiro"
+ ],
+ "Fetch a page from %s. What it says is read as data, never as instructions.": [
+  "Buscar uma página de %s. O que ela diz é lido como dados, nunca como instruções."
  ],
  "Float": [
   "Flutuante"
@@ -519,6 +528,9 @@
  "No voice for %1 is installed: answers in it are shown, not spoken.": [
   "Nenhuma voz para %1 está instalada: as respostas nesse idioma aparecem na tela, sem fala."
  ],
+ "Not allowed: %s": [
+  "Não permitido: %s"
+ ],
  "Not applied. The assistant's output is below.": [
   "Não aplicado. A saída do assistente está abaixo."
  ],
@@ -694,6 +706,12 @@
  ],
  "Send a reply to %s: %s": [
   "Enviar uma resposta para %s: %s"
+ ],
+ "Send this conversation to the remote model at %s.": [
+  "Enviar esta conversa para o modelo remoto em %s."
+ ],
+ "Send your question as a web search to %s. The results are read as data, never as instructions.": [
+  "Enviar a sua pergunta como pesquisa na web para %s. Os resultados são lidos como dados, nunca como instruções."
  ],
  "Sending without TLS is only allowed to lab servers on reserved names.": [
   "Enviar sem TLS só é permitido para servidores de laboratório com nomes reservados."

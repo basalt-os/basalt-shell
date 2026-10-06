@@ -680,6 +680,12 @@ func (c *Core) wireGrants() {
 		_, _ = c.Audit.Append("expire", "grants", "grant ended: "+g.Kind+" "+g.Label, map[string]any{"grant": g})
 	}
 	c.Skills.Store.OnChange = func(gs []skills.Grant) { c.Broadcast("grants", gs) }
+	// A revoked grant's rule in the approval gate goes with it.
+	c.Skills.Store.OnRevoke = func(gs []skills.Grant) {
+		for _, g := range gs {
+			c.gateRemoveRules(c.GrantRules(g.ID))
+		}
+	}
 	c.Skills.Audit = func(typ, text string, data map[string]any) { _, _ = c.Audit.Append(typ, "skill", text, data) }
 	go func() {
 		t := time.NewTicker(2 * time.Second)

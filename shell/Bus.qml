@@ -162,8 +162,20 @@ Singleton {
     function revokeGrant(id) { call("grant.revoke", { id: id || "" }); }
     // Model downloads: only this UI agrees to one (models.download) or
     // removes a model; the daemon refuses them from anyone else.
-    function modelsDownload(id, cb) { call("models.download", { id: id }, cb); }
-    function modelsStart(kind, target, cb) { call("models.download", { kind: kind, target: target }, cb); }
+    // Where the approval gate decides model downloads, the daemon answers
+    // with the request: the person's Download is the approval, sent from
+    // here; the download then starts (the models state shows it).
+    function _modelsGate(cb) {
+        return (ok, res) => {
+            if (ok && res && res.gate && res.gate.decision === "asked") {
+                GateBus.decide(res.gate.id, true, false, (dok, r) => { if (cb) cb(dok, dok ? res : r); });
+                return;
+            }
+            if (cb) cb(ok, res);
+        };
+    }
+    function modelsDownload(id, cb) { call("models.download", { id: id }, bus._modelsGate(cb)); }
+    function modelsStart(kind, target, cb) { call("models.download", { kind: kind, target: target }, bus._modelsGate(cb)); }
     function modelsDismiss(id) { call("models.dismiss", { id: id }); }
     function modelsRetry(id) { call("models.retry", { id: id }); }
     function modelsCancel(id) { call("models.cancel", { id: id }); }
