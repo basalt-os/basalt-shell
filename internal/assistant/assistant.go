@@ -164,20 +164,24 @@ func (b *Bridge) Ask(ctx context.Context, text string) (string, error) {
 // the report, the license, and storing the install or rollback proposal.
 // Storing a proposal changes nothing: applying it still goes through
 // Apply (pkexec, the person authenticates, the confirmation code).
+//
+// Every request that reads the report carries --cached: the report is the
+// one the assistant's root unit basalt-drivers-refresh.service wrote, so
+// no rpm or dnf runs in the desktop's read path.
 func driversArgs(rest []string) error {
 	bad := fmt.Errorf("not an Additional drivers request: drivers %s", strings.Join(rest, " "))
 	switch {
-	case len(rest) == 0, len(rest) == 1 && rest[0] == "--json":
-		return nil
 	case len(rest) == 2 && rest[0] == "license" && rest[1] == "nvidia":
 		return nil
-	case len(rest) == 2 && rest[0] == "rollback" && rest[1] == "--json":
+	case len(rest) == 2 && rest[0] == "--json" && rest[1] == "--cached":
 		return nil
-	case len(rest) >= 3 && rest[0] == "install" && rest[1] == "nvidia" && rest[len(rest)-1] == "--json":
+	case len(rest) == 3 && rest[0] == "rollback" && rest[1] == "--json" && rest[2] == "--cached":
+		return nil
+	case len(rest) >= 4 && rest[0] == "install" && rest[1] == "nvidia" && rest[len(rest)-2] == "--json" && rest[len(rest)-1] == "--cached":
 		switch len(rest) {
-		case 3:
-			return nil
 		case 4:
+			return nil
+		case 5:
 			if rest[2] == "display" || rest[2] == "compute" {
 				return nil
 			}
@@ -191,11 +195,20 @@ func driversArgs(rest []string) error {
 // driver installation is coming soon instead of showing an error.
 var ErrDriversUnsupported = errors.New("the system assistant does not support basalt drivers yet")
 
-// Drivers is `basalt drivers --json`: the graphics hardware, the driver
-// that fits, what installing it changes, the NVIDIA license text, the
-// Secure Boot state and the driver's state (trial, in use, fallback).
+// Drivers is the Additional drivers report: the graphics hardware, the
+// driver that fits, what installing it changes, the NVIDIA license text,
+// the Secure Boot state and the driver's state (trial, in use, fallback).
+// The assistant's unit basalt-drivers-refresh.service writes it as root
+// (no password for an administrator at the computer); the shell reads it
+// (`basalt drivers --json --cached`), so it never runs rpm or dnf.
 func (b *Bridge) Drivers(ctx context.Context) (json.RawMessage, error) {
-	out, err := b.Read(ctx, []string{"drivers", "--json"})
+	if !unitInstalled("basalt-drivers-refresh.service") {
+		return nil, ErrDriversUnsupported
+	}
+	if err := b.startAndWait(ctx, "basalt-drivers-refresh.service", 5*time.Minute); err != nil {
+		return nil, err
+	}
+	out, err := b.Read(ctx, []string{"drivers", "--json", "--cached"})
 	if err != nil {
 		if strings.Contains(out, `unknown command "drivers"`) {
 			return nil, ErrDriversUnsupported
@@ -218,13 +231,13 @@ func (b *Bridge) DriversPropose(ctx context.Context, variant string) (Proposal, 
 	if variant != "" {
 		args = append(args, variant)
 	}
-	return b.stored(ctx, append(args, "--json"))
+	return b.stored(ctx, append(args, "--json", "--cached"))
 }
 
 // DriversRollback stores the proposal that returns the system to the
 // snapshot taken before the NVIDIA driver install.
 func (b *Bridge) DriversRollback(ctx context.Context) (Proposal, error) {
-	return b.stored(ctx, []string{"drivers", "rollback", "--json"})
+	return b.stored(ctx, []string{"drivers", "rollback", "--json", "--cached"})
 }
 
 func (b *Bridge) stored(ctx context.Context, args []string) (Proposal, error) {
@@ -416,7 +429,13 @@ func (b *Bridge) proposalResult(ctx context.Context, id string) (string, time.Ti
 	return p.Status, p.Result.Time
 }
 
+// systemctlBin replaces systemctl in tests.
+var systemctlBin = ""
+
 func systemctl() string {
+	if systemctlBin != "" {
+		return systemctlBin
+	}
 	if p, err := exec.LookPath("systemctl"); err == nil {
 		return p
 	}

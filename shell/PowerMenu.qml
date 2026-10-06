@@ -15,6 +15,11 @@ import Quickshell.Wayland
 // second Return never ends the session at once (Left reaches the button
 // to do it now). Lock and Suspend run at once.
 //
+// The same countdown restarts into a staged offline update (Settings,
+// Updates and channels, "Restarting to install updates"): when it ends, or
+// with Restart now, the daemon starts the assistant's
+// basalt-offline-reboot.service; Cancel keeps the update staged.
+//
 // Each entry is the typed action session.power, run directly because the
 // person chose it here (the daemon runs it through logind with the
 // system's polkit rules). An agent can never run or propose it.
@@ -46,13 +51,19 @@ PanelWindow {
         const out = [];
         for (const w of (Bus.desktop.windows || [])) {
             const n = w.app_id || w.title || "";
+            // The shell's own windows (Settings) hold no unsaved work.
+            if (w.app_id === "org.quickshell") continue;
             if (n && !seen[n]) { seen[n] = true; out.push(n); }
         }
         return out;
     }
 
     onVisibleChanged: {
-        if (visible) { confirming = ""; error = ""; focusTimer.restart(); }
+        if (visible) {
+            confirming = ""; error = "";
+            if (Ui.powerStart !== "") { const op = Ui.powerStart; Ui.powerStart = ""; choose(op); }
+            else focusTimer.restart();
+        }
         else { tick.stop(); confirming = ""; }
     }
     // Focus the first entry once the surface has the keyboard.
@@ -63,7 +74,7 @@ PanelWindow {
     function dismiss() { tick.stop(); confirming = ""; Ui.dismiss(); }
     function choose(op) {
         error = "";
-        if (op === "logout" || op === "restart" || op === "poweroff") {
+        if (op === "logout" || op === "restart" || op === "poweroff" || op === "update") {
             confirming = op; left = 60; tick.restart();
             nowTimer.restart();
             return;
@@ -72,6 +83,14 @@ PanelWindow {
     }
     function run(op) {
         tick.stop();
+        if (op === "update") {
+            Bus.call("updates.restart", {}, (ok, res) => {
+                if (ok) { win.close(); return; }
+                win.confirming = ""; win.error = String(res);
+                focusTimer.restart();
+            });
+            return;
+        }
         Bus.act("session.power", { op: op }, (ok, res) => {
             if (ok) { win.close(); return; }
             win.confirming = ""; win.error = String(res);
@@ -90,16 +109,19 @@ PanelWindow {
     }
 
     function title(op) {
+        if (op === "update") return Tr.t("Restarting to install updates");
         if (op === "logout") return Tr.t("Log out now?");
         if (op === "restart") return Tr.t("Restart the computer now?");
         return Tr.t("Power off the computer now?");
     }
     function countdown(op, n) {
+        if (op === "update") return Tr.t("The computer restarts in %1 s and installs the updates before the desktop starts. Cancel keeps them ready for later.").arg(n);
         if (op === "logout") return Tr.t("You will be logged out in %1 s.").arg(n);
         if (op === "restart") return Tr.t("The computer restarts in %1 s.").arg(n);
         return Tr.t("The computer powers off in %1 s.").arg(n);
     }
     function nowLabel(op) {
+        if (op === "update") return Tr.t("Restart now");
         if (op === "logout") return Tr.t("Log out");
         if (op === "restart") return Tr.t("Restart");
         return Tr.t("Power off");

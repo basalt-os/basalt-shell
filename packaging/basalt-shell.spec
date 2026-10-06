@@ -353,6 +353,15 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Tue Oct 06 2026 Basalt OS developers - 0.9.1-1
+- An offline update never restarts the computer without warning: once it
+  is staged, the power menu's 60 second countdown opens ("Restarting to
+  install updates", focused on Cancel); Cancel keeps it staged and the
+  page offers "Restart and update" again.
+- Additional drivers reads the report the assistant's root unit writes
+  (basalt-drivers-refresh.service): no rpm or dnf runs in the read helper,
+  and a test refuses package tools there.
+
 * Tue Oct 06 2026 Basalt OS developers - 0.9.0-1
 - Settings, Updates and channels: check for updates and install them with a
   snapshot first (offline, at the next start, when core packages change),

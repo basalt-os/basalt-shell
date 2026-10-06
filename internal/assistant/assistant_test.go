@@ -11,9 +11,9 @@ import (
 
 func TestReadArgsDrivers(t *testing.T) {
 	ok := [][]string{
-		{"drivers"}, {"drivers", "--json"}, {"drivers", "license", "nvidia"},
-		{"drivers", "install", "nvidia", "--json"}, {"drivers", "install", "nvidia", "compute", "--json"},
-		{"drivers", "rollback", "--json"},
+		{"drivers", "--json", "--cached"}, {"drivers", "license", "nvidia"},
+		{"drivers", "install", "nvidia", "--json", "--cached"}, {"drivers", "install", "nvidia", "compute", "--json", "--cached"},
+		{"drivers", "rollback", "--json", "--cached"},
 		{"status"}, {"why", "nginx.service"},
 	}
 	for _, a := range ok {
@@ -48,9 +48,9 @@ func TestDriversBridge(t *testing.T) {
 	script := `#!/bin/sh
 echo "$*" >>` + log + `
 case "$*" in
-  "drivers --json") echo '{"recommendation":{"action":"install"}}' ;;
-  "drivers install nvidia --json") echo '{"id":"p-a1b2c3","stored":true}' ;;
-  "drivers rollback --json") echo '{"id":"p-d4e5f6","stored":false}' ;;
+  "drivers --json --cached") echo '{"recommendation":{"action":"install"}}' ;;
+  "drivers install nvidia --json --cached") echo '{"id":"p-a1b2c3","stored":true}' ;;
+  "drivers rollback --json --cached") echo '{"id":"p-d4e5f6","stored":false}' ;;
   "show p-a1b2c3 --json") echo '{"id":"p-a1b2c3","title":"install the NVIDIA driver","status":"pending"}' ;;
   "show p-a1b2c3") echo "Apply it:   sudo basalt apply p-a1b2c3"; echo "  (without a prompt: sudo basalt apply p-a1b2c3 --yes --confirm 0a1b2c3d)" ;;
 esac
@@ -59,8 +59,12 @@ esac
 		t.Fatal(err)
 	}
 	b := &Bridge{Basalt: basalt, Helper: filepath.Join(dir, "missing")}
+	fakeUnits(t, dir)
 	ctx := context.Background()
 	raw, err := b.Drivers(ctx)
+	if got, _ := os.ReadFile(filepath.Join(dir, "systemctl.log")); !strings.Contains(string(got), "start --no-block basalt-drivers-refresh.service") {
+		t.Errorf("the refresh unit was not started: %s", got)
+	}
 	if err != nil || !strings.Contains(string(raw), `"install"`) {
 		t.Fatalf("drivers: %v %s", err, raw)
 	}
@@ -87,6 +91,7 @@ func TestDriversOldAssistant(t *testing.T) {
 		t.Fatal(err)
 	}
 	b := &Bridge{Basalt: basalt, Helper: filepath.Join(dir, "missing")}
+	fakeUnits(t, dir)
 	if _, err := b.Drivers(context.Background()); !errors.Is(err, ErrDriversUnsupported) {
 		t.Fatalf("old assistant: %v", err)
 	}
@@ -128,5 +133,33 @@ func TestPendingWithoutAdmin(t *testing.T) {
 	ps, err = b.Pending(context.Background())
 	if err != nil || len(ps) != 1 || ps[0].ID != "p-root00" {
 		t.Fatalf("administrator: %v %v", ps, err)
+	}
+}
+
+// fakeUnits installs the assistant's units in a temporary directory and a
+// systemctl that logs what it is asked.
+func fakeUnits(t *testing.T, dir string) {
+	t.Helper()
+	units := filepath.Join(dir, "units")
+	_ = os.MkdirAll(units, 0o755)
+	for _, u := range []string{"basalt-drivers-refresh.service", "basalt-updates-check.service", "basalt-apply@.service", "basalt-offline-reboot.service"} {
+		_ = os.WriteFile(filepath.Join(units, u), nil, 0o644)
+	}
+	sc := filepath.Join(dir, "systemctl")
+	_ = os.WriteFile(sc, []byte("#!/bin/sh\necho \"$*\" >>"+filepath.Join(dir, "systemctl.log")+"\necho inactive\n"), 0o755)
+	oldDirs, oldBin, oldGrace := unitDirs, systemctlBin, unitGrace
+	unitDirs, systemctlBin, unitGrace = []string{units}, sc, 0
+	t.Cleanup(func() { unitDirs, systemctlBin, unitGrace = oldDirs, oldBin, oldGrace })
+}
+
+// Without the refresh unit (an assistant older than 0.12.1) the page says
+// that driver installation is coming soon.
+func TestDriversWithoutRefreshUnit(t *testing.T) {
+	old := unitDirs
+	unitDirs = []string{t.TempDir()}
+	defer func() { unitDirs = old }()
+	b := &Bridge{Basalt: "/bin/true"}
+	if _, err := b.Drivers(context.Background()); !errors.Is(err, ErrDriversUnsupported) {
+		t.Fatal(err)
 	}
 }

@@ -1068,8 +1068,8 @@
  "Restart to finish": [
   "Reinicie para terminar"
  ],
- "Restarting to install the updates.": [
-  "Reiniciando para instalar as atualizações."
+ "Restarting to install updates": [
+  "Reiniciando para instalar as atualizações"
  ],
  "Restore size": [
   "Restaurar tamanho"
@@ -1161,8 +1161,8 @@
  "Software from this source can change your whole system. Only add sources you trust.": [
   "Software desta fonte pode mudar o sistema inteiro. Só adicione fontes em que você confia."
  ],
- "Some of these updates replace core parts of the system, so they install while the computer restarts, before the desktop starts. Save your work: the computer restarts when they are downloaded. A snapshot is taken before and after, so you can undo it from this page.": [
-  "Algumas destas atualizações trocam partes centrais do sistema, então são instaladas enquanto o computador reinicia, antes de a área de trabalho abrir. Salve seu trabalho: o computador reinicia quando o download terminar. Um snapshot é feito antes e depois, então dá para desfazer por esta página."
+ "Some of these updates replace core parts of the system, so they install while the computer restarts, before the desktop starts. Once they are downloaded, the computer restarts after a 60 second countdown you can cancel. A snapshot is taken before and after, so you can undo it from this page.": [
+  "Algumas destas atualizações trocam partes centrais do sistema, então são instaladas enquanto o computador reinicia, antes de a área de trabalho abrir. Depois do download, o computador reinicia após uma contagem de 60 segundos que você pode cancelar. Um snapshot é feito antes e depois, então dá para desfazer por esta página."
  ],
  "Some updates, such as a new kernel, take effect when the computer restarts. Save your work first.": [
   "Algumas atualizações, como um kernel novo, só valem quando o computador reiniciar. Salve seu trabalho antes."
@@ -1296,6 +1296,9 @@
  "The computer powers off in %1 s.": [
   "O computador desliga em %1 s."
  ],
+ "The computer restarts in %1 s and installs the updates before the desktop starts. Cancel keeps them ready for later.": [
+  "O computador reinicia em %1 s e instala as atualizações antes de a área de trabalho abrir. Cancelar as deixa prontas para depois."
+ ],
  "The computer restarts in %1 s.": [
   "O computador reinicia em %1 s."
  ],
@@ -1416,6 +1419,9 @@
  "The text field lost focus, so nothing was typed. Click in the field and dictate again.": [
   "O campo de texto perdeu o foco, então nada foi digitado. Clique no campo e dite de novo."
  ],
+ "The updates are downloaded and ready. They install when the computer restarts.": [
+  "As atualizações foram baixadas e estão prontas. Elas são instaladas quando o computador reiniciar."
+ ],
  "The voice %s does not speak that language.": [
   "A voz %s não fala esse idioma."
  ],
@@ -1452,6 +1458,9 @@
  ],
  "These updates include core parts of the system, so they install while the computer restarts, before the desktop starts. A snapshot is taken before and after.": [
   "Estas atualizações incluem partes centrais do sistema, então são instaladas enquanto o computador reinicia, antes de a área de trabalho abrir. Um snapshot é feito antes e depois."
+ ],
+ "They are downloaded and install while the computer restarts, before the desktop starts. Save your work first.": [
+  "Elas já foram baixadas e são instaladas enquanto o computador reinicia, antes de a área de trabalho abrir. Salve seu trabalho antes."
  ],
  "This NVIDIA GPU is not in the list of the NVIDIA driver Basalt OS ships; it may be newer than that driver. Nothing is recommended.": [
   "Esta GPU NVIDIA não está na lista do driver NVIDIA que o Basalt OS distribui; ela pode ser mais nova que o driver. Nada é recomendado."
@@ -1576,6 +1585,9 @@
  ],
  "Updates installed. A snapshot from before them is kept, so you can undo them.": [
   "Atualizações instaladas. Um snapshot de antes delas fica guardado, então dá para desfazer."
+ ],
+ "Updates ready to install": [
+  "Atualizações prontas para instalar"
  ],
  "Updates will also come from this channel. Its packages are signed with the OpenBasalt release key.": [
   "As atualizações também virão deste canal. Os pacotes dele são assinados com a chave de lançamento da OpenBasalt."

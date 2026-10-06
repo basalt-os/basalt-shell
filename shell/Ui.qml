@@ -17,6 +17,9 @@ Singleton {
     property bool settings: false
     // The power menu (lock, log out, suspend, restart, power off).
     property bool powerMenu: false
+    // Opens the power menu straight on a countdown: "update" is the
+    // restart into a staged offline update (Settings, Updates).
+    property string powerStart: ""
     property string settingsPage: "appearance"
     property string commandText: ""
     // The window menu: { win: window id, x, y: global position } or null.
@@ -81,6 +84,12 @@ Singleton {
     // surface was opened from (a panel button, a quick settings button).
     // Without an opener the keyboard simply goes back to the window that
     // had it (the compositor does that when the surface closes).
+    // The restart into the staged offline update: the power menu's 60
+    // second countdown, focused on Cancel (which keeps it staged).
+    function restartForUpdate() {
+        powerStart = "update";
+        powerMenu = true;
+    }
     function dismiss() {
         const back = returnTo;
         returnTo = null;

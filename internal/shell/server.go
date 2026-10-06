@@ -607,6 +607,26 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 			return nil, err
 		}
 		return p, nil
+	case "updates.restart":
+		// The restart into the staged offline update, when the power
+		// menu's countdown ends (or Restart now): the assistant's unit
+		// basalt-offline-reboot.service, which refuses without one.
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		if c.recentInput() {
+			return nil, errors.New("a restart right after agent input is not accepted; choose again")
+		}
+		if c.Assistant == nil || !c.Assistant.Available() {
+			return nil, errors.New(i18n.G("The system assistant (basalt) is not installed: Updates and channels needs it."))
+		}
+		err := c.Assistant.RestartIntoUpdate(ctx)
+		data := map[string]any{"unit": "basalt-offline-reboot.service"}
+		if err != nil {
+			data["error"] = err.Error()
+		}
+		_, _ = c.Audit.Append("apply", "ui", "restart into the staged offline update", data)
+		return map[string]any{"ok": err == nil}, err
 	case "updates.progress":
 		// An update being applied: its step (no dnf query).
 		if c.Assistant == nil || !c.Assistant.Available() {

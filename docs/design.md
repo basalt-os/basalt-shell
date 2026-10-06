@@ -96,10 +96,11 @@ Newline-delimited JSON over a Unix socket (mode 0600, directory 0700).
 | `chosen` | ui | the person's answer to a `choose` |
 | `assistant.pending`, `assistant.show` | any | the system assistant's proposals |
 | `assistant.apply`, `assistant.ignore` | ui | the system assistant's own confirmation flow |
-| `drivers.state` | any | Additional drivers: the assistant's `basalt drivers --json` (GPUs, the driver that fits, its state, the NVIDIA license text), or `{"coming_soon": true}` with an assistant older than `basalt drivers` |
+| `drivers.state` | any | Additional drivers: the report basalt-drivers-refresh.service writes, read with `basalt drivers --json --cached` (GPUs, the driver that fits, its state, the NVIDIA license text), or `{"coming_soon": true}` with an assistant older than `basalt drivers` |
 | `drivers.propose`, `drivers.rollback` | ui | store the assistant's driver.install proposal, or the rollback to the snapshot taken before it, for the confirmation step |
 | `updates.state`, `channels.state` | any | Updates and channels: the assistant's `basalt updates --json` and `basalt channels --json`, or `{"coming_soon": true}` with an assistant older than them |
-| `updates.check` | ui | update.check: the assistant refreshes the package lists (as root, through the read helper; nothing is installed) |
+| `updates.check` | ui | update.check: the assistant's unit basalt-updates-check.service refreshes the package lists and the report (nothing is installed) |
+| `updates.restart` | ui | the restart into a staged offline update, when the power menu's countdown ends: the assistant's unit basalt-offline-reboot.service |
 | `updates.propose`, `updates.rollback`, `channels.propose` | ui | store the assistant's update.install, update.rollback, repo.enable, repo.disable, source.add or source.remove proposal for the confirmation step |
 | `toplevels` | any | the windows (with their foreign-toplevel identifiers) |
 | `capture` | agent | a screenshot for this agent: confirmed by the person, or inside its control session |
@@ -310,7 +311,10 @@ the request to its result. No pkexec of `basalt apply` then.
 ### Additional drivers
 
 Settings, Additional drivers (pt-BR "Drivers adicionais") shows what
-`basalt drivers --json` reports: every display controller by PCI id and
+`basalt drivers --json --cached` reports (the report the assistant's root
+unit basalt-drivers-refresh.service writes when the page opens; the shell
+never runs rpm or dnf, and internal/assistant/policy_test.go refuses them
+in the read helper): every display controller by PCI id and
 the kernel driver bound to it, whether NVIDIA's list of supported GPUs
 covers an NVIDIA GPU with the open kernel modules (Turing and newer), the
 recommended driver (the NVIDIA driver of Basalt OS's opt-in basalt-nonfree
@@ -370,7 +374,12 @@ screen and gate, Mesa, the compositor) installs offline: the page says
 so in one sentence and its button is "Restart and update"; the packages
 are downloaded and prepared, the computer restarts, dnf installs them
 before the session starts, and the assistant records the result with the
-snapshot after it (basalt-offline-finish.service). Smaller sets without
+snapshot after it (basalt-offline-finish.service). The restart never comes
+without warning: once the update is staged, the power menu opens on its 60
+second countdown ("Restarting to install updates", focused on Cancel);
+when it ends, or with Restart now, the daemon starts
+basalt-offline-reboot.service (`updates.restart`). Cancel keeps the update
+staged and the page offers "Restart and update" again. Smaller sets without
 core packages install live. Both take a snapshot before and after and can
 be undone.
 

@@ -44,3 +44,40 @@ func TestApplyStartsTheAssistantUnit(t *testing.T) {
 		}
 	}
 }
+
+// The read helper runs as root through pkexec, still in the desktop's
+// domain: it must not start rpm or dnf, directly or through the assistant.
+// It only passes requests the assistant answers from the reports its root
+// units wrote (basalt-assistant's TestReadHelperCommandsRunNoRPMOrDNF runs
+// these exact forms against a runner that refuses rpm and dnf).
+func TestReadHelperRunsNoRPMOrDNF(t *testing.T) {
+	b, err := os.ReadFile("../../libexec/assistant-read")
+	if err != nil {
+		t.Fatal(err)
+	}
+	re := regexp.MustCompile(`\b(rpm|rpmkeys|dnf|dnf5|yum|pkcon|packagekit)\b`)
+	for i, line := range strings.Split(string(b), "\n") {
+		code, _, _ := strings.Cut(line, "#")
+		if re.MatchString(code) {
+			t.Errorf("assistant-read:%d runs a package tool: %s", i+1, strings.TrimSpace(line))
+		}
+	}
+	// Only the cached drivers forms are offered.
+	for _, form := range []string{`"--json --cached"`, `"rollback --json --cached"`, `"install nvidia --json --cached"`} {
+		if !strings.Contains(string(b), form) {
+			t.Errorf("assistant-read lacks the drivers form %s", form)
+		}
+	}
+	for _, live := range []string{`"" | "--json" | "license nvidia"`, `"rollback --json" |`, `"install nvidia --json" |`, `"check --json"`} {
+		if strings.Contains(string(b), live) {
+			t.Errorf("assistant-read still offers %s, which queries rpm or dnf", live)
+		}
+	}
+	// The bridge refuses the live forms before the helper sees them.
+	for _, args := range [][]string{{"drivers"}, {"drivers", "--json"}, {"drivers", "install", "nvidia", "--json"},
+		{"drivers", "rollback", "--json"}, {"updates", "check", "--json"}} {
+		if readArgs(args) == nil {
+			t.Errorf("%v is accepted: it would query rpm or dnf in the desktop's domain", args)
+		}
+	}
+}

@@ -45,6 +45,8 @@ ColumnLayout {
     // computer restarts, before the desktop starts (dnf offline).
     readonly property bool offlineAll: upd !== null && upd.offline === true
     readonly property bool offlineSecurity: upd !== null && upd.offline_security === true
+    // An offline update waits for the restart into it.
+    readonly property bool staged: upd !== null && !!upd.scheduled
     readonly property bool pOffline: (pkind === "install" && offlineAll) || (pkind === "security" && offlineSecurity)
     // The driver channels matter on hardware the NVIDIA driver supports.
     readonly property bool driverHardware: {
@@ -97,7 +99,12 @@ ColumnLayout {
             result = ok && res.output ? res.output : "";
             statusError = !good;
             if (!good) status = Tr.t("Nothing was changed, or not everything worked. The assistant's report is under Details.");
-            else if ((kind === "install" && offline) || (kind === "security" && offlineSec)) status = Tr.t("Restarting to install the updates.");
+            else if ((kind === "install" && offline) || (kind === "security" && offlineSec)) {
+                // Downloaded and staged: the restart waits for the power
+                // menu's countdown (Cancel keeps it staged).
+                status = Tr.t("The updates are downloaded and ready. They install when the computer restarts.");
+                Ui.restartForUpdate();
+            }
             else if (kind === "install" || kind === "security") status = Tr.t("Updates installed. A snapshot from before them is kept, so you can undo them.");
             else if (kind === "rollback") { status = Tr.t("Done. The computer goes back to how it was before the update when it restarts."); restartAfter = true; }
             else if (kind === "add") { status = Tr.t("Source added. Its software can now be installed and updated."); adding = false; }
@@ -241,7 +248,7 @@ ColumnLayout {
         switch (pkind) {
         case "install":
         case "security": return pOffline
-                         ? Tr.t("Some of these updates replace core parts of the system, so they install while the computer restarts, before the desktop starts. Save your work: the computer restarts when they are downloaded. A snapshot is taken before and after, so you can undo it from this page.")
+                         ? Tr.t("Some of these updates replace core parts of the system, so they install while the computer restarts, before the desktop starts. Once they are downloaded, the computer restarts after a 60 second countdown you can cancel. A snapshot is taken before and after, so you can undo it from this page.")
                          : Tr.t("A snapshot of the system is taken first, so you can undo the update from this page. Some updates need a restart to take effect.");
         case "rollback": return Tr.t("The system goes back to the snapshot taken just before the last update, at the next start. Your files in your home folder stay as they are.");
         case "enable": return ptarget.indexOf("testing") >= 0
@@ -449,9 +456,32 @@ ColumnLayout {
         }
     }
 
+    // An offline update is staged: it installs at the next restart.
+    Card {
+        visible: up.staged && up.running === null && !up.applying
+        accent: Theme.accent
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: Theme.s2
+            Row {
+                spacing: Theme.s2
+                Icon { name: "restart"; color: Theme.accent; size: Theme.fontSize * 1.4 }
+                Txt { text: Tr.t("Updates ready to install"); font.weight: Font.DemiBold }
+            }
+            Txt {
+                Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone
+                text: Tr.t("They are downloaded and install while the computer restarts, before the desktop starts. Save your work first.")
+            }
+            Flow {
+                Layout.fillWidth: true
+                Btn { text: Tr.t("Restart and update"); icon: "restart"; variant: "primary"; focusable: true; e2e: "updates-restart-staged"; onClicked: Ui.restartForUpdate() }
+            }
+        }
+    }
+
     // Install.
     ColumnLayout {
-        visible: up.updates.length > 0 && up.running === null && !up.applying && up.proposal === null
+        visible: up.updates.length > 0 && up.running === null && !up.applying && up.proposal === null && !up.staged
         Layout.fillWidth: true
         spacing: Theme.s2
         Flow {

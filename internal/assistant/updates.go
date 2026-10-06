@@ -109,27 +109,53 @@ func (b *Bridge) UpdatesCheck(ctx context.Context) (json.RawMessage, error) {
 	if !unitInstalled("basalt-updates-check.service") {
 		return nil, ErrNoApplyUnit
 	}
-	const unit = "basalt-updates-check.service"
+	if err := b.startAndWait(ctx, "basalt-updates-check.service", 10*time.Minute); err != nil {
+		return nil, err
+	}
+	return b.Updates(ctx)
+}
+
+// unitGrace is how long a unit that was never seen running may take to
+// show up (systemd queues the job).
+var unitGrace = 20 * time.Second
+
+// startAndWait starts one of the assistant's oneshot units without
+// blocking on systemd's job and waits until it ran.
+func (b *Bridge) startAndWait(ctx context.Context, unit string, limit time.Duration) error {
 	start := time.Now()
 	if out, err := b.runFor(ctx, time.Minute, []string{systemctl(), "start", "--no-block", unit}); err != nil {
-		return nil, fmt.Errorf("the check did not start: %s", strings.TrimSpace(out))
+		return fmt.Errorf("%s did not start: %s", unit, strings.TrimSpace(out))
 	}
 	seen := false
-	for time.Since(start) < 10*time.Minute {
+	for time.Since(start) < limit {
 		state, _ := b.runFor(ctx, 30*time.Second, []string{systemctl(), "is-active", unit})
 		state = strings.TrimSpace(state)
 		running := state == "activating" || state == "active"
 		seen = seen || running
-		if !running && (seen || time.Since(start) > 20*time.Second) {
-			break
+		if !running && (seen || time.Since(start) > unitGrace) {
+			return nil
 		}
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return ctx.Err()
 		case <-time.After(time.Second):
 		}
 	}
-	return b.Updates(ctx)
+	return nil
+}
+
+// RestartIntoUpdate starts basalt-offline-reboot.service: the restart
+// into the staged offline update, once Settings' countdown ended (or the
+// person chose Restart now). The unit refuses without a staged update.
+func (b *Bridge) RestartIntoUpdate(ctx context.Context) error {
+	if !unitInstalled("basalt-offline-reboot.service") {
+		return ErrNoApplyUnit
+	}
+	out, err := b.runFor(ctx, time.Minute, []string{systemctl(), "start", "--no-block", "basalt-offline-reboot.service"})
+	if err != nil {
+		return fmt.Errorf("the restart did not start: %s", strings.TrimSpace(out))
+	}
+	return nil
 }
 
 // UpdatesPropose stores the update.install proposal (all updates, or the
