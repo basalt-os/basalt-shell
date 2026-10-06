@@ -57,6 +57,10 @@ exec basalt-shell-ui
 # Shell surfaces.
 bindsym $mod+space exec $ui toggle launcher
 bindsym $mod+d exec $ui toggle launcher
+# Next keyboard layout, when the system has more than one (for example
+# Brazilian ABNT2 and US international, set with localectl; the session
+# starts with the system's layouts).
+bindsym $mod+Shift+space input type:keyboard xkb_switch_layout next
 bindsym $mod+a exec $ui toggle commandbar
 bindsym $mod+n exec $ui toggle notifications
 bindsym $mod+s exec $ui toggle quicksettings

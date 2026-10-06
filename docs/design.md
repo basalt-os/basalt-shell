@@ -563,6 +563,9 @@ focused window's entry in view.
 | Clipboard | wl-clipboard, cliphist history |
 | Idle and lock | swayidle and swaylock in the theme's colors (basalt-lock) |
 | Autostart | basalt-session.target wants xdg-desktop-autostart.target |
+| Flatpak apps | the session adds the Flatpak export directories to XDG_DATA_DIRS (login shells do it through profile.d; greetd starts no login shell), so the launcher and the panel find their launchers and icons, and those of RPMs whose scripts put icons there (Google Chrome) |
+| Keyboard layouts | the session starts with the system's layouts (XKB_DEFAULT_* from /etc/X11/xorg.conf.d/00-keyboard.conf, as the login screen does); Super+Shift+Space switches to the next one |
+| Java (JetBrains IDEs) | native Wayland by default in the 2026 IDEs; new windows are kept inside the usable area (above) |
 
 ## Session
 

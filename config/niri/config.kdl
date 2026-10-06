@@ -60,6 +60,8 @@ hotkey-overlay {
 
 binds {
     Mod+Space { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "launcher"; }
+    // Next keyboard layout (the session starts with the system's layouts).
+    Mod+Shift+Space { switch-layout "next"; }
     Mod+D { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "launcher"; }
     Mod+A { spawn "basalt-shell-ui" "ipc" "call" "shell" "toggle" "commandbar"; }
     // Push to talk: niri has no key-release bindings, so Mod+V is a press
