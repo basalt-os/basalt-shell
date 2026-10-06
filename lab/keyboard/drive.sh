@@ -55,6 +55,12 @@ surfaces() {
 check() {
   if eval "$1"; then pass=$((pass + 1)); echo "ok    $2"; else fail=$((fail + 1)); echo "FAIL  $2"; fi
 }
+# last_decision: the type of the newest confirm or decline record in the
+# activity log (the person's last answer to a proposal).
+last_decision() {
+  basalt-shell ctl activity '{"n":20}' 2>/dev/null | grep -oE '"type": ?"(confirm|decline)"' | tail -1 | grep -oE 'confirm|decline'
+}
+decided() { [ "$(last_decision)" = "$1" ]; }
 
 echo "== Settings: sidebar, pages, groups, slider, back"
 k logo+comma; sleep 1
@@ -134,6 +140,18 @@ expect power-lock "The power menu opens on its first entry"
 k Down
 expect power-logout "Down in the power menu"
 shot 09-power-menu
+k Return; sleep 0.6
+expect power-cancel "The log out countdown opens on Cancel, not Log out"
+shot 09b-power-countdown
+k Left
+expect power-confirm "Left reaches Log out (visual order)"
+k Right
+expect power-cancel "Right back to Cancel"
+k Return; sleep 0.6
+surfaces quicksettings
+expect qs-power "Return on Cancel closes and returns to the quick settings power button"
+k Return; sleep 0.6
+surfaces power
 k Escape; sleep 0.6
 surfaces quicksettings
 expect qs-power "Escape returns to the quick settings power button"
@@ -193,15 +211,40 @@ shot 13-commandbar
 k Escape; sleep 0.4
 surfaces ""
 
-echo "== A proposal from an agent: confirm and decline with the keyboard"
+echo "== A proposal in the command bar: it opens on Ignore, Return declines"
+k logo+a; sleep 0.8
+type_text "light mode"
+k Return; sleep 1.5
+expect proposal-decline "The proposal focuses Ignore, not Apply"
+shot 13b-commandbar-proposal
+k Left
+expect proposal-confirm "Left reaches Apply (visual order)"
+k Right
+expect proposal-decline "Right back to Ignore"
+k Return; sleep 0.8
+check "decided decline" "Return on the opened proposal declined it (last record: $(last_decision))"
+k Escape; sleep 0.4
+surfaces ""
+
+echo "== A proposal from an agent: it opens on Decline; Return declines, Right and Return confirm, Escape declines"
+basalt-shell propose theme.switch '{"mode":"light"}' >/tmp/p0.out 2>&1 &
+p0=$!
+sleep 1.2
+expect confirm-decline "The sheet focuses Decline, not Confirm"
+shot 14-confirm-sheet
+k Return
+wait $p0
+check 'grep -q declined /tmp/p0.out' "Return right after opening declined the proposal ($(tr -d '\n' </tmp/p0.out | head -c 80))"
 basalt-shell propose theme.switch '{"mode":"light"}' >/tmp/p1.out 2>&1 &
 p1=$!
 sleep 1.2
-expect confirm-allow "The sheet focuses Confirm"
-shot 14-confirm-sheet
+expect confirm-decline "The sheet focuses Decline again"
+k Right
+expect confirm-allow "Right moves to Confirm (visual order)"
+shot 14b-confirm-sheet-confirm
 k Return
 wait $p1
-check 'grep -q applied /tmp/p1.out' "Return confirmed the proposal ($(tr -d '\n' </tmp/p1.out | head -c 80))"
+check 'grep -q applied /tmp/p1.out' "Right and Return confirmed the proposal ($(tr -d '\n' </tmp/p1.out | head -c 80))"
 sleep 1
 shot 15-light-mode-settings-after
 basalt-shell propose theme.switch '{"mode":"dark"}' >/tmp/p2.out 2>&1 &
@@ -211,21 +254,29 @@ k Escape
 wait $p2
 check 'grep -q declined /tmp/p2.out' "Escape declined the proposal ($(tr -d '\n' </tmp/p2.out | head -c 80))"
 
-echo "== A question with fixed options (the screen-share chooser): Escape cancels"
+echo "== A question with fixed options (the screen-share chooser): it opens on Cancel"
+basalt-shell choose-output >/tmp/c0.out 2>&1 &
+c0=$!
+sleep 1.2
+expect chooser-cancel "The chooser focuses Cancel, not an option"
+shot 15b-chooser
+k Return
+wait $c0
+check '[ ! -s /tmp/c0.out ] || ! grep -q HEADLESS /tmp/c0.out' "Return right after opening cancelled the choice (nothing chosen)"
 basalt-shell choose-output >/tmp/c1.out 2>&1 &
 c1=$!
 sleep 1.2
-expect "chooser-*" "The chooser focuses its first option"
-shot 15b-chooser
 k Escape
 wait $c1
 check '[ ! -s /tmp/c1.out ] || ! grep -q HEADLESS /tmp/c1.out' "Escape cancelled the choice (nothing chosen)"
 basalt-shell choose-output >/tmp/c2.out 2>&1 &
 c2=$!
 sleep 1.2
+k shift+Tab
+expect "chooser-HEADLESS*" "Shift+Tab reaches the options"
 k Return
 wait $c2
-check 'grep -q HEADLESS /tmp/c2.out' "Return chose the focused option ($(tr -d '\n' </tmp/c2.out | head -c 60))"
+check 'grep -q HEADLESS /tmp/c2.out' "Shift+Tab and Return chose an option ($(tr -d '\n' </tmp/c2.out | head -c 60))"
 
 echo "== Light mode: the rings on light surfaces"
 k logo+s; sleep 0.8

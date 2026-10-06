@@ -54,11 +54,12 @@ check "T9 basalt_agent_mcp_t connects to PipeWire" refused "$out"
 st=$(basalt-shell ctl proposal "{\"id\": \"$id\"}" | jq -r .status)
 check "T10 after all attempts the proposal is still pending ($st)" ok "$([ "$st" = pending ] && echo ok || echo refused)"
 
-# The person confirms on the sheet (Enter on the focused Confirm button,
-# from a kernel-level virtual keyboard standing in for a real one).
+# The person confirms on the sheet (the sheet opens on Decline: Right to
+# Confirm, then Enter, from a kernel-level virtual keyboard standing in
+# for a real one).
 # BASALT_TEST_CONFIRM replaces ydotool (for example a key sent by the VM's
 # host to its virtual keyboard).
-confirm=${BASALT_TEST_CONFIRM:-"env YDOTOOL_SOCKET=${YDOTOOL_SOCKET:-/run/ydotoold.socket} ydotool key 28:1 28:0"}
+confirm=${BASALT_TEST_CONFIRM:-"env YDOTOOL_SOCKET=${YDOTOOL_SOCKET:-/run/ydotoold.socket} ydotool key 106:1 106:0 28:1 28:0"}
 sleep 1.5
 $confirm >/dev/null 2>&1
 sleep 1.5

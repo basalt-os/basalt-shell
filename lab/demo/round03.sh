@@ -56,12 +56,12 @@ close_all() {
 }
 rect() { basalt-shell ctl desktop | jq -r --arg a "$1" '.windows[] | select(.app_id==$a) | "\(.rect.x) \(.rect.y) \(.rect.width) \(.rect.height)"' | head -1; }
 wait_app() { for _ in $(seq 40); do [ -n "$(rect "$1")" ] && return 0; sleep 0.5; done; echo "no window $1" >&2; }
-# propose ACTION JSON: a typed action, confirmed on the sheet with Enter
-# (pressed again if the sheet was not focused yet).
+# propose ACTION JSON: a typed action, confirmed on the sheet with Right
+# (the sheet opens on Decline) and Enter, again if it was not focused yet.
 propose() {
   basalt-shell propose "$1" "$2" --wait 30 >/dev/null 2>&1 & local pid=$!
   sleep 1.4
-  for _ in 1 2 3 4; do key Return 1; kill -0 "$pid" 2>/dev/null || return 0; done
+  for _ in 1 2 3 4; do key Right 0.3; key Return 1; kill -0 "$pid" 2>/dev/null || return 0; done
   wait "$pid"
 }
 place() { propose window.move "{\"window\":\"$1\",\"x\":$2,\"y\":$3,\"width\":$4,\"height\":$5}"; }
@@ -195,9 +195,9 @@ scene_clips() {
   rec_stop
   rec_start launcher-commandbar
   ui toggle launcher; sleep 1.2; type_slow "files"; sleep 1; key Return 3
-  ui open commandbar; sleep 1; type_slow "use the lichen theme"; key Return 2; key Tab 0.4; key Return 3
+  ui open commandbar; sleep 1; type_slow "use the lichen theme"; key Return 2; key Left 0.4; key Return 3
   ui close; sleep 1.5
-  ui open commandbar; sleep 1; type_slow "light mode"; key Return 2; key Tab 0.4; key Return 3
+  ui open commandbar; sleep 1; type_slow "light mode"; key Return 2; key Left 0.4; key Return 3
   ui close; sleep 1
   rec_stop
   settings light

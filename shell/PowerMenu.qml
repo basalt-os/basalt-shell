@@ -11,7 +11,9 @@ import Quickshell.Wayland
 // Log out, Restart and Power off ask first: the card counts down 60
 // seconds and then goes ahead by itself (as GNOME does), with the button
 // to do it now and Cancel; it lists the open app windows so the person
-// saves their work first. Lock and Suspend run at once.
+// saves their work first. The countdown opens focused on Cancel, so a
+// second Return never ends the session at once (Left reaches the button
+// to do it now). Lock and Suspend run at once.
 //
 // Each entry is the typed action session.power, run directly because the
 // person chose it here (the daemon runs it through logind with the
@@ -76,7 +78,8 @@ PanelWindow {
             focusTimer.restart();
         });
     }
-    Timer { id: nowTimer; interval: 30; onTriggered: nowBtn.forceActiveFocus() }
+    // The confirmation opens on Cancel: a stray Return never confirms.
+    Timer { id: nowTimer; interval: 30; onTriggered: cancelBtn.forceActiveFocus(Qt.TabFocusReason) }
     Timer {
         id: tick
         interval: 1000; repeat: true

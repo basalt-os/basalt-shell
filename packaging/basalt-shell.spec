@@ -337,6 +337,20 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Tue Oct 06 2026 Basalt OS developers - 0.8.2-1
+- Approval surfaces open with the keyboard focus on the negative action,
+  so a stray Return never approves anything: an agent's confirmation
+  sheet (also with Approve and remember) on Decline, a proposal or a
+  permission (folder, mailbox, site) in the command bar on Ignore, Don't
+  allow or Discard, the system assistant's Apply on Ignore, the drivers
+  confirmation on Cancel, the model and voice download offers on Not now,
+  the screen-share chooser on Cancel, the power menu's countdown on
+  Cancel. The polkit dialog keeps the focus on its password field, where
+  Return no longer submits an empty answer. The arrow order is unchanged
+  (Right or Left reach the positive button) and the positive buttons
+  keep their 0.7 s arming delay; declining needs none. The keyboard lab
+  checks the initial focus and that Return right after opening declines.
+
 * Tue Oct 06 2026 Basalt OS developers - 0.8.1-1
 - Keyboard navigation and focus across the shell and the login screen.
   Settings: the sidebar is one Tab stop (Up, Down, Home, End and the first

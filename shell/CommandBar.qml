@@ -8,7 +8,10 @@ import Quickshell.Wayland
 // assistant. Nothing is applied until the person presses Apply.
 // Keyboard: the text field has the focus; Tab goes on to the suggestions
 // (Left, Right), the proposal's buttons and the answer (Up, Down, Page Up,
-// Page Down scroll a long report); Escape closes it from anywhere.
+// Page Down scroll a long report); Escape closes it from anywhere. A
+// proposal (a change, a permission, a reply, the system assistant's Apply)
+// moves the focus to its negative button (Ignore, Don't allow, Discard),
+// so a second Return declines and never applies anything.
 PanelWindow {
     id: win
     visible: Ui.commandBar || card.opacity > 0
@@ -121,6 +124,17 @@ PanelWindow {
         if (apply) Bus.assistantApply(assist.id, assist.code, handle);
         else Bus.call("assistant.ignore", { id: assist.id }, handle);
     }
+
+    // A proposal that appears takes the focus on its negative button
+    // (docs/design.md, Keyboard and focus: approval surfaces open focused
+    // on the negative action). Left or Shift+Tab reach the positive one.
+    function focusDecline(btn) {
+        if (!Ui.commandBar) return;
+        Ui.focusVisible = true;
+        Qt.callLater(() => { if (btn.visible) btn.forceActiveFocus(Qt.TabFocusReason); });
+    }
+    onProposalChanged: if (proposal && proposal.status === "pending") focusDecline(propNo)
+    onAssistChanged: if (assist) focusDecline(asNo)
 
     Timer { id: closeTimer; interval: 1400; onTriggered: Ui.commandBar = false }
 

@@ -5,9 +5,11 @@ import Quickshell.Wayland
 // Confirmation sheet for requests from agents (MCP or IPC clients): the
 // person sees who asks, every step and the token diff, and confirms or
 // declines. The daemon refuses confirmations from anyone but this UI.
-// Keyboard: the sheet takes it; focus starts on the confirm button with
-// its ring showing (after the arming delay Return confirms), Tab and the
-// arrows move between the buttons, Escape declines.
+// Keyboard: the sheet takes it; focus starts on Decline with its ring
+// showing, so a stray Return never approves anything (docs/design.md,
+// Keyboard and focus). Tab and the arrows move between the buttons in
+// visual order; the positive buttons take no input for 0.7 s after a
+// request appears; Escape declines.
 PanelWindow {
     id: win
     // The command bar and the voice card show the person's own requests.
@@ -24,16 +26,17 @@ PanelWindow {
     WlrLayershell.keyboardFocus: hasKeyboard ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     Binding { target: Ui; property: "confirmActive"; value: win.current !== null }
 
-    onCurrentChanged: if (current !== null) { shown = current; armed = false; armTimer.restart(); Ui.focusVisible = true; confirmBtn.forceActiveFocus(Qt.TabFocusReason); }
+    onCurrentChanged: if (current !== null) { shown = current; armed = false; armTimer.restart(); Ui.focusVisible = true; declineBtn.forceActiveFocus(Qt.TabFocusReason); }
 
-    // The buttons take no input for a moment after a request appears, so
-    // a click or a key meant for something else does not answer it.
+    // The positive buttons take no input for a moment after a request
+    // appears, so a click or a key meant for something else does not
+    // approve it. Declining is always safe and needs no delay.
     property bool armed: false
     Timer { id: armTimer; interval: 700; onTriggered: win.armed = true }
     readonly property var actionNames: shown ? (shown.calls || []).map(c => c.action) : []
     readonly property bool asksControl: actionNames.indexOf("agent.control") >= 0
     readonly property bool asksScreen: actionNames.indexOf("screen.capture") >= 0
-    onHasKeyboardChanged: if (hasKeyboard) confirmBtn.forceActiveFocus(Qt.TabFocusReason)
+    onHasKeyboardChanged: if (hasKeyboard) declineBtn.forceActiveFocus(Qt.TabFocusReason)
 
     property int remaining: 0
     Timer {
@@ -46,7 +49,7 @@ PanelWindow {
     readonly property bool viaGate: shown !== null && shown.gate_mode === "enforce" && !!shown.gate
     readonly property string remember: viaGate && shown.gate.remember ? shown.gate.remember : ""
     function decide(approve) {
-        if (!current || !armed) return;
+        if (!current || (approve && !armed)) return;
         Bus.decide(current.id, approve, () => {});
     }
     function decideRemember() {

@@ -23,12 +23,13 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "basalt-models"
-    // The offer takes the keyboard (Download focused, Escape is Not now)
-    // when no surface, sheet or voice card has it.
+    // The offer takes the keyboard (Not now focused, so a stray Return
+    // downloads nothing; Escape is Not now too) when no surface, sheet or
+    // voice card has it.
     readonly property bool offerKeys: offer !== null && offer.ask !== "" && !voiceCard && !Ui.surfaceOpen && !Ui.modal
     WlrLayershell.keyboardFocus: offerKeys ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
     mask: Region { item: card }
-    onOfferKeysChanged: if (offerKeys) { Ui.focusVisible = true; Qt.callLater(() => Nav.initial(view, "")); }
+    onOfferKeysChanged: if (offerKeys) { Ui.focusVisible = true; Qt.callLater(() => Nav.initial(view, "model-not-now")); }
 
     Surface {
         id: card

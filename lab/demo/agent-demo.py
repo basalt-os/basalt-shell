@@ -59,13 +59,19 @@ def tool(name, args=None):
 
 
 def press(key):
-    """Enter or Escape, as the person."""
+    """Confirm or Escape, as the person. The sheet opens focused on Decline,
+    so confirming is Right (to Confirm) and then Enter."""
     if use_wtype:
-        subprocess.run(["wtype", "-k", {"enter": "Return", "esc": "Escape"}[key]], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        keys = {"enter": ["Right", "Return"], "esc": ["Escape"]}[key]
+        for k in keys:
+            subprocess.run(["wtype", "-k", k], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            time.sleep(0.3)
     else:
-        code = {"enter": "28", "esc": "1"}[key]
-        subprocess.run(["ydotool", "key", code + ":1", code + ":0"], env=dict(env, YDOTOOL_SOCKET="/run/ydotoold.socket"),
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        codes = {"enter": ["106", "28"], "esc": ["1"]}[key]
+        for code in codes:
+            subprocess.run(["ydotool", "key", code + ":1", code + ":0"], env=dict(env, YDOTOOL_SOCKET="/run/ydotoold.socket"),
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            time.sleep(0.3)
 
 
 def grim(name):
@@ -73,7 +79,7 @@ def grim(name):
 
 
 def person(name, delay=2.0, key=True):
-    """The person looks at the sheet (screenshot) and presses Enter."""
+    """The person looks at the sheet (screenshot) and confirms with the keys."""
     def run():
         time.sleep(delay)
         grim(name)

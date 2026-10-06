@@ -72,7 +72,7 @@ scene_panel() {
   # Arranging is a typed action too: through the command bar, confirmed.
   ui open commandbar; sleep 1
   type_slow "cascade windows"; key Return 1.5
-  key Tab 0.4; key Return 2.5
+  key Left 0.4; key Return 2.5
   ui close; sleep 1
   shot 01-panel
 }
@@ -133,7 +133,7 @@ scene_commandbar() {
   type_slow "make it darker with rounder corners"; sleep 0.5
   key Return 2
   shot 05-commandbar-proposal
-  key Tab 0.4
+  key Left 0.4   # the proposal opens on Ignore: Left to Apply
   key Return 2.5
   shot 05-commandbar-applied
   ui close; sleep 1.5
@@ -147,7 +147,7 @@ scene_assistant() {
   type_slow "why nginx"; sleep 0.4
   key Return 6
   shot 06-assistant-report
-  key Tab 0.4
+  key Left 0.4   # the proposal opens on Ignore: Left to Apply
   key Return 3
   shot 06-polkit
   if [ -r "${BASALT_LAB_PASSWORD_FILE:-}" ]; then
@@ -163,6 +163,7 @@ scene_mcp() {
   ( "$here/mcp-call.py" theme_set_tokens '{"tokens": {"color.accent": "#2f7d78", "radius.window": 18, "radius.md": 16, "radius.lg": 24}}' >"$out/07-mcp-result.txt" 2>&1 & )
   sleep 3
   shot 07-mcp-sheet
+  key Right 0.4  # the sheet opens on Decline: Right to Confirm
   key Return 3
   shot 07-mcp-applied
   ui open activity; sleep 2
@@ -177,7 +178,7 @@ scene_apps() {
   sleep 6
   ui open commandbar; sleep 1
   type_slow "arrange windows in a grid"; key Return 1.5
-  key Tab 0.4; key Return 3
+  key Left 0.4; key Return 3
   ui close; sleep 1
   shot 08-apps
 }

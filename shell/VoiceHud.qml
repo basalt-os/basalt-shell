@@ -51,11 +51,12 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "basalt-voice"
-    // The download offer is a question: it takes the keyboard (Download is
-    // focused, Escape is Not now) unless a surface or a sheet has it.
+    // The download offer is a question: it takes the keyboard (Not now is
+    // focused, so a stray Return downloads nothing; Escape is Not now too)
+    // unless a surface or a sheet has it.
     readonly property bool offerKeys: st === "offer" && !!v.offer && v.offer.ask !== "" && !Ui.surfaceOpen && !Ui.modal
     WlrLayershell.keyboardFocus: (hud.grabEsc || hud.offerKeys) ? WlrKeyboardFocus.Exclusive : (hud.asking ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None)
-    onOfferKeysChanged: if (offerKeys) { Ui.focusVisible = true; Qt.callLater(() => Nav.initial(offerView, "")); }
+    onOfferKeysChanged: if (offerKeys) { Ui.focusVisible = true; Qt.callLater(() => Nav.initial(offerView, "model-not-now")); }
     // Clicks pass through, except on the card while a dictation waits, a
     // download is offered or running, or Cancel is offered.
     mask: Region { item: (hud.waiting || hud.asking || hud.toggleListening) ? card : null }

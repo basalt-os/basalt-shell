@@ -58,7 +58,12 @@ ColumnLayout {
         busy = true; status = ""; statusError = false;
         Bus.call(op, op === "drivers.propose" ? { variant: rec ? rec.variant : "" } : {}, (ok, res) => {
             busy = false;
-            if (ok) { proposal = res; }
+            if (ok) {
+                proposal = res;
+                // The confirmation opens focused on Cancel: a stray Return
+                // never applies it (docs/design.md, Keyboard and focus).
+                Qt.callLater(() => { if (driversCancel.visible) driversCancel.forceActiveFocus(Qt.TabFocusReason); });
+            }
             else { status = res; statusError = true; }
         });
     }
@@ -384,7 +389,7 @@ ColumnLayout {
                 Layout.fillWidth: true
                 spacing: Theme.s2
                 Btn { text: Tr.t("Confirm and apply"); icon: "check"; variant: "primary"; focusable: true; e2e: "drivers-confirm"; enabled: !ds.busy; onClicked: ds.decide(true) }
-                Btn { text: Tr.t("Cancel"); variant: "outline"; focusable: true; e2e: "drivers-cancel"; enabled: !ds.busy; onClicked: ds.decide(false) }
+                Btn { id: driversCancel; text: Tr.t("Cancel"); variant: "outline"; focusable: true; e2e: "drivers-cancel"; enabled: !ds.busy; onClicked: ds.decide(false) }
             }
         }
     }

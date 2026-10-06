@@ -629,12 +629,21 @@ with Tab and follows the roving tab stop of the WAI-ARIA patterns.
   the button that opened it when it is closed with Escape (power menu,
   then quick settings, then the panel). Opened from a key binding, it
   gives the keyboard back to the window that had it.
-- A confirmation sheet from an agent focuses its confirm button with the
-  ring showing; its buttons take no input for 0.7 s after it appears
-  (keys included) and Escape declines. The screen-share chooser focuses
-  its first option; Escape cancels.
+- Every surface that asks for approval opens with the focus on its
+  negative action, with the ring showing, so a stray Return never
+  approves anything: a confirmation sheet from an agent (also with
+  "Approve and remember") on Decline; a proposal or a permission (a
+  folder, a mailbox, a site) in the command bar on Ignore, Don't allow
+  or Discard, and the system assistant's Apply on Ignore; the drivers
+  confirmation in Settings on Cancel; a model or voice download offer
+  on Not now; the screen-share chooser on Cancel; the power menu's
+  countdown on Cancel. The polkit dialog opens on its password field,
+  where Return submits only once something was typed. The arrows keep
+  the visual order (Right or Left, Shift+Tab, reach the positive
+  button). The positive buttons of a confirmation sheet take no input
+  for 0.7 s after it appears (keys included); Escape declines.
 - A card that asks something by itself (a model download offer) takes
-  the keyboard only when no surface or sheet has it, with Download
+  the keyboard only when no surface or sheet has it, with Not now
   focused and Escape as Not now.
 - The focus is never lost to nowhere: every card is a focus scope, so
   when the focused button disappears (it hid after being pressed) the
@@ -688,6 +697,10 @@ Rules for review:
 6. Never move the focus to a control the person did not reach (no
    focus theft from apps): surfaces take the keyboard only while they
    are open, and cards that ask by themselves wait for open surfaces.
+7. Approval surfaces open focused on the negative action (Decline,
+   Don't allow, Cancel, Not now), never on Confirm, Allow or Approve:
+   a stray Return must never approve anything. A text field focused
+   first ignores Return while it is empty.
 
 ### Tests
 
@@ -698,9 +711,12 @@ type-ahead, every group of the Appearance page, the slider, back to the
 sidebar, the Voice and Additional drivers pages, Ctrl+W), quick settings
 (tiles grid, themes, buttons, the power menu and back), the panel
 (Ctrl+Alt+Tab, along it, the power menu and quick settings from it and
-back), the window menu, the launcher, the command bar, an agent's
-proposal confirmed with Return and one declined with Escape, the
-screen-share chooser, the drawer's tabs, in dark and light mode. After
+back), the window menu, the launcher, the command bar (a proposal
+opens on Ignore and Return declines it; Left and Return apply one), an
+agent's proposal (the sheet opens on Decline and Return right away
+declines; Right to Confirm and Return confirms; Escape declines), the
+screen-share chooser (opens on Cancel, Return cancels, Shift+Tab and
+Return choose), the drawer's tabs, in dark and light mode. After
 each step the shell's IPC says which control holds the keyboard
 (`ipc call shell focused`) and which surfaces are open (`surfaces`);
 screenshots go to the output directory. `lab/greeter/e2e-fake.sh` does the

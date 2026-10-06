@@ -5,6 +5,10 @@ import Quickshell.Services.Polkit
 
 // The session's polkit authentication agent, in the shell's theme. Used
 // for administrator prompts, including the system assistant's Apply.
+// Keyboard: the password field has the focus (the person types there
+// first); Return in it submits only when something was typed, so a stray
+// Return never authenticates. Tab goes on to Cancel, then Authenticate;
+// Escape cancels.
 Scope {
     id: root
     PolkitAgent { id: agent }
@@ -50,7 +54,7 @@ Scope {
                     placeholder: agent.flow ? (agent.flow.inputPrompt || "Password") : "Password"
                     e2e: "polkit-password"
                     input.echoMode: agent.flow && agent.flow.responseVisible ? TextInput.Normal : TextInput.Password
-                    onAccepted: if (agent.flow) { agent.flow.submit(text); text = ""; }
+                    onAccepted: if (agent.flow && text !== "") { agent.flow.submit(text); text = ""; }
                 }
                 Txt {
                     visible: text !== ""

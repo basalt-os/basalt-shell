@@ -5,8 +5,9 @@ import Quickshell.Wayland
 // A question with fixed options asked by the system (for example which
 // screen an application may share, from the screen-cast portal). The
 // answer goes back through the daemon and is written to the activity log.
-// Keyboard: Up and Down move between the options (focus starts on the
-// first), Return chooses, Escape cancels.
+// Keyboard: focus starts on Cancel, so a stray Return never shares
+// anything; Shift+Tab goes to the options, Up and Down move between them,
+// Return chooses, Escape cancels.
 PanelWindow {
     id: win
     property var current: null
@@ -33,7 +34,7 @@ PanelWindow {
 
     Rectangle { anchors.fill: parent; color: Theme.scrim; MouseArea { anchors.fill: parent } }
 
-    onCurrentChanged: if (current !== null) { Ui.focusVisible = true; Qt.callLater(() => Nav.initial(options, "")); }
+    onCurrentChanged: if (current !== null) { Ui.focusVisible = true; Qt.callLater(() => Nav.initial(col, "chooser-cancel")); }
 
     Surface {
         width: Math.min(560, parent.width - Theme.s6 * 2)
