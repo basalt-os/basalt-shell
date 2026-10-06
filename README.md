@@ -1,6 +1,6 @@
 # basalt-shell
 
-> Pre-release prototype (0.7.0). Expect breaking changes. Part of
+> Pre-release prototype (0.8.1). Expect breaking changes. Part of
 > [Basalt OS](https://basalt-os.org), a Linux distribution built as a
 > Fedora remix; not affiliated with or endorsed by the Fedora Project or
 > Red Hat.
@@ -120,7 +120,10 @@ list brings it back), Super+Alt+Space window menu, Super+1..5 workspaces,
 Super+Shift+Escape stop an agent's control session, Super+L lock,
 Super+Shift+E the power menu (lock, log out, suspend, restart, power off;
 also the power button at the right end of the panel and in quick
-settings).
+settings), Ctrl+Alt+Tab or Super+B the panel (then Left and Right along
+it). Everything in the shell works with the keyboard: Tab and Shift+Tab
+between groups, arrows inside them, Return or Space, Escape back to where
+you came from ([docs/design.md](docs/design.md#keyboard-and-focus)).
 
 Things to type in the command bar: "make it darker with rounder corners",
 "light mode", "use the lichen theme", "accent green", "bigger text",

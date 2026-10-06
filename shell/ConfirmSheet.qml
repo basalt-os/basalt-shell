@@ -5,6 +5,9 @@ import Quickshell.Wayland
 // Confirmation sheet for requests from agents (MCP or IPC clients): the
 // person sees who asks, every step and the token diff, and confirms or
 // declines. The daemon refuses confirmations from anyone but this UI.
+// Keyboard: the sheet takes it; focus starts on the confirm button with
+// its ring showing (after the arming delay Return confirms), Tab and the
+// arrows move between the buttons, Escape declines.
 PanelWindow {
     id: win
     // The command bar and the voice card show the person's own requests.
@@ -21,7 +24,7 @@ PanelWindow {
     WlrLayershell.keyboardFocus: hasKeyboard ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     Binding { target: Ui; property: "confirmActive"; value: win.current !== null }
 
-    onCurrentChanged: if (current !== null) { shown = current; armed = false; armTimer.restart(); confirmBtn.forceActiveFocus(); }
+    onCurrentChanged: if (current !== null) { shown = current; armed = false; armTimer.restart(); Ui.focusVisible = true; confirmBtn.forceActiveFocus(Qt.TabFocusReason); }
 
     // The buttons take no input for a moment after a request appears, so
     // a click or a key meant for something else does not answer it.
@@ -30,7 +33,7 @@ PanelWindow {
     readonly property var actionNames: shown ? (shown.calls || []).map(c => c.action) : []
     readonly property bool asksControl: actionNames.indexOf("agent.control") >= 0
     readonly property bool asksScreen: actionNames.indexOf("screen.capture") >= 0
-    onHasKeyboardChanged: if (hasKeyboard) confirmBtn.forceActiveFocus()
+    onHasKeyboardChanged: if (hasKeyboard) confirmBtn.forceActiveFocus(Qt.TabFocusReason)
 
     property int remaining: 0
     Timer {
@@ -71,6 +74,10 @@ PanelWindow {
         Behavior on opacity { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }
         Behavior on scale { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }
         Behavior on anchors.verticalCenterOffset { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }
+        Accessible.role: Accessible.Dialog
+        Accessible.name: sheetTitle.text
+        // Escape declines, wherever the focus is on the sheet.
+        Keys.onEscapePressed: win.decide(false)
 
         Column {
             id: col
@@ -88,6 +95,7 @@ PanelWindow {
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
                     Txt {
+                        id: sheetTitle
                         text: win.asksControl ? "An assistant wants to control your desktop"
                             : (win.asksScreen ? "An assistant wants to see your screen" : "An assistant wants to change your desktop")
                         role: "title"
@@ -135,9 +143,9 @@ PanelWindow {
             Row {
                 spacing: Theme.s2
                 anchors.right: parent.right
-                Btn { text: "Decline"; variant: "outline"; focusable: true; onClicked: win.decide(false); Keys.onEscapePressed: win.decide(false) }
-                Btn { visible: win.remember !== ""; text: Tr.t("Approve and remember (%1)").arg(win.remember); variant: "outline"; focusable: true; e2e: "confirm-remember"; opacity: win.armed ? 1 : 0.5; onClicked: win.decideRemember(); Keys.onEscapePressed: win.decide(false) }
-                Btn { id: confirmBtn; text: win.asksControl ? "Allow control" : (win.asksScreen ? "Show screenshot" : "Confirm"); icon: "check"; variant: "primary"; focusable: true; opacity: win.armed ? 1 : 0.5; onClicked: win.decide(true); Keys.onEscapePressed: win.decide(false) }
+                Btn { id: declineBtn; text: "Decline"; variant: "outline"; e2e: "confirm-decline"; KeyNavigation.right: rememberBtn.visible ? rememberBtn : confirmBtn; onClicked: win.decide(false) }
+                Btn { id: rememberBtn; visible: win.remember !== ""; text: Tr.t("Approve and remember (%1)").arg(win.remember); variant: "outline"; e2e: "confirm-remember"; opacity: win.armed ? 1 : 0.5; KeyNavigation.left: declineBtn; KeyNavigation.right: confirmBtn; onClicked: win.decideRemember() }
+                Btn { id: confirmBtn; text: win.asksControl ? "Allow control" : (win.asksScreen ? "Show screenshot" : "Confirm"); icon: "check"; variant: "primary"; e2e: "confirm-allow"; opacity: win.armed ? 1 : 0.5; KeyNavigation.left: rememberBtn.visible ? rememberBtn : declineBtn; onClicked: win.decide(true) }
             }
         }
     }

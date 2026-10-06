@@ -591,6 +591,122 @@ the idle lock (swayidle) also answers logind's lock request. Without a
 running shell UI, Super+Shift+E falls back to the compositor's own
 confirmation (swaynag on sway, niri's quit dialog).
 
+## Keyboard and focus
+
+Every surface of the shell and the login screen works with the keyboard
+alone, the same way everywhere, and shows where the keyboard is.
+
+### The model
+
+| Key | What it does |
+|---|---|
+| Tab, Shift+Tab | the next or previous group or control, in visual order (left to right, top to bottom) |
+| Left, Right | inside a row of choices or actions (a group); at the start of a Settings row, Left goes back to the sidebar |
+| Up, Down | inside a menu, a list, the Settings sidebar; Up and Down move a row in a grid (quick settings tiles) |
+| Home, End | the first or last control of the group or menu |
+| a letter | in the Settings sidebar and the power menu, the next entry that starts with it |
+| Return, Enter, Space | press the focused control |
+| Menu, Shift+F10 | the context menu of the focused entry (a window in the panel, a tray icon) |
+| Escape | close the sheet, menu or surface and put the focus back on the control that opened it; in Settings, from the page back to the sidebar |
+| Ctrl+W | close Settings |
+| Ctrl+Alt+Tab, Super+B | the panel takes the keyboard (Escape gives it back) |
+
+A group (a row of theme cards, of accent swatches, of options; a menu;
+the Settings sidebar; the quick settings tiles) is one Tab stop: Tab
+enters it on the selected control (or the one focused there last), the
+arrows move inside it, Tab leaves it. This keeps Settings short to cross
+with Tab and follows the roving tab stop of the WAI-ARIA patterns.
+
+### Where the focus starts and where it goes back
+
+- Settings opens on the current page's entry in the sidebar; Up and Down
+  move along the sidebar and the page follows; Right, Return or Tab go
+  into the page.
+- Quick settings opens on its first tile, the power menu and the window
+  menu on their first entry, the launcher and the command bar in their
+  text field, the drawer on its tab.
+- A surface opened from the panel or from quick settings goes back to
+  the button that opened it when it is closed with Escape (power menu,
+  then quick settings, then the panel). Opened from a key binding, it
+  gives the keyboard back to the window that had it.
+- A confirmation sheet from an agent focuses its confirm button with the
+  ring showing; its buttons take no input for 0.7 s after it appears
+  (keys included) and Escape declines. The screen-share chooser focuses
+  its first option; Escape cancels.
+- A card that asks something by itself (a model download offer) takes
+  the keyboard only when no surface or sheet has it, with Download
+  focused and Escape as Not now.
+- The focus is never lost to nowhere: every card is a focus scope, so
+  when the focused button disappears (it hid after being pressed) the
+  card keeps the keyboard and Escape and Tab still work.
+
+### The focus ring
+
+- 2 px wide, 2 px away from the control's edge, following its corners.
+- Its color is the accent used as a foreground (`color.accentFg` when a
+  theme defines it), moved toward white in dark mode or black in light
+  mode until it has at least 3:1 against the page, panel and card colors
+  (WCAG 2.2, 1.4.11 and 2.4.13), whatever accent the person picks
+  (`Theme.focusRing`). High contrast on the login screen uses its yellow.
+- It shows only for the keyboard: a click focuses a control without the
+  ring, the next key shows it again (the focus-visible rule of the web,
+  `Ui.focusVisible`). Text fields show it whenever they have the focus.
+  The login screen is used with the keyboard first and shows it always.
+- Scrolling areas that clip what is outside them (the activity feed, a
+  long report, the NVIDIA license) draw it on their inner edge.
+
+### Building a new screen
+
+The behaviour lives in shared components (`shell/`), so a new screen
+gets it by using them:
+
+| Component | Use it for |
+|---|---|
+| `Pressable` | anything that does something when pressed (a tile, a swatch, a card, a menu row, a panel entry): Tab stop, Return and Space, context menu keys, focus ring, click focus without ring, screen reader role, name, description and checked state |
+| `Btn` | buttons (a Pressable with icon, text and variants) |
+| `Field` | one line of text: Tab stop, focus ring, name for screen readers; Escape goes on to the surface |
+| `Slider` | numbers: Left, Right, Up, Down, Page Up, Page Down, Home, End; ring on the knob |
+| `NavRow`, `NavFlow`, `NavColumn` | a group with one Tab stop and arrows (rows and wrapping rows of choices, menus and lists; `typeAhead` for letters) |
+| `FocusRing` | the ring, for a control not built on Pressable |
+| `Nav` | `initial` (focus a surface's first or named control when it opens), `groupKey` (arrows for any container: add `navRoving` and `tabStop`), `scrollKey`, `reveal` (scroll a focused control into view, done by the components) |
+| `Surface` | cards: a focus scope; put the surface's Escape on it |
+
+Rules for review:
+
+1. No Rectangle with a MouseArea as a control: use Pressable or Btn.
+2. Every icon-only control sets `accessibleName` (in the catalog, Tr.t);
+   toggles and choices set `checkable` and `checked` or `active`.
+3. Choices in a row go in a NavRow or NavFlow; menus and lists in a
+   NavColumn. Each control in them is a direct child (a Repeater
+   delegate counts).
+4. A surface that takes the keyboard (`WlrKeyboardFocus.Exclusive` while
+   open, never OnDemand: OnDemand only gets the keyboard after a click)
+   calls `Nav.initial` when it opens and handles Escape on its Surface
+   with `Ui.dismiss()` (or its own decline or cancel).
+5. Open a surface from a control with `Ui.openFrom(surface, page, from,
+   key)` (or `toggleFrom`), so Escape comes back to that control.
+6. Never move the focus to a control the person did not reach (no
+   focus theft from apps): surfaces take the keyboard only while they
+   are open, and cards that ask by themselves wait for open surfaces.
+
+### Tests
+
+`lab/keyboard/run.sh` runs the shell in a container with sway headless
+(Fedora's sway, the pixman renderer; SwayFX needs a GPU) and types with
+wtype, as a person would, through the compositor: Settings (sidebar,
+type-ahead, every group of the Appearance page, the slider, back to the
+sidebar, the Voice and Additional drivers pages, Ctrl+W), quick settings
+(tiles grid, themes, buttons, the power menu and back), the panel
+(Ctrl+Alt+Tab, along it, the power menu and quick settings from it and
+back), the window menu, the launcher, the command bar, an agent's
+proposal confirmed with Return and one declined with Escape, the
+screen-share chooser, the drawer's tabs, in dark and light mode. After
+each step the shell's IPC says which control holds the keyboard
+(`ipc call shell focused`) and which surfaces are open (`surfaces`);
+screenshots go to the output directory. `lab/greeter/e2e-fake.sh` does the
+same for the login screen (the top bar and the language menu with the
+keyboard alone, then the login).
+
 ## Packaging
 
 `basalt-shell` RPM (spec in `packaging/`): daemon, client, UI launcher,

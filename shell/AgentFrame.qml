@@ -58,12 +58,15 @@ Variants {
             height: Theme.panelHeight + Theme.s2
             radius: height / 2
             color: Theme.warning
+            Accessible.role: Accessible.AlertMessage
+            Accessible.name: txt.text
             Row {
                 id: row
                 anchors.centerIn: parent
                 spacing: Theme.s3
                 Icon { name: "spark"; color: "#1b1b1b"; size: Theme.fontSize * 1.6; anchors.verticalCenter: parent.verticalCenter }
                 Txt {
+                    id: txt
                     anchors.verticalCenter: parent.verticalCenter
                     color: "#1b1b1b"
                     font.weight: Font.DemiBold
@@ -72,8 +75,13 @@ Variants {
                            "  " + Math.floor(win.left / 60) + ":" + ("0" + win.left % 60).slice(-2))
                         : win.flashText
                 }
+                // Never takes the keyboard (an agent in control types): the
+                // key for it is Super+Shift+Escape; screen readers can press it.
                 Rectangle {
                     visible: win.ctl !== null
+                    Accessible.role: Accessible.Button
+                    Accessible.name: Tr.t("Stop the agent")
+                    Accessible.onPressAction: Bus.stopControl()
                     anchors.verticalCenter: parent.verticalCenter
                     width: stopTxt.implicitWidth + Theme.s4; height: banner.height - Theme.s3; radius: height / 2
                     color: stopMa.containsMouse ? "#000000" : "#1b1b1b"

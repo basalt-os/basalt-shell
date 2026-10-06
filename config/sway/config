@@ -62,6 +62,10 @@ bindsym $mod+n exec $ui toggle notifications
 bindsym $mod+s exec $ui toggle quicksettings
 bindsym $mod+comma exec $ui toggle settings
 bindsym $mod+Escape exec $ui close
+# The panel takes the keyboard: Left and Right move along it, Escape gives
+# the keyboard back (Ctrl+Alt+Tab as on GNOME, or Super+B).
+bindsym Ctrl+Alt+Tab exec $ui focusPanel
+bindsym $mod+b exec $ui focusPanel
 # Stop an agent's control session at once (any process may stop one).
 bindsym $mod+Shift+Escape exec basalt-shell ctl control.stop
 # Push to talk: hold Super+V and speak, release to send. The shell UI

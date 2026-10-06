@@ -61,6 +61,28 @@ Singleton {
     readonly property color hover: Qt.rgba(text.r, text.g, text.b, highContrast ? 0.22 : 0.08)
     readonly property color pressed: Qt.rgba(text.r, text.g, text.b, highContrast ? 0.32 : 0.14)
     readonly property color accentSoft: Qt.rgba(accent.r, accent.g, accent.b, 0.18)
+    // The focus ring: the accent moved toward white (dark) or black (light)
+    // until it has 3:1 against the card, the field and the background
+    // (WCAG 2.2); plain yellow in high contrast.
+    readonly property color focusRing: highContrast ? accent : g.ensureContrast(accent, [bg, surface, surfaceAlt], 3.0)
+    function luminance(c) {
+        const f = v => v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+    }
+    function contrast(a, b) {
+        const la = luminance(a), lb = luminance(b);
+        return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+    }
+    function ensureContrast(c, backs, min) {
+        const target = backs.reduce((s, b) => s + luminance(b), 0) / backs.length < 0.18 ? 1 : 0;
+        let out = Qt.rgba(c.r, c.g, c.b, 1);
+        for (let i = 0; i <= 20; i++) {
+            if (backs.every(b => contrast(out, b) >= min)) return out;
+            const k = (i + 1) / 20;
+            out = Qt.rgba(c.r + (target - c.r) * k, c.g + (target - c.g) * k, c.b + (target - c.b) * k, 1);
+        }
+        return out;
+    }
     // The card floats over the blurred wallpaper: slightly translucent.
     readonly property color card: highContrast ? "#000000" : Qt.rgba(surface.r, surface.g, surface.b, dark ? 0.82 : 0.88)
     readonly property real borderWidth: highContrast ? 2 : 1

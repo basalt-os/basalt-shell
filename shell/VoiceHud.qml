@@ -51,7 +51,11 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "basalt-voice"
-    WlrLayershell.keyboardFocus: hud.grabEsc ? WlrKeyboardFocus.Exclusive : (hud.asking ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None)
+    // The download offer is a question: it takes the keyboard (Download is
+    // focused, Escape is Not now) unless a surface or a sheet has it.
+    readonly property bool offerKeys: st === "offer" && !!v.offer && v.offer.ask !== "" && !Ui.surfaceOpen && !Ui.modal
+    WlrLayershell.keyboardFocus: (hud.grabEsc || hud.offerKeys) ? WlrKeyboardFocus.Exclusive : (hud.asking ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None)
+    onOfferKeysChanged: if (offerKeys) { Ui.focusVisible = true; Qt.callLater(() => Nav.initial(offerView, "")); }
     // Clicks pass through, except on the card while a dictation waits, a
     // download is offered or running, or Cancel is offered.
     mask: Region { item: (hud.waiting || hud.asking || hud.toggleListening) ? card : null }
@@ -116,6 +120,12 @@ PanelWindow {
         y: Theme.panelHeight + Theme.s4
         width: Math.min(660, hud.width - Theme.s6 * 2)
         height: row.implicitHeight + Theme.s3 * 2
+        Accessible.role: hud.asking ? Accessible.Dialog : Accessible.AlertMessage
+        Accessible.name: hud.asking ? offerView.titleText : hud.title()
+        Keys.onEscapePressed: {
+            if (hud.st === "offer" && hud.v.offer) Bus.modelsDismiss(hud.v.offer.id);
+            else Bus.voiceCancel();
+        }
         Row {
             id: row
             anchors.left: parent.left
@@ -143,6 +153,7 @@ PanelWindow {
                 spacing: Theme.s1
                 // The speech model download (offer or progress).
                 DownloadView {
+                    id: offerView
                     visible: hud.asking && !hud.showError
                     width: parent.width
                     offer: hud.st === "offer" ? (hud.v.offer || null) : null

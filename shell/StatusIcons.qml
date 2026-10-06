@@ -4,10 +4,11 @@ import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
 
 // Network, audio and battery state from D-Bus (NetworkManager, PipeWire,
-// UPower), through Quickshell's service modules. Clicking opens quick
-// settings.
+// UPower), through Quickshell's service modules. Clicking (or Return on
+// it, from the keyboard) opens quick settings: the signal open().
 Row {
     id: st
+    signal open()
     spacing: Theme.s2
     readonly property var sink: Pipewire.defaultAudioSink
     readonly property bool online: Net.online
@@ -41,10 +42,21 @@ Row {
         }
     }
 
-    Item {
+    Pressable {
+        id: status
         width: row.implicitWidth + Theme.s3
         height: parent.height
-        Rectangle { anchors.fill: parent; radius: Theme.radiusSm; color: ma.containsMouse ? Theme.hover : "transparent" }
+        radius: Theme.radiusSm
+        color: hovered ? Theme.hover : "transparent"
+        e2e: "panel-status"
+        // What the icons say, in words.
+        accessibleName: [
+            !st.online ? Tr.t("Offline") : (st.wifi ? Tr.t("Wi-Fi") : Tr.t("Wired network")),
+            st.sink && st.sink.audio ? (st.sink.audio.muted ? Tr.t("Sound muted") : Tr.t("Volume %1%").arg(Math.round(st.sink.audio.volume * 100))) : "",
+            st.battery && st.battery.isLaptopBattery ? Tr.t("Battery %1%").arg(Math.round(st.battery.percentage * 100)) : ""
+        ].filter(x => x !== "").join(", ")
+        accessibleDescription: Tr.t("Opens quick settings")
+        onClicked: st.open()
         Row {
             id: row
             anchors.centerIn: parent
@@ -80,12 +92,10 @@ Row {
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
+        // The wheel changes the volume (clicks go through to the control).
         MouseArea {
-            id: ma
             anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: Ui.toggle("quicksettings")
+            acceptedButtons: Qt.NoButton
             onWheel: wheel => {
                 if (st.sink && st.sink.audio) st.sink.audio.volume = Math.max(0, Math.min(1.5, st.sink.audio.volume + (wheel.angleDelta.y > 0 ? 0.05 : -0.05)));
             }

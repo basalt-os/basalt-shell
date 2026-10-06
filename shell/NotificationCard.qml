@@ -13,6 +13,9 @@ Rectangle {
     color: popup ? Theme.surfaceAlt : Theme.alpha(Theme.text, 0.04)
     border.width: 1
     border.color: entry && entry.urgency === "critical" ? Theme.danger : Theme.border
+    Accessible.role: Accessible.Notification
+    Accessible.name: entry ? (entry.appName ? entry.appName + ": " : "") + entry.summary : ""
+    Accessible.description: entry ? entry.body : ""
 
     RowLayout {
         id: col
@@ -47,7 +50,7 @@ Rectangle {
                 Layout.fillWidth: true
                 Txt { text: c.entry ? c.entry.appName : ""; role: "small"; color: Theme.textMuted; Layout.fillWidth: true }
                 Txt { text: c.entry ? Qt.formatDateTime(c.entry.time, "HH:mm") : ""; role: "small"; color: Theme.textMuted }
-                Btn { icon: "close"; iconSize: Theme.fontSize * 1.1; onClicked: c.popup ? Notifs.dismissPopup(c.entry.key) : Notifs.remove(c.entry.key) }
+                Btn { icon: "close"; iconSize: Theme.fontSize * 1.1; e2e: "notification-dismiss"; accessibleName: Tr.t("Dismiss notification"); onClicked: c.popup ? Notifs.dismissPopup(c.entry.key) : Notifs.remove(c.entry.key) }
             }
             Txt { Layout.fillWidth: true; text: c.entry ? c.entry.summary : ""; font.weight: Font.DemiBold; wrapMode: Text.Wrap; elide: Text.ElideNone; maximumLineCount: 2 }
             Txt { Layout.fillWidth: true; visible: text !== ""; text: c.entry ? c.entry.body : ""; color: Theme.textMuted; wrapMode: Text.Wrap; elide: Text.ElideRight; maximumLineCount: c.popup ? 3 : 6; textFormat: Text.PlainText }

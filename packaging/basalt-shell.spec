@@ -337,6 +337,26 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Tue Oct 06 2026 Basalt OS developers - 0.8.1-1
+- Keyboard navigation and focus across the shell and the login screen.
+  Settings: the sidebar is one Tab stop (Up, Down, Home, End and the first
+  letter move, the page follows), Right, Return or Tab go into the page,
+  Left or Escape come back, Ctrl+W closes; rows of choices (themes, mode,
+  accent, panel, motion, voice options) are one Tab stop with Left and
+  Right; sliders move with the arrow, page and Home and End keys. Quick
+  settings, the drawer and the panel take the keyboard while open (they
+  only took it after a click); the panel takes it with Ctrl+Alt+Tab or
+  Super+B. Escape closes every menu and sheet and puts the focus back on
+  the control that opened it. A visible 2 px focus ring, 2 px away from
+  the control, in a color with at least 3:1 against every surface, only
+  for the keyboard; screen reader names and roles on every control. The
+  behaviour lives in shared components (Pressable, Btn, Field, Slider,
+  NavRow, NavColumn, NavFlow, FocusRing, Nav). The login screen's menus
+  move with the arrows again (the list ignored them), Escape works from
+  the password field, and Left and Right move along its buttons and
+  people. A headless keyboard test (lab/keyboard) and a keyboard scenario
+  in the login screen's test.
+
 * Tue Oct 06 2026 Basalt OS developers - 0.8.0-1
 - The approval gate (Basalt OS basalt-gate, ADR 0020 phase 2): where the
   gate decides the shell's proposals, the daemon asks it for the person

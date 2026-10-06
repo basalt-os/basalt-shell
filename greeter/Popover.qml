@@ -1,8 +1,9 @@
 import QtQuick
 
 // A small menu that opens next to the button that asked for it: a list
-// of items { id, icon, text, checked, e2e }, keyboard friendly (arrows,
-// Enter, Escape) and announced as a menu to screen readers. A click
+// of items { id, icon, text, checked, e2e }, keyboard friendly (Up, Down,
+// Home, End, Enter, Space, Escape; Tab closes it) and announced as a menu
+// to screen readers. Closing it puts the focus back on its button. A click
 // anywhere else closes it.
 Item {
     id: pop
@@ -74,6 +75,9 @@ Item {
             width: parent.width
             height: contentHeight
             interactive: false
+            // Not bound to interactive (its default): a list that does not
+            // flick with the mouse still moves with the arrows.
+            keyNavigationEnabled: true
             model: pop.items
             keyNavigationWraps: true
             Keys.onEscapePressed: pop.close()
@@ -81,6 +85,12 @@ Item {
             Keys.onEnterPressed: pop.picked(pop.items[currentIndex].id)
             Keys.onSpacePressed: pop.picked(pop.items[currentIndex].id)
             Keys.onTabPressed: pop.close()
+            Keys.onBacktabPressed: pop.close()
+            Keys.onPressed: e => {
+                if (e.key === Qt.Key_Home) { currentIndex = 0; e.accepted = true; }
+                else if (e.key === Qt.Key_End) { currentIndex = count - 1; e.accepted = true; }
+                else e.accepted = false;
+            }
             delegate: Rectangle {
                 id: row
                 required property var modelData
@@ -91,7 +101,7 @@ Item {
                 objectName: modelData.e2e ? "e2e:" + modelData.e2e : ""
                 color: ma.pressed ? G.pressed : ((ma.containsMouse || ListView.isCurrentItem) ? G.hover : "transparent")
                 border.width: ListView.isCurrentItem && list.activeFocus ? 2 : 0
-                border.color: G.accent
+                border.color: G.focusRing
                 Accessible.role: Accessible.MenuItem
                 Accessible.name: modelData.text
                 Accessible.checkable: modelData.checked !== undefined

@@ -43,6 +43,41 @@ Singleton {
     readonly property color pressed: Qt.rgba(text.r, text.g, text.b, 0.14)
     readonly property color accentSoft: Qt.rgba(accent.r, accent.g, accent.b, 0.16)
 
+    // The keyboard focus ring (2 px, 2 px away from the control): the
+    // accent used as a foreground (color.accentFg when a theme defines it),
+    // moved toward white in dark mode or black in light mode until it has
+    // at least 3:1 against every surface a control sits on (WCAG 2.2,
+    // 1.4.11 and 2.4.13), whatever accent the person picks.
+    readonly property color focusRing: {
+        const base = t.tk["color.accentFg"] ? col("color.accentFg", "#e2865f") : accent;
+        return t.ensureContrast(base, [bg, surface, surfaceAlt], 3.0);
+    }
+    readonly property real focusWidth: 2
+    readonly property real focusOffset: 2
+
+    // Relative luminance and contrast ratio (WCAG 2.2).
+    function luminance(c) {
+        const f = v => v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+    }
+    function contrast(a, b) {
+        const la = luminance(a), lb = luminance(b);
+        return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+    }
+    // ensureContrast mixes c toward white (dark backgrounds) or black
+    // (light ones) in small steps until it reaches min against all of them.
+    function ensureContrast(c, backs, min) {
+        const darkBacks = backs.reduce((s, b) => s + luminance(b), 0) / backs.length < 0.18;
+        const target = darkBacks ? 1 : 0;
+        let out = Qt.rgba(c.r, c.g, c.b, 1);
+        for (let i = 0; i <= 20; i++) {
+            if (backs.every(b => contrast(out, b) >= min)) return out;
+            const k = (i + 1) / 20;
+            out = Qt.rgba(c.r + (target - c.r) * k, c.g + (target - c.g) * k, c.b + (target - c.b) * k, 1);
+        }
+        return out;
+    }
+
     // Typography (points).
     readonly property string fontFamily: str("font.family", "Inter")
     readonly property string fontMono: str("font.mono", "JetBrains Mono")

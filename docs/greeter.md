@@ -58,10 +58,13 @@ repository) uses the same colors, mark and card:
 An account without a password is never logged in just because it was
 picked: the person still presses Enter.
 
-Keyboard: Tab moves between the controls (each has a visible focus ring
-and a name for screen readers), Enter logs in or opens the focused menu,
-arrows move in a menu, Escape closes it or goes back from "Other user".
-Ctrl+Alt+F2 and the other text consoles stay reachable.
+Keyboard: Tab moves between the controls (each has a visible 2 px focus
+ring, 2 px away from it, in a color with at least 3:1 against what is
+around it, and a name for screen readers), Left and Right move along the
+buttons at the top and along the people, Enter logs in or opens the
+focused menu, Up, Down, Home and End move in a menu (Tab closes it),
+Escape closes it and puts the focus back on its button, or goes back from
+"Other user". Ctrl+Alt+F2 and the other text consoles stay reachable.
 
 ## How it works
 

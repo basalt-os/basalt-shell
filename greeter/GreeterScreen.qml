@@ -66,10 +66,18 @@ PanelWindow {
         }
     }
 
+    // Escape anywhere on the screen (not taken by a menu): back to the
+    // remembered person, the cursor in the field.
+    function backToField() {
+        if (Login.other && Sys.users.length > 0) Login.choose(L.pickUser(Sys.users, Sys.state.lastUser) || Sys.users[0]);
+        card.focusField();
+    }
+
     Item {
         id: ui
         anchors.fill: parent
         opacity: win.reveal
+        Keys.onEscapePressed: win.backToField()
         // Content moves up a little as it appears.
         transform: Translate { y: (1 - win.reveal) * 18 }
 
@@ -168,10 +176,7 @@ PanelWindow {
     Item {
         anchors.fill: parent
         focus: win.main
-        Keys.onEscapePressed: {
-            if (Login.other && Sys.users.length > 0) Login.choose(L.pickUser(Sys.users, Sys.state.lastUser) || Sys.users[0]);
-            card.focusField();
-        }
+        Keys.onEscapePressed: win.backToField()
     }
 
     // Start: pick the remembered person and put the cursor in the field.

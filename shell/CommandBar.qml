@@ -6,6 +6,9 @@ import Quickshell.Wayland
 // (local model if configured, else rules) and answers with a proposal of
 // typed actions, or runs a read-only question through the system
 // assistant. Nothing is applied until the person presses Apply.
+// Keyboard: the text field has the focus; Tab goes on to the suggestions
+// (Left, Right), the proposal's buttons and the answer (Up, Down, Page Up,
+// Page Down scroll a long report); Escape closes it from anywhere.
 PanelWindow {
     id: win
     visible: Ui.commandBar || card.opacity > 0
@@ -156,6 +159,8 @@ PanelWindow {
         Behavior on y { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }
         Behavior on height { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }
         MouseArea { anchors.fill: parent }
+        // Escape closes, from the field or any button.
+        Keys.onEscapePressed: Ui.dismiss()
 
         Flickable {
             anchors.fill: parent
@@ -171,14 +176,17 @@ PanelWindow {
                     id: field
                     width: parent.width
                     icon: "spark"
+                    e2e: "commandbar-field"
+                    accessibleName: Tr.t("Ask the system")
                     placeholder: "Ask the system: \"make it darker with rounder corners\", \"why nginx\""
                     onAccepted: win.submit()
-                    onEscapePressed: Ui.commandBar = false
                 }
 
-                Row {
+                NavFlow {
+                    width: parent.width
                     spacing: Theme.s2
                     visible: !win.result && !win.busy && win.status === ""
+                    Accessible.name: Tr.t("Suggestions")
                     Repeater {
                         model: ["make it darker with rounder corners", "light mode", "arrange windows side by side", "open text editor", "system status"]
                         delegate: Btn {
@@ -234,8 +242,8 @@ PanelWindow {
                     }
                     Row {
                         spacing: Theme.s2
-                        Btn { text: win.isGrant ? qsTr("Allow") : (win.isMail ? qsTr("Send") : (win.isMove ? qsTr("Confirm") : qsTr("Apply"))); icon: "check"; variant: "primary"; focusable: true; e2e: "proposal-confirm"; onClicked: win.decide(true) }
-                        Btn { text: win.isGrant ? qsTr("Don't allow") : (win.isMail ? qsTr("Discard") : qsTr("Ignore")); variant: "outline"; focusable: true; e2e: "proposal-decline"; onClicked: win.decide(false) }
+                        Btn { id: propYes; text: win.isGrant ? qsTr("Allow") : (win.isMail ? qsTr("Send") : (win.isMove ? qsTr("Confirm") : qsTr("Apply"))); icon: "check"; variant: "primary"; e2e: "proposal-confirm"; KeyNavigation.right: propNo; onClicked: win.decide(true) }
+                        Btn { id: propNo; text: win.isGrant ? qsTr("Don't allow") : (win.isMail ? qsTr("Discard") : qsTr("Ignore")); variant: "outline"; e2e: "proposal-decline"; KeyNavigation.left: propYes; onClicked: win.decide(false) }
                     }
                 }
 
@@ -348,7 +356,7 @@ PanelWindow {
                             spacing: Theme.s3
                             Txt { text: qsTr("%1: %2").arg(modelData.kind === "folder" ? qsTr("folder") : (modelData.kind === "mailbox" ? qsTr("mailbox") : qsTr("site"))).arg(modelData.label); anchors.verticalCenter: parent.verticalCenter }
                             Txt { text: win.grantLeft(modelData); role: "small"; color: Theme.textMuted; anchors.verticalCenter: parent.verticalCenter }
-                            Btn { text: qsTr("End"); variant: "outline"; onClicked: Bus.revokeGrant(modelData.id) }
+                            Btn { text: qsTr("End"); variant: "outline"; accessibleName: Tr.t("End permission: %1").arg(modelData.label); onClicked: Bus.revokeGrant(modelData.id) }
                         }
                     }
                 }
@@ -370,10 +378,17 @@ PanelWindow {
                         color: Theme.bg
                         border.width: 1; border.color: Theme.border
                         Flickable {
+                            id: sysFlick
                             anchors.fill: parent
                             anchors.margins: Theme.s3
                             contentHeight: sysText.implicitHeight
                             clip: true
+                            // A long report scrolls from the keyboard.
+                            activeFocusOnTab: contentHeight > height
+                            Accessible.role: Accessible.StaticText
+                            Accessible.name: sysText.text
+                            Keys.onPressed: e => Nav.scrollKey(sysFlick, e)
+                            FocusRing { parent: sysFlick; target: sysFlick; inside: true }
                             Txt {
                                 id: sysText
                                 width: parent.width
@@ -396,8 +411,8 @@ PanelWindow {
                     Row {
                         visible: win.assist !== null
                         spacing: Theme.s2
-                        Btn { text: "Apply"; icon: "check"; variant: "primary"; focusable: true; onClicked: win.assistantDecide(true) }
-                        Btn { text: "Ignore"; variant: "outline"; focusable: true; onClicked: win.assistantDecide(false) }
+                        Btn { id: asYes; text: "Apply"; icon: "check"; variant: "primary"; e2e: "assistant-apply"; KeyNavigation.right: asNo; onClicked: win.assistantDecide(true) }
+                        Btn { id: asNo; text: "Ignore"; variant: "outline"; e2e: "assistant-ignore"; KeyNavigation.left: asYes; onClicked: win.assistantDecide(false) }
                     }
                 }
 

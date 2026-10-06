@@ -8,6 +8,9 @@ import Quickshell.Services.UPower
 // Quick settings: light/dark, theme, motion, spoken answers, volume,
 // network, battery and a door to the full settings page. Changes made
 // here are the person's own, so they apply at once (audited as "ui").
+// Keyboard: it takes the keyboard while open; Tab moves between the
+// tiles, the themes, the volume and the buttons at the bottom; arrows
+// move inside each; Escape closes it and returns to where it was opened.
 PanelWindow {
     id: win
     visible: Ui.quickSettings || card.opacity > 0
@@ -16,7 +19,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Normal
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "basalt-quicksettings"
-    WlrLayershell.keyboardFocus: Ui.quickSettings && !Ui.modal ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: Ui.quickSettings && !Ui.modal ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     readonly property var st: Bus.themeState
     readonly property var sink: Pipewire.defaultAudioSink
@@ -41,7 +44,15 @@ PanelWindow {
     }
     Connections {
         target: Ui
-        function onQuickSettingsChanged() { if (Ui.quickSettings) win.loadVoice(); }
+        function onQuickSettingsChanged() {
+            if (!Ui.quickSettings) return;
+            win.loadVoice();
+            Qt.callLater(win.focusFirst);
+        }
+    }
+    function focusFirst() {
+        Nav.initial(col, Ui.focusKey);
+        Ui.focusKey = "";
     }
     Connections {
         target: Bus
@@ -61,20 +72,28 @@ PanelWindow {
         Behavior on opacity { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }
         Behavior on y { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }
         MouseArea { anchors.fill: parent }
+        Keys.onEscapePressed: Ui.dismiss()
 
         ColumnLayout {
             id: col
             anchors.fill: parent
             anchors.margins: Theme.s4
             spacing: Theme.s3
+            Accessible.role: Accessible.Pane
+            Accessible.name: Tr.t("Quick settings")
 
-            // Tiles.
+            // Tiles: one Tab stop, arrows move across the grid.
             GridLayout {
+                id: tiles
                 columns: 2
                 Layout.fillWidth: true
                 rowSpacing: Theme.s2
                 columnSpacing: Theme.s2
+                property bool navRoving: true
+                property Item tabStop: null
+                Keys.onPressed: e => Nav.groupKey(tiles, e, "grid", tiles.columns, false, false)
                 Tile {
+                    e2e: "quick-mode"
                     icon: Theme.dark ? "moon" : "sun"
                     label: Theme.dark ? "Dark" : "Light"
                     sub: "Appearance"
@@ -82,6 +101,7 @@ PanelWindow {
                     onClicked: Bus.act("theme.switch", { mode: "toggle" })
                 }
                 Tile {
+                    e2e: "quick-motion"
                     icon: "motion"
                     label: Theme.animate ? "Animations on" : "Reduced motion"
                     sub: win.st && win.st.settings.motion === "auto" ? "Auto" + (win.st.hardware.weak ? " (weak GPU)" : "") : "Manual"
@@ -89,6 +109,8 @@ PanelWindow {
                     onClicked: Bus.act("motion.set", { motion: Theme.animate ? "reduced" : "full" })
                 }
                 Tile {
+                    e2e: "quick-network"
+                    toggle: false
                     icon: "network"
                     label: Net.online ? (Net.name || Net.kind) : "Offline"
                     sub: Net.online ? (Net.kind === "wifi" ? "Wi-Fi" : "Wired") : "Network"
@@ -107,11 +129,13 @@ PanelWindow {
                     onClicked: win.setSpoken(!win.spoken)
                 }
                 Tile {
+                    e2e: "quick-ask"
                     icon: "spark"
                     label: "Ask the system"
                     sub: Bus.translatorAvailable ? "Local model" : "Commands"
                     on: false
-                    onClicked: Ui.open("commandbar", "")
+                    toggle: false
+                    onClicked: Ui.openFrom("commandbar", "", "quicksettings", "quick-ask")
                 }
             }
 
@@ -125,11 +149,12 @@ PanelWindow {
 
             // Theme swatches.
             Txt { text: "Theme"; role: "small"; color: Theme.textMuted }
-            Row {
+            NavRow {
                 spacing: Theme.s2
+                Accessible.name: Tr.t("Theme")
                 Repeater {
                     model: win.st ? win.st.themes : []
-                    delegate: Rectangle {
+                    delegate: Pressable {
                         required property var modelData
                         readonly property var sw: Theme.dark ? modelData.dark : modelData.light
                         width: 104; height: 58
@@ -137,10 +162,15 @@ PanelWindow {
                         color: sw[0]
                         border.width: Theme.themeId === modelData.id ? 2 : 1
                         border.color: Theme.themeId === modelData.id ? Theme.accent : Theme.border
+                        accessibleName: modelData.name
+                        e2e: "quick-theme-" + modelData.id
+                        checkable: true
+                        active: Theme.themeId === modelData.id
+                        checked: active
+                        onClicked: Bus.act("theme.switch", { theme: modelData.id })
                         Rectangle { x: 8; y: 8; width: 40; height: 10; radius: 3; color: sw[1] }
                         Rectangle { x: 8; y: 22; width: 24; height: 10; radius: 3; color: sw[2] }
                         Txt { anchors.left: parent.left; anchors.bottom: parent.bottom; anchors.margins: 6; text: modelData.name; role: "small"; color: sw[3] }
-                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Bus.act("theme.switch", { theme: modelData.id }) }
                     }
                 }
             }
@@ -152,10 +182,16 @@ PanelWindow {
                 spacing: Theme.s2
                 Btn {
                     icon: win.sink && win.sink.audio && win.sink.audio.muted ? "mute" : "volume"
+                    e2e: "quick-mute"
+                    accessibleName: Tr.t("Mute")
+                    checkable: true
+                    checked: !!(win.sink && win.sink.audio && win.sink.audio.muted)
                     onClicked: if (win.sink && win.sink.audio) win.sink.audio.muted = !win.sink.audio.muted
                 }
                 Slider {
                     Layout.fillWidth: true
+                    e2e: "quick-volume"
+                    accessibleName: Tr.t("Volume")
                     from: 0; to: 1
                     value: win.sink && win.sink.audio ? win.sink.audio.volume : 0
                     onMoved: v => { if (win.sink && win.sink.audio) win.sink.audio.volume = v; }
@@ -170,27 +206,31 @@ PanelWindow {
 
             RowLayout {
                 Layout.fillWidth: true
-                Btn { text: "Settings"; icon: "sliders"; variant: "outline"; onClicked: { Ui.quickSettings = false; Ui.open("settings", "appearance"); } }
+                Btn { text: "Settings"; icon: "sliders"; variant: "outline"; e2e: "qs-settings"; onClicked: { Ui.quickSettings = false; Ui.open("settings", "appearance"); } }
                 Item { Layout.fillWidth: true }
-                Btn { icon: "list"; text: "Activity"; onClicked: Ui.open("activity", "") }
+                Btn { icon: "list"; text: "Activity"; e2e: "qs-activity"; onClicked: Ui.openFrom("activity", "", "quicksettings", "qs-activity") }
                 // Lock, log out, suspend, restart, power off.
-                Btn { icon: "power"; e2e: "qs-power"; focusable: true; onClicked: Ui.open("power", "") }
+                Btn { icon: "power"; e2e: "qs-power"; accessibleName: Tr.t("Power"); onClicked: Ui.openFrom("power", "", "quicksettings", "qs-power") }
             }
         }
     }
 
-    component Tile: Rectangle {
+    // A tile: a toggle (on, off) or a door to another surface.
+    component Tile: Pressable {
         id: tile
         property string icon
         property string label
         property string sub
         property bool on
-        property string e2e: ""
-        signal clicked()
+        property bool toggle: true
         Layout.fillWidth: true
         implicitHeight: Theme.fontSize * 5
         radius: Theme.radiusMd
-        color: on ? Theme.accent : (tma.containsMouse ? Theme.pressed : Theme.hover)
+        accessibleName: tile.label
+        accessibleDescription: tile.sub
+        checkable: toggle
+        checked: toggle && on
+        color: on ? Theme.accent : (hovered ? Theme.pressed : Theme.hover)
         Behavior on color { ColorAnimation { duration: Theme.normal; easing.type: Theme.easing } }
         Row {
             anchors.left: parent.left
@@ -204,6 +244,5 @@ PanelWindow {
                 Txt { text: tile.sub; role: "small"; color: tile.on ? Theme.alpha(Theme.accentText, 0.8) : Theme.textMuted; width: 120 }
             }
         }
-        MouseArea { id: tma; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: tile.clicked() }
     }
 }

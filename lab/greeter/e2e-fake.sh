@@ -11,9 +11,9 @@
 #
 # Checks: a wrong password is refused and says so, nothing is started; the
 # right one starts the remembered session with the session environment; a
-# second person gets their own remembered session (niri); the greeter
-# reports itself drawn (ready file) and ends with status 0; no answer ever
-# reaches a log.
+# second person gets their own remembered session (niri); the top bar and
+# a menu work with the keyboard alone; the greeter reports itself drawn
+# (ready file) and ends with status 0; no answer ever reaches a log.
 set -eu
 src=$(cd "$(dirname "$0")/../.." && pwd)
 out=${1:-/tmp/greeter-e2e}
@@ -111,7 +111,27 @@ run_greeter ana '{"lastUser":"ana","sessions":{"ana":"basalt-niri.desktop","basa
 grep -q 'session started: user=ana cmd=\["basalt-session" "niri"\]' "$out/fake-greetd.log" || fail "ana: no niri session"
 pass "ana's remembered session (Basalt on niri) started"
 
-# 3. No answer reaches any log.
+# 3. The keyboard alone: Shift+Tab from the password goes to the top bar
+# (power, the last button), Left to the language, Return opens its menu,
+# Down and Return choose Português; the focus is back in the field and the
+# person logs in. Screenshots show the focus rings.
+run_greeter keys '{"lastUser":"basalt","sessions":{"basalt":"basalt-sway.desktop"}}' '
+  wtype -M shift -k Tab -m shift; sleep 0.5
+  shot 04-keys-power
+  wtype -k Left; sleep 0.5
+  shot 05-keys-language
+  wtype -k Return; sleep 0.6
+  wtype -k Down; sleep 0.5
+  shot 06-keys-language-menu
+  wtype -k Return; sleep 1
+  shot 07-keys-portuguese
+  wtype "$pw_basalt" -k Return; sleep 3
+'
+grep -q '"language": "pt_BR"' "$BASALT_GREETER_STATE/state.json" || fail "keys: the language chosen with the keyboard was not saved"
+[ "$(grep -c 'session started: user=basalt' "$out/fake-greetd.log")" -ge 2 ] || fail "keys: the focus did not return to the password field"
+pass "the top bar and the language menu with the keyboard, focus back in the field"
+
+# 4. No answer reaches any log.
 if grep -r -e "$pw_basalt" -e "$pw_ana" -e "notit" "$out" --include='*.log' -l; then fail "a password reached a log"; fi
 if grep -r -e "$pw_basalt" -e "$pw_ana" "$BASALT_GREETER_STATE" -l; then fail "a password reached the state"; fi
 pass "no password in the logs or the state"

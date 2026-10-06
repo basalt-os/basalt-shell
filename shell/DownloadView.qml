@@ -16,6 +16,7 @@ Column {
     property string langName: ""
     readonly property string kind: offer ? offer.kind : (job ? job.kind : "")
     readonly property string st: job ? job.state : ""
+    readonly property string titleText: title()
     spacing: Theme.s2
 
     function mb(bytes) { return Math.max(1, Math.round((bytes || 0) / 1000000)); }
@@ -73,7 +74,7 @@ Column {
         width: parent.width
         wrapMode: Text.Wrap
         font.weight: Font.DemiBold
-        text: dv.title()
+        text: dv.titleText
         color: dv.job && dv.st === "failed" ? Theme.danger : Theme.text
     }
     // Progress.
@@ -105,12 +106,13 @@ Column {
         // The offer.
         Btn {
             visible: dv.offer !== null && dv.offer.ask !== ""
-            text: Tr.t("Download"); icon: "download"; variant: "primary"; focusable: true; e2e: "model-download"
+            text: Tr.t("Download"); icon: "download"; variant: "primary"; e2e: "model-download"; KeyNavigation.right: notNowBtn
             onClicked: Bus.modelsDownload(dv.offer.id)
         }
         Btn {
+            id: notNowBtn
             visible: dv.offer !== null && dv.offer.ask !== ""
-            text: Tr.t("Not now"); variant: "outline"; focusable: true; e2e: "model-not-now"
+            text: Tr.t("Not now"); variant: "outline"; e2e: "model-not-now"
             onClicked: Bus.modelsDismiss(dv.offer.id)
         }
         Btn {

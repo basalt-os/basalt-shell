@@ -4,8 +4,9 @@ import Quickshell.Wayland
 
 // The power menu: Lock screen, Log out, Suspend, Restart, Power off.
 // Opened by the power button at the right end of the panel, the one in
-// quick settings, or Super+Shift+E. Keyboard: Up and Down move, Return
-// chooses, Escape closes (or cancels a countdown).
+// quick settings, or Super+Shift+E. Keyboard: Up and Down move (Home,
+// End, and the first letter too), Return chooses, Escape closes (or
+// cancels a countdown) and returns to the button that opened it.
 //
 // Log out, Restart and Power off ask first: the card counts down 60
 // seconds and then goes ahead by itself (as GNOME does), with the button
@@ -53,9 +54,11 @@ PanelWindow {
         else { tick.stop(); confirming = ""; }
     }
     // Focus the first entry once the surface has the keyboard.
-    Timer { id: focusTimer; interval: 30; onTriggered: if (list.count > 0) list.itemAt(0).forceActiveFocus() }
+    Timer { id: focusTimer; interval: 30; onTriggered: Nav.initial(menu, "") }
 
     function close() { tick.stop(); confirming = ""; Ui.powerMenu = false; }
+    // Escape: close, and put the focus back on the button that opened it.
+    function dismiss() { tick.stop(); confirming = ""; Ui.dismiss(); }
     function choose(op) {
         error = "";
         if (op === "logout" || op === "restart" || op === "poweroff") {
@@ -112,7 +115,7 @@ PanelWindow {
         opacity: win.visible ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.fast } }
         MouseArea { anchors.fill: parent }
-        Keys.onEscapePressed: win.close()
+        Keys.onEscapePressed: win.dismiss()
 
         Column {
             id: col
@@ -132,30 +135,33 @@ PanelWindow {
             }
 
             // The menu.
-            Repeater {
-                id: list
-                model: win.confirming === "" ? win.entries : []
-                delegate: Btn {
-                    required property var modelData
-                    required property int index
-                    width: col.width
-                    alignLeft: true
-                    focusable: true
-                    icon: modelData.icon
-                    text: modelData.label
-                    e2e: "power-" + modelData.op
-                    onClicked: win.choose(modelData.op)
-                    Keys.onUpPressed: { const p = list.itemAt((index + list.count - 1) % list.count); if (p) p.forceActiveFocus(); }
-                    Keys.onDownPressed: { const n = list.itemAt((index + 1) % list.count); if (n) n.forceActiveFocus(); }
-                    Keys.onEscapePressed: win.close()
-                    Txt {
-                        visible: modelData.key !== ""
-                        anchors.right: parent.right
-                        anchors.rightMargin: Theme.s3
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: modelData.key
-                        role: "small"
-                        color: Theme.textMuted
+            NavColumn {
+                id: menu
+                width: parent.width
+                spacing: Theme.s1
+                typeAhead: true
+                accessibleRole: Accessible.PopupMenu
+                Accessible.name: Tr.t("Power")
+                Repeater {
+                    model: win.confirming === "" ? win.entries : []
+                    delegate: Btn {
+                        required property var modelData
+                        width: col.width
+                        alignLeft: true
+                        accessibleRole: Accessible.MenuItem
+                        icon: modelData.icon
+                        text: modelData.label
+                        e2e: "power-" + modelData.op
+                        onClicked: win.choose(modelData.op)
+                        Txt {
+                            visible: modelData.key !== ""
+                            anchors.right: parent.right
+                            anchors.rightMargin: Theme.s3
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: modelData.key
+                            role: "small"
+                            color: Theme.textMuted
+                        }
                     }
                 }
             }
@@ -191,21 +197,17 @@ PanelWindow {
                     id: nowBtn
                     text: win.confirming !== "" ? win.nowLabel(win.confirming) : ""
                     variant: win.confirming === "logout" ? "primary" : "danger"
-                    focusable: true
                     e2e: "power-confirm"
                     onClicked: win.run(win.confirming)
                     KeyNavigation.right: cancelBtn
-                    Keys.onEscapePressed: win.close()
                 }
                 Btn {
                     id: cancelBtn
                     text: Tr.t("Cancel")
                     variant: "outline"
-                    focusable: true
                     e2e: "power-cancel"
-                    onClicked: win.close()
+                    onClicked: win.dismiss()
                     KeyNavigation.left: nowBtn
-                    Keys.onEscapePressed: win.close()
                 }
             }
         }

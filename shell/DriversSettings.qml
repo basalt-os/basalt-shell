@@ -331,6 +331,14 @@ ColumnLayout {
                 anchors.fill: parent; anchors.margins: Theme.s3
                 contentHeight: licText.implicitHeight
                 clip: true
+                // Read with the keyboard: Tab stops here, Up, Down, Page Up,
+                // Page Down, Home and End scroll the license.
+                activeFocusOnTab: true
+                Accessible.role: Accessible.StaticText
+                Accessible.name: Tr.t("NVIDIA Driver License Agreement")
+                Accessible.description: licText.text
+                Keys.onPressed: e => Nav.scrollKey(lic, e)
+                FocusRing { parent: lic; target: lic; inside: true }
                 Txt {
                     id: licText
                     width: lic.width
@@ -341,7 +349,7 @@ ColumnLayout {
         }
         Btn {
             text: Tr.t("I accept the NVIDIA Driver License Agreement")
-            icon: ds.accepted ? "check" : ""; variant: "outline"; active: ds.accepted; focusable: true; e2e: "drivers-license-accept"
+            icon: ds.accepted ? "check" : ""; variant: "outline"; active: ds.accepted; checkable: true; accessibleRole: Accessible.CheckBox; e2e: "drivers-license-accept"
             onClicked: ds.accepted = !ds.accepted
         }
         Flow {

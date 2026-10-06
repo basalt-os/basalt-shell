@@ -5,7 +5,8 @@ import Quickshell.Widgets
 
 // Application launcher: desktop entries from the daemon (same list the
 // app.launch action and the MCP apps_list tool use), fuzzy search,
-// keyboard first.
+// keyboard first: type, Up and Down (Page Up, Page Down, and Home and End
+// with Ctrl) move the selection, Return starts it, Escape closes.
 PanelWindow {
     id: win
     visible: Ui.launcher || card.opacity > 0
@@ -85,12 +86,25 @@ PanelWindow {
                 id: search
                 width: parent.width
                 icon: "search"
+                e2e: "launcher-search"
                 placeholder: "Search applications"
+                accessibleName: Tr.t("Search applications")
                 onEdited: win.update()
-                onEscapePressed: Ui.launcher = false
+                onEscapePressed: Ui.dismiss()
                 onDownPressed: win.sel = Math.min(win.results.length - 1, win.sel + 1)
                 onUpPressed: win.sel = Math.max(0, win.sel - 1)
                 onAccepted: win.launch(win.results[win.sel])
+                // Long lists: a page at a time, or to the ends.
+                onKeyPressed: e => {
+                    const page = Math.max(1, Math.floor(list.height / (Theme.fontSize * 4.2 + 2)) - 1);
+                    const ctrl = (e.modifiers & Qt.ControlModifier) !== 0;
+                    if (e.key === Qt.Key_PageDown) win.sel = Math.min(win.results.length - 1, win.sel + page);
+                    else if (e.key === Qt.Key_PageUp) win.sel = Math.max(0, win.sel - page);
+                    else if (ctrl && e.key === Qt.Key_End) win.sel = Math.max(0, win.results.length - 1);
+                    else if (ctrl && e.key === Qt.Key_Home) win.sel = 0;
+                    else { e.accepted = false; return; }
+                    e.accepted = true;
+                }
             }
             ListView {
                 id: list
@@ -101,13 +115,20 @@ PanelWindow {
                 currentIndex: win.sel
                 spacing: 2
                 highlightMoveDuration: Theme.fast
-                highlight: Rectangle { radius: Theme.radiusMd; color: Theme.accentSoft }
+                // The selection is where Return goes: the accent tint and
+                // the focus ring's 2 px edge, so it is seen without color.
+                highlight: Rectangle { radius: Theme.radiusMd; color: Theme.accentSoft; border.width: Theme.focusWidth; border.color: Theme.focusRing }
+                Accessible.role: Accessible.List
+                Accessible.name: Tr.t("Applications")
                 delegate: Item {
                     id: row
                     required property var modelData
                     required property int index
                     width: list.width
                     height: Theme.fontSize * 4.2
+                    Accessible.role: Accessible.ListItem
+                    Accessible.name: modelData.name
+                    Accessible.selected: index === win.sel
                     Rectangle { anchors.fill: parent; radius: Theme.radiusMd; color: rowMa.containsMouse && win.sel !== index ? Theme.hover : "transparent" }
                     IconImage {
                         id: appIcon

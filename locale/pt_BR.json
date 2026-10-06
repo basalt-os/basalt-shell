@@ -23,6 +23,9 @@
  "%1 s": [
   "%1 s"
  ],
+ "%1, notifications": [
+  "%1, notificações"
+ ],
  "%d %s %d": [
   "%d de %s de %d"
  ],
@@ -123,8 +126,17 @@
  "A snapshot is taken first. The next start checks the driver; if it fails, the start after it uses nouveau again and you can return to the snapshot.": [
   "Primeiro é tirado um snapshot. A próxima inicialização verifica o driver; se ele falhar, a inicialização seguinte volta a usar o nouveau e você pode voltar ao snapshot."
  ],
+ "Accent color": [
+  "Cor de destaque"
+ ],
+ "Activity": [
+  "Atividade"
+ ],
  "Additional drivers": [
   "Drivers adicionais"
+ ],
+ "Agent in control: stop it": [
+  "Agente no controle: parar"
  ],
  "Allow a remote model: off": [
   "Permitir um modelo remoto: desligado"
@@ -153,11 +165,24 @@
  "Answers are shown, not spoken: no voice for %s is installed.": [
   "As respostas aparecem na tela, sem fala: nenhuma voz para %s está instalada."
  ],
+ "Applications": [
+  "Aplicativos"
+ ],
  "Approve and remember (%1)": [
   "Aprovar e lembrar (%1)"
  ],
  "April": [
   "abril"
+ ],
+ "Arrange windows": [
+  "Organizar as janelas"
+ ],
+ "Ask the system": [
+  "Pergunte ao sistema"
+ ],
+ "Ask the system, %1 request waiting": [
+  "Pergunte ao sistema, %1 pedido esperando",
+  "Pergunte ao sistema, %1 pedidos esperando"
  ],
  "Audio stays on this computer and is not kept.": [
   "O áudio fica neste computador e não é guardado."
@@ -171,8 +196,14 @@
  "Automatic for my language (%1)": [
   "Automático para o meu idioma (%1)"
  ],
+ "Battery %1%": [
+  "Bateria %1%"
+ ],
  "Best regards,": [
   "Atenciosamente,"
+ ],
+ "Blue": [
+  "Azul"
  ],
  "Cancel": [
   "Cancelar"
@@ -182,6 +213,9 @@
  ],
  "Checking that the download is intact": [
   "Conferindo se o download está íntegro"
+ ],
+ "Clear all notifications": [
+  "Limpar todas as notificações"
  ],
  "Close": [
   "Fechar"
@@ -215,6 +249,9 @@
  ],
  "Discard": [
   "Descartar"
+ ],
+ "Dismiss notification": [
+  "Dispensar a notificação"
  ],
  "Done. Restart the computer to finish: the first start checks the driver.": [
   "Pronto. Reinicie o computador para concluir: a primeira inicialização verifica o driver."
@@ -252,6 +289,9 @@
  "Drivers that are not free software but make your hardware work better. Nothing is installed until you read what changes and confirm.": [
   "Drivers que não são software livre, mas fazem o seu hardware funcionar melhor. Nada é instalado até você ler o que muda e confirmar."
  ],
+ "End permission: %1": [
+  "Encerrar a permissão: %1"
+ ],
  "Ended %d permission. The assistant can no longer read your files, mail or sites until you allow it again.": [
   "Encerrei %d permissão. O assistente não pode mais ler seus arquivos, e-mails ou sites até você permitir de novo.",
   "Encerrei %d permissões. O assistente não pode mais ler seus arquivos, e-mails ou sites até você permitir de novo."
@@ -277,6 +317,9 @@
  "Graphics hardware": [
   "Placas de vídeo"
  ],
+ "Green": [
+  "Verde"
+ ],
  "Hello,": [
   "Olá,"
  ],
@@ -300,6 +343,9 @@
  ],
  "Hold Super+V, or the microphone button in the panel, and speak.": [
   "Segure Super+V, ou o botão do microfone no painel, e fale."
+ ],
+ "Hold to speak to the assistant, or press Return to start and again to stop": [
+  "Segure para falar com o assistente, ou aperte Enter para começar e de novo para parar"
  ],
  "Hold to talk": [
   "Segurar para falar"
@@ -472,11 +518,17 @@
  "Minimize": [
   "Minimizar"
  ],
+ "Mode": [
+  "Modo"
+ ],
  "Mode: press to start and stop.": [
   "Modo: apertar para começar e parar."
  ],
  "Model downloads are turned off on this computer. Your administrator decides which models are installed.": [
   "Downloads de modelos estão desligados neste computador. O seu administrador decide quais modelos ficam instalados."
+ ],
+ "Motion": [
+  "Movimento"
  ],
  "Move %d file to %s": [
   "Mover %d arquivo para %s",
@@ -488,6 +540,12 @@
  ],
  "Move to": [
   "Mover para"
+ ],
+ "Move to workspace %1": [
+  "Mover para a área de trabalho %1"
+ ],
+ "Mute": [
+  "Sem som"
  ],
  "NVIDIA Driver License Agreement": [
   "NVIDIA Driver License Agreement"
@@ -549,6 +607,13 @@
  "Nothing runs unless you confirm. Your decision goes to the approvals queue and is recorded.": [
   "Nada é executado sem a sua confirmação. Sua decisão vai para a fila de aprovações e fica registrada."
  ],
+ "Notifications": [
+  "Notificações"
+ ],
+ "Notifications, %1 new": [
+  "Notificações, %1 nova",
+  "Notificações, %1 novas"
+ ],
  "November": [
   "novembro"
  ],
@@ -557,6 +622,9 @@
  ],
  "Off": [
   "Desligado"
+ ],
+ "Offline": [
+  "Sem conexão"
  ],
  "On": [
   "Ligado"
@@ -582,8 +650,23 @@
  "Opening %s. Please confirm.": [
   "Abrindo %s. Confirme."
  ],
+ "Opens quick settings": [
+  "Abre os ajustes rápidos"
+ ],
+ "Orange": [
+  "Laranja"
+ ],
  "Packaged by OpenBasalt, not supported by NVIDIA. NVIDIA, GeForce and CUDA are trademarks of NVIDIA Corporation.": [
   "Empacotado pelo OpenBasalt, sem suporte da NVIDIA. NVIDIA, GeForce e CUDA são marcas da NVIDIA Corporation."
+ ],
+ "Panel": [
+  "Painel"
+ ],
+ "Panel position": [
+  "Posição do painel"
+ ],
+ "Pink": [
+  "Rosa"
  ],
  "Please confirm on the screen to put them back.": [
   "Confirme na tela para devolver os arquivos."
@@ -596,6 +679,9 @@
  ],
  "Please say which one: %s": [
   "Diga qual: %s"
+ ],
+ "Power": [
+  "Energia"
  ],
  "Power off": [
   "Desligar"
@@ -619,6 +705,9 @@
  "Put %d file back where it was?": [
   "Devolver %d arquivo para onde estava?",
   "Devolver %d arquivos para onde estavam?"
+ ],
+ "Quick settings": [
+  "Ajustes rápidos"
  ],
  "Read %s: %s. %s": [
   "Li %s: %s. %s"
@@ -647,6 +736,9 @@
  "Recommended: NVIDIA driver %1 (proprietary)": [
   "Recomendado: driver NVIDIA %1 (proprietário)"
  ],
+ "Red": [
+  "Vermelho"
+ ],
  "Refused: %1": [
   "Recusado: %1"
  ],
@@ -667,6 +759,9 @@
  ],
  "Replies need the account's address and sending server in skills.conf (address, smtp_host).": [
   "Para responder, a conta precisa do endereço e do servidor de envio em skills.conf (address, smtp_host)."
+ ],
+ "Reset %1": [
+  "Restaurar %1"
  ],
  "Restart": [
   "Reiniciar"
@@ -701,6 +796,9 @@
  "Saved. The multilingual speech model %1 is used for %2.": [
   "Salvo. O modelo de fala multilíngue %1 será usado para %2."
  ],
+ "Search applications": [
+  "Buscar aplicativos"
+ ],
  "Searching failed: %s": [
   "A pesquisa falhou: %s"
  ],
@@ -722,8 +820,14 @@
  "September": [
   "setembro"
  ],
+ "Settings pages": [
+  "Páginas dos Ajustes"
+ ],
  "Shown underlined in the field. Nothing is typed until you choose Insert (Super+Shift+Return).": [
   "Aparece sublinhado no campo. Nada é digitado até você escolher Inserir (Super+Shift+Return)."
+ ],
+ "Slate": [
+  "Ardósia"
  ],
  "Snap left": [
   "Encaixar à esquerda"
@@ -733,6 +837,9 @@
  ],
  "Snapshot %1 holds the system as it was before the install. Rolling back returns to it at the next start; your files in your home folder stay as they are.": [
   "O snapshot %1 guarda o sistema como estava antes da instalação. Voltar a ele vale a partir da próxima inicialização; os seus arquivos na pasta pessoal ficam como estão."
+ ],
+ "Sound muted": [
+  "Som desligado"
  ],
  "Speak the answers aloud": [
   "Falar as respostas em voz alta"
@@ -770,6 +877,12 @@
  "Stop speaking the answers (they are still shown on the screen)": [
   "Parar de falar as respostas (elas continuam aparecendo na tela)"
  ],
+ "Stop the agent": [
+  "Parar o agente"
+ ],
+ "Suggestions": [
+  "Sugestões"
+ ],
  "Supported by the NVIDIA driver %1 (open kernel modules)": [
   "Suportada pelo driver NVIDIA %1 (módulos abertos do kernel)"
  ],
@@ -781,6 +894,12 @@
  ],
  "System default": [
   "Padrão do sistema"
+ ],
+ "Teal": [
+  "Verde-azulado"
+ ],
+ "Terra": [
+  "Terra"
  ],
  "That is not something the desktop does. Try: \"dark mode\", \"open text editor\", \"arrange windows side by side\", \"why nginx\".": [
   "Isso não é algo que a área de trabalho faz. Experimente: \"modo escuro\", \"abra o editor de texto\", \"organize as janelas lado a lado\", \"por que o nginx\"."
@@ -941,6 +1060,9 @@
  "The voice service is not running.": [
   "O serviço de voz não está rodando."
  ],
+ "Theme": [
+  "Tema"
+ ],
  "There are no results yet. Ask me to find the files first.": [
   "Ainda não há resultados. Peça primeiro para eu encontrar os arquivos."
  ],
@@ -1033,6 +1155,9 @@
  "Type this into %1?": [
   "Digitar isto em %1?"
  ],
+ "Violet": [
+  "Violeta"
+ ],
  "Voice and assistant": [
   "Voz e assistente"
  ],
@@ -1054,6 +1179,12 @@
  "Voice needs to download the speech model for %1 (%2 MB) from %3. Download now?": [
   "A voz precisa baixar o modelo de fala para %1 (%2 MB) de %3. Baixar agora?"
  ],
+ "Volume": [
+  "Volume"
+ ],
+ "Volume %1%": [
+  "Volume %1%"
+ ],
  "Waiting for authentication. Installing can take a few minutes.": [
   "Aguardando a autenticação. A instalação pode levar alguns minutos."
  ],
@@ -1072,8 +1203,23 @@
  "Which site? Say its address, for example news.example.org.": [
   "Qual site? Diga o endereço, por exemplo news.example.org."
  ],
+ "Wi-Fi": [
+  "Wi-Fi"
+ ],
+ "Window menu": [
+  "Menu da janela"
+ ],
+ "Wired network": [
+  "Rede cabeada"
+ ],
  "Working on it": [
   "Trabalhando nisso"
+ ],
+ "Workspace %1": [
+  "Área de trabalho %1"
+ ],
+ "Yellow": [
+  "Amarelo"
  ],
  "You can keep working. This card says when it is ready.": [
   "Você pode continuar trabalhando. Este cartão avisa quando estiver pronto."
@@ -1134,6 +1280,9 @@
  ],
  "look-alike letters": [
   "letras parecidas de outros alfabetos"
+ ],
+ "minimized": [
+  "minimizada"
  ],
  "multilingual": [
   "multilíngue"

@@ -6,7 +6,10 @@ import Quickshell.Widgets
 
 // Side drawer with two tabs: notifications, and the activity feed (what
 // agents asked, what the person decided, what ran; plus the system
-// assistant's open proposals).
+// assistant's open proposals). Keyboard: it takes the keyboard while
+// open; Left and Right switch the tabs, Tab goes on to the notifications'
+// buttons or the feed (Up, Down, Page Up, Page Down scroll it), Escape
+// closes it and returns to where it was opened.
 PanelWindow {
     id: win
     visible: Ui.drawer || card.opacity > 0
@@ -15,7 +18,13 @@ PanelWindow {
     exclusionMode: ExclusionMode.Normal
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "basalt-drawer"
-    WlrLayershell.keyboardFocus: Ui.drawer && !Ui.modal ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: Ui.drawer && !Ui.modal ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    Connections {
+        target: Ui
+        function onDrawerChanged() {
+            if (Ui.drawer) Qt.callLater(() => { Nav.initial(drawerCol, Ui.focusKey || ("drawer-tab-" + Ui.drawerTab)); Ui.focusKey = ""; });
+        }
+    }
 
     MouseArea { anchors.fill: parent; onClicked: Ui.drawer = false }
 
@@ -62,18 +71,35 @@ PanelWindow {
         Behavior on x { NumberAnimation { duration: Theme.slow; easing.type: Theme.easing } }
         Behavior on opacity { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }
         MouseArea { anchors.fill: parent }
+        Keys.onEscapePressed: Ui.dismiss()
 
         ColumnLayout {
+            id: drawerCol
             anchors.fill: parent
             anchors.margins: Theme.s4
             spacing: Theme.s3
 
             RowLayout {
                 Layout.fillWidth: true
-                Btn { text: "Notifications"; active: Ui.drawerTab === "notifications"; onClicked: Ui.drawerTab = "notifications" }
-                Btn { text: "Activity"; active: Ui.drawerTab === "activity"; onClicked: { Ui.drawerTab = "activity"; Bus.refreshAssistant(); } }
+                // The tabs: the selected one follows the arrows.
+                NavRow {
+                    spacing: Theme.s1
+                    Accessible.role: Accessible.PageTabList
+                    Btn {
+                        text: "Notifications"; e2e: "drawer-tab-notifications"; accessibleRole: Accessible.PageTab; checkable: true
+                        active: Ui.drawerTab === "notifications"
+                        onClicked: Ui.drawerTab = "notifications"
+                        onActiveFocusChanged: if (activeFocus && Ui.focusVisible) Ui.drawerTab = "notifications"
+                    }
+                    Btn {
+                        text: "Activity"; e2e: "drawer-tab-activity"; accessibleRole: Accessible.PageTab; checkable: true
+                        active: Ui.drawerTab === "activity"
+                        onClicked: { Ui.drawerTab = "activity"; Bus.refreshAssistant(); }
+                        onActiveFocusChanged: if (activeFocus && Ui.focusVisible && Ui.drawerTab !== "activity") { Ui.drawerTab = "activity"; Bus.refreshAssistant(); }
+                    }
+                }
                 Item { Layout.fillWidth: true }
-                Btn { visible: Ui.drawerTab === "notifications" && Notifs.list.length > 0; text: "Clear"; variant: "outline"; onClicked: Notifs.clear() }
+                Btn { visible: Ui.drawerTab === "notifications" && Notifs.list.length > 0; text: "Clear"; variant: "outline"; e2e: "drawer-clear"; accessibleName: Tr.t("Clear all notifications"); onClicked: Notifs.clear() }
             }
 
             // Notifications.
@@ -126,6 +152,12 @@ PanelWindow {
                     Layout.fillHeight: true
                     clip: true
                     spacing: Theme.s1
+                    // Read with the keyboard: a stop of its own that scrolls.
+                    activeFocusOnTab: count > 0
+                    Accessible.role: Accessible.List
+                    Accessible.name: Tr.t("Activity")
+                    Keys.onPressed: e => Nav.scrollKey(feed, e)
+                    FocusRing { parent: feed; target: feed; inside: true }
                     // Bookkeeping records stay in the log, not in the feed.
                     model: Bus.activity.slice().reverse().filter(r => r.type !== "start" && r.text !== "microphone closed" && r.text !== "sender names read for speech recognition")
                     delegate: Item {

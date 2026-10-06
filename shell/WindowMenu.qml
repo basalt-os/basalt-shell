@@ -5,8 +5,12 @@ import Quickshell.Wayland
 // The window menu: minimize, maximize, snap, float or tile, move to a
 // workspace, close. Opened by a right click on a window's title bar
 // (compositor title bars; a middle click there closes the window), on its
-// entry in the panel's window list, or with Super+Alt+Space. Every entry is a typed action, as from an agent
-// or the command bar, but run directly because the person clicked it.
+// entry in the panel's window list (also its Menu key), or with
+// Super+Alt+Space. Every entry is a typed action, as from an agent or the
+// command bar, but run directly because the person chose it. Keyboard: Up
+// and Down (Home, End) move through the entries, Left
+// and Right through the workspaces, Return chooses, N minimizes, X
+// maximizes, C closes the window, Escape closes the menu.
 PanelWindow {
     id: win
     readonly property var menu: Ui.windowMenu
@@ -34,6 +38,7 @@ PanelWindow {
     WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     onTargetChanged: if (menu && !target) Ui.windowMenu = null
+    onVisibleChanged: if (visible) Qt.callLater(() => Nav.initial(list, ""))
 
     // A click outside closes the menu.
     MouseArea {
@@ -64,7 +69,7 @@ PanelWindow {
     Surface {
         id: card
         width: 260
-        height: col.implicitHeight + Theme.s2 * 2
+        height: list.implicitHeight + Theme.s2 * 2
         radius: Theme.radiusMd
         // Keep the menu on the screen.
         x: win.output && win.menu ? Math.max(Theme.s2, Math.min(win.menu.x - win.output.rect.x, win.width - width - Theme.s2)) : 0
@@ -74,14 +79,28 @@ PanelWindow {
 
         // Swallow clicks on the card itself.
         MouseArea { anchors.fill: parent }
+        // Escape closes; N minimizes, X maximizes, C closes the window.
+        Keys.onEscapePressed: Ui.dismiss()
+        Keys.onPressed: e => {
+            if (e.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) { e.accepted = false; return; }
+            switch (e.key) {
+            case Qt.Key_N: win.run("minimize"); break;
+            case Qt.Key_X: win.run("maximize"); break;
+            case Qt.Key_C: win.run("close"); break;
+            default: e.accepted = false; return;
+            }
+            e.accepted = true;
+        }
 
-        Column {
-            id: col
+        NavColumn {
+            id: list
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.margins: Theme.s2
             spacing: 2
+            accessibleRole: Accessible.PopupMenu
+            Accessible.name: Tr.t("Window menu")
 
             Txt {
                 width: parent.width
@@ -111,30 +130,31 @@ PanelWindow {
                 spacing: Theme.s1
                 leftPadding: Theme.s2
                 height: Theme.fontSize * 2.6
-                Txt { text: Tr.t("Move to"); role: "small"; color: Theme.textMuted; anchors.verticalCenter: parent.verticalCenter; rightPadding: Theme.s1 }
-                Repeater {
-                    model: [1, 2, 3, 4, 5]
-                    delegate: Rectangle {
-                        required property var modelData
-                        property string e2e: "window-menu-ws-" + modelData
-                        readonly property bool here: {
-                            const ws = (Bus.desktop.workspaces || []).find(w => w.id === (win.target ? win.target.workspace : ""));
-                            return ws ? ws.index === modelData : false;
-                        }
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: Theme.fontSize * 2.2
-                        height: width
-                        radius: Theme.radiusSm
-                        color: here ? Theme.accentSoft : (wsMa.containsMouse ? Theme.hover : "transparent")
-                        border.width: 1
-                        border.color: Theme.border
-                        Txt { anchors.centerIn: parent; text: modelData; role: "small"; color: parent.here ? Theme.accent : Theme.text }
-                        MouseArea {
-                            id: wsMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
+                Txt { id: moveLabel; text: Tr.t("Move to"); role: "small"; color: Theme.textMuted; anchors.verticalCenter: parent.verticalCenter; rightPadding: Theme.s1 }
+                NavRow {
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Theme.s1
+                    Accessible.name: moveLabel.text
+                    Repeater {
+                        model: [1, 2, 3, 4, 5]
+                        delegate: Pressable {
+                            required property var modelData
+                            e2e: "window-menu-ws-" + modelData
+                            readonly property bool here: {
+                                const ws = (Bus.desktop.workspaces || []).find(w => w.id === (win.target ? win.target.workspace : ""));
+                                return ws ? ws.index === modelData : false;
+                            }
+                            accessibleName: Tr.t("Move to workspace %1").arg(modelData)
+                            accessibleRole: Accessible.MenuItem
+                            width: Theme.fontSize * 2.2
+                            height: width
+                            radius: Theme.radiusSm
+                            active: here
+                            color: here ? Theme.accentSoft : (hovered ? Theme.hover : "transparent")
+                            border.width: 1
+                            border.color: Theme.border
                             onClicked: win.run("ws:" + modelData)
+                            Txt { anchors.centerIn: parent; text: modelData; role: "small"; color: parent.here ? Theme.accent : Theme.text }
                         }
                     }
                 }
@@ -152,31 +172,19 @@ PanelWindow {
         }
     }
 
-    // Keyboard: Escape closes; N minimizes, X maximizes, C closes.
-    Item {
-        anchors.fill: parent
-        focus: win.visible
-        Keys.onEscapePressed: Ui.windowMenu = null
-        Keys.onPressed: event => {
-            switch (event.key) {
-            case Qt.Key_N: win.run("minimize"); break;
-            case Qt.Key_X: win.run("maximize"); break;
-            case Qt.Key_C: win.run("close"); break;
-            }
-        }
-    }
-
-    component MenuRow: Rectangle {
+    component MenuRow: Pressable {
         id: row
         property string label: ""
         property string hint: ""
-        property string e2e: ""
         property bool danger: false
         signal triggered()
+        onClicked: row.triggered()
+        text: label
+        accessibleRole: Accessible.MenuItem
         width: parent ? parent.width : 0
         height: Theme.fontSize * 2.7
         radius: Theme.radiusSm
-        color: ma.pressed ? Theme.pressed : (ma.containsMouse ? Theme.hover : "transparent")
+        color: pressed ? Theme.pressed : (hovered ? Theme.hover : "transparent")
         Txt {
             anchors.left: parent.left
             anchors.leftMargin: Theme.s2
@@ -191,13 +199,6 @@ PanelWindow {
             text: row.hint
             role: "small"
             color: Theme.textMuted
-        }
-        MouseArea {
-            id: ma
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: row.triggered()
         }
     }
 }

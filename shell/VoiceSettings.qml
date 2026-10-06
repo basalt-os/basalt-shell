@@ -8,8 +8,9 @@ import QtQuick.Layouts
 // to the daemon (voice.settings.set, shell UI only), which checks it
 // against the policy and writes ~/.config/basalt/voice-and-assistant.conf;
 // a refused change keeps the old value and says why. Everything here is
-// plain buttons in wrapping rows: usable with the keyboard (Tab, Return,
-// Space) and at narrow widths.
+// plain buttons in wrapping rows: usable with the keyboard (Tab between
+// the rows, Left and Right among the choices of a row, Return or Space to
+// choose) and at narrow widths.
 //
 // Models are downloaded and removed here with one click (models.list,
 // models.download, models.remove; the download is the system's, after
@@ -150,17 +151,17 @@ ColumnLayout {
         Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.textMuted; role: "small"
         text: Tr.t("The language you speak to the assistant. Automatic detection needs a multilingual model and is slower and less reliable on short requests.")
     }
-    Flow {
+    NavFlow {
         Layout.fillWidth: true
         spacing: Theme.s2
         Btn {
             text: Tr.t("System default"); variant: "outline"; focusable: true; e2e: "voice-lang-default"
-            active: vs.prefs !== null && !vs.prefs.speech_language
+            checkable: true; active: vs.prefs !== null && !vs.prefs.speech_language
             onClicked: vs.save({ speech_language: "" })
         }
         Btn {
             text: Tr.t("Automatic"); variant: "outline"; focusable: true; e2e: "voice-lang-auto"
-            active: vs.prefs !== null && vs.prefs.speech_language === "auto"
+            checkable: true; active: vs.prefs !== null && vs.prefs.speech_language === "auto"
             onClicked: vs.chooseLanguage("auto")
         }
         Repeater {
@@ -168,7 +169,7 @@ ColumnLayout {
             delegate: Btn {
                 required property var modelData
                 text: modelData.native; variant: "outline"; focusable: true; e2e: "voice-lang-" + modelData.tag
-                active: vs.prefs !== null && vs.prefs.speech_language === modelData.tag
+                checkable: true; active: vs.prefs !== null && vs.prefs.speech_language === modelData.tag
                 onClicked: vs.chooseLanguage(modelData.tag)
             }
         }
@@ -181,17 +182,17 @@ ColumnLayout {
         Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.textMuted; role: "small"
         text: Tr.t("How Super+V and the panel's microphone button open the microphone. Escape cancels without sending.")
     }
-    Flow {
+    NavFlow {
         Layout.fillWidth: true
         spacing: Theme.s2
         Btn {
             text: Tr.t("Hold to talk"); variant: "outline"; focusable: true; e2e: "voice-ptt-hold"
-            active: vs.eff !== null && vs.eff.push_to_talk !== "toggle"
+            checkable: true; active: vs.eff !== null && vs.eff.push_to_talk !== "toggle"
             onClicked: vs.save({ push_to_talk: "hold" })
         }
         Btn {
             text: Tr.t("Press to start and stop"); variant: "outline"; focusable: true; e2e: "voice-ptt-toggle"
-            active: vs.eff !== null && vs.eff.push_to_talk === "toggle"
+            checkable: true; active: vs.eff !== null && vs.eff.push_to_talk === "toggle"
             onClicked: vs.save({ push_to_talk: "toggle" })
         }
     }
@@ -205,7 +206,7 @@ ColumnLayout {
         Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.textMuted; role: "small"
         text: Tr.t("Stop by itself after a silence, once you have spoken:")
     }
-    Flow {
+    NavFlow {
         visible: vs.eff !== null && vs.eff.push_to_talk === "toggle"
         Layout.fillWidth: true
         spacing: Theme.s2
@@ -215,7 +216,7 @@ ColumnLayout {
                 required property var modelData
                 text: modelData.ms === 0 ? Tr.t("Never") : Tr.t("%1 s").arg(modelData.ms / 1000); variant: "outline"; focusable: true
                 e2e: "voice-autostop-" + modelData.v
-                active: vs.eff !== null && vs.eff.auto_stop_ms === modelData.ms
+                checkable: true; active: vs.eff !== null && vs.eff.auto_stop_ms === modelData.ms
                 onClicked: vs.save({ auto_stop_silence: modelData.v })
             }
         }
@@ -234,7 +235,7 @@ ColumnLayout {
     }
     Btn {
         text: Tr.t("Automatic for my language (%1)").arg(vs.info && vs.info.speech_model_in_use && !(vs.prefs && vs.prefs.speech_model) ? vs.info.speech_model_in_use : (vs.models ? vs.models.default_stt : "")); variant: "outline"; focusable: true; e2e: "voice-model-default"
-        active: vs.prefs !== null && !vs.prefs.speech_model
+        checkable: true; active: vs.prefs !== null && !vs.prefs.speech_model
         onClicked: vs.save({ speech_model: "" })
     }
     Repeater {
@@ -246,7 +247,7 @@ ColumnLayout {
             Btn {
                 text: modelData.name; variant: "outline"; focusable: modelData.allowed; e2e: "voice-model-" + modelData.name
                 opacity: modelData.allowed ? 1 : 0.5
-                active: vs.prefs !== null && vs.prefs.speech_model === modelData.name
+                checkable: true; active: vs.prefs !== null && vs.prefs.speech_model === modelData.name
                 onClicked: if (modelData.allowed) vs.save({ speech_model: modelData.name })
             }
             Txt {
@@ -305,12 +306,12 @@ ColumnLayout {
         Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.textMuted; role: "small"
         text: vs.eff ? Tr.t("The assistant answers in %1.").arg(vs.langName(vs.eff.answer_language)) : ""
     }
-    Flow {
+    NavFlow {
         Layout.fillWidth: true
         spacing: Theme.s2
         Btn {
             text: Tr.t("Same as speech"); variant: "outline"; focusable: true; e2e: "answer-lang-same"
-            active: vs.prefs !== null && !vs.prefs.answer_language
+            checkable: true; active: vs.prefs !== null && !vs.prefs.answer_language
             onClicked: vs.save({ answer_language: "" })
         }
         Repeater {
@@ -318,7 +319,7 @@ ColumnLayout {
             delegate: Btn {
                 required property var modelData
                 text: modelData.native; variant: "outline"; focusable: true; e2e: "answer-lang-" + modelData.tag
-                active: vs.prefs !== null && vs.prefs.answer_language === modelData.tag
+                checkable: true; active: vs.prefs !== null && vs.prefs.answer_language === modelData.tag
                 onClicked: vs.save({ answer_language: modelData.tag })
             }
         }
@@ -326,17 +327,17 @@ ColumnLayout {
 
     // Spoken answers and the voice.
     Section { title: Tr.t("Spoken answers") }
-    Row {
+    NavRow {
         spacing: Theme.s2
-        Btn { text: Tr.t("On"); variant: "outline"; focusable: true; e2e: "spoken-on"; active: vs.prefs !== null && vs.prefs.spoken !== "no"; onClicked: vs.save({ spoken: "yes" }) }
-        Btn { text: Tr.t("Off"); variant: "outline"; focusable: true; e2e: "spoken-off"; active: vs.prefs !== null && vs.prefs.spoken === "no"; onClicked: vs.save({ spoken: "no" }) }
+        Btn { text: Tr.t("On"); variant: "outline"; focusable: true; e2e: "spoken-on"; checkable: true; active: vs.prefs !== null && vs.prefs.spoken !== "no"; onClicked: vs.save({ spoken: "yes" }) }
+        Btn { text: Tr.t("Off"); variant: "outline"; focusable: true; e2e: "spoken-off"; checkable: true; active: vs.prefs !== null && vs.prefs.spoken === "no"; onClicked: vs.save({ spoken: "no" }) }
     }
     Txt {
         visible: vs.eff !== null && vs.answerVoices.length === 0
         Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.textMuted
         text: vs.eff ? Tr.t("No voice for %1 is installed: answers in it are shown, not spoken.").arg(vs.langName(vs.eff.answer_language)) : ""
     }
-    Flow {
+    NavFlow {
         visible: vs.answerVoices.length > 0
         Layout.fillWidth: true
         spacing: Theme.s2
@@ -346,7 +347,7 @@ ColumnLayout {
                 required property var modelData
                 text: modelData.name; variant: "outline"; focusable: modelData.allowed; e2e: "voice-" + modelData.name
                 opacity: modelData.allowed ? 1 : 0.5
-                active: vs.info !== null && vs.info.voice === modelData.name
+                checkable: true; active: vs.info !== null && vs.info.voice === modelData.name
                 onClicked: {
                     if (!modelData.allowed) return;
                     const v = {}; v[vs.base(vs.eff.answer_language)] = modelData.name;
@@ -365,7 +366,7 @@ ColumnLayout {
     Btn {
         text: vs.info && vs.info.local ? Tr.t("Local model on this computer") : Tr.t("Local model (none configured: fixed phrases only)")
         variant: "outline"; focusable: true; e2e: "model-local"
-        active: vs.eff !== null && vs.eff.model === "local"
+        checkable: true; active: vs.eff !== null && vs.eff.model === "local"
         onClicked: vs.save({ model: "local" })
     }
     Repeater {
@@ -375,7 +376,7 @@ ColumnLayout {
             readonly property bool usable: vs.info.policy.allow_remote && vs.prefs && vs.prefs.allow_remote
             text: Tr.t("Remote: %1").arg(modelData.label); variant: "outline"; focusable: usable; e2e: "model-" + modelData.name
             opacity: usable ? 1 : 0.5
-            active: vs.eff !== null && vs.eff.model === modelData.name
+            checkable: true; active: vs.eff !== null && vs.eff.model === modelData.name
             onClicked: if (usable) vs.save({ model: modelData.name })
         }
     }
@@ -419,7 +420,7 @@ ColumnLayout {
         Btn {
             text: vs.prefs && vs.prefs.allow_remote ? Tr.t("Allow a remote model: on") : Tr.t("Allow a remote model: off")
             variant: "outline"; focusable: true; e2e: "model-allow-remote"
-            active: vs.prefs !== null && vs.prefs.allow_remote
+            checkable: true; active: vs.prefs !== null && vs.prefs.allow_remote
             onClicked: vs.save(vs.prefs.allow_remote ? { allow_remote: false, model: "local" } : { allow_remote: true })
         }
     }

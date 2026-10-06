@@ -12,7 +12,27 @@ FloatingWindow {
     implicitWidth: 980
     implicitHeight: 700
     color: Theme.surface
-    onVisibleChanged: if (!visible) Ui.settings = false
+    onVisibleChanged: {
+        if (!visible) { Ui.settings = false; return; }
+        Qt.callLater(win.focusSidebar);
+    }
+
+    // Keyboard: the sidebar is one Tab stop (Up, Down, Home, End and the
+    // first letter move, and the page follows); Right, Return or Tab go
+    // into the page; Left at the start of a row, or Escape, come back to
+    // the sidebar. Ctrl+W closes the window.
+    function focusSidebar() {
+        const it = Nav.find(side, "settings-nav-" + Ui.settingsPage);
+        if (it) it.forceActiveFocus(Qt.TabFocusReason);
+    }
+    function focusPage() {
+        Nav.initial(page, "");
+    }
+    // A new page starts at its top.
+    Connections {
+        target: Ui
+        function onSettingsPageChanged() { pageFlick.contentY = 0; }
+    }
 
     readonly property var st: Bus.themeState
     readonly property var settings: st ? st.settings : null
@@ -41,6 +61,10 @@ FloatingWindow {
     RowLayout {
         anchors.fill: parent
         spacing: 0
+        Keys.onPressed: e => {
+            if ((e.modifiers & Qt.ControlModifier) && (e.key === Qt.Key_W || e.key === Qt.Key_Q)) { Ui.settings = false; e.accepted = true; return; }
+            e.accepted = false;
+        }
 
         // Sidebar.
         Rectangle {
@@ -58,16 +82,35 @@ FloatingWindow {
                     Icon { name: "logo"; size: Theme.fontTitle * 1.6; anchors.verticalCenter: parent.verticalCenter }
                     Txt { text: "Settings"; role: "title"; anchors.verticalCenter: parent.verticalCenter }
                 }
-                Repeater {
-                    model: win.pages
-                    delegate: Btn {
-                        required property var modelData
-                        Layout.fillWidth: true
-                        icon: modelData.icon
-                        text: modelData.label
-                        alignLeft: true
-                        active: Ui.settingsPage === modelData.id
-                        onClicked: Ui.settingsPage = modelData.id
+                NavColumn {
+                    id: side
+                    Layout.fillWidth: true
+                    spacing: Theme.s1
+                    wrap: false
+                    typeAhead: true
+                    accessibleRole: Accessible.PageTabList
+                    Accessible.name: Tr.t("Settings pages")
+                    Keys.onRightPressed: win.focusPage()
+                    Repeater {
+                        model: win.pages
+                        delegate: Btn {
+                            required property var modelData
+                            width: side.width
+                            icon: modelData.icon
+                            text: modelData.label
+                            alignLeft: true
+                            e2e: "settings-nav-" + modelData.id
+                            accessibleRole: Accessible.PageTab
+                            checkable: true
+                            active: Ui.settingsPage === modelData.id
+                            onClicked: {
+                                // Return or Space on the current page goes into it.
+                                if (Ui.settingsPage === modelData.id && Ui.focusVisible) win.focusPage();
+                                Ui.settingsPage = modelData.id;
+                            }
+                            // The page follows the keyboard focus along the sidebar.
+                            onActiveFocusChanged: if (activeFocus && Ui.focusVisible) Ui.settingsPage = modelData.id
+                        }
                     }
                 }
                 Item { Layout.fillHeight: true }
@@ -76,6 +119,7 @@ FloatingWindow {
         }
 
         Flickable {
+            id: pageFlick
             Layout.fillWidth: true
             Layout.fillHeight: true
             contentHeight: page.implicitHeight + Theme.s6 * 2
@@ -86,6 +130,18 @@ FloatingWindow {
                 y: Theme.s6
                 width: parent.width - Theme.s6 * 2
                 spacing: Theme.s4
+                Accessible.role: Accessible.PageTab
+                Accessible.name: (win.pages.find(x => x.id === Ui.settingsPage) || { label: "" }).label
+                // Keys no control of the page used.
+                Keys.onPressed: e => {
+                    if (e.key === Qt.Key_Escape || (e.key === Qt.Key_Left && !(e.modifiers & ~Qt.KeypadModifier))) {
+                        Ui.focusVisible = true;
+                        win.focusSidebar();
+                        e.accepted = true;
+                        return;
+                    }
+                    e.accepted = false;
+                }
 
                 // Appearance.
                 ColumnLayout {
@@ -95,9 +151,10 @@ FloatingWindow {
                     Txt { text: "Appearance"; role: "display" }
                     Txt { text: "Pick a theme, then make it yours. Everything below also changes your apps (GTK, libadwaita, Qt) and window borders."; color: Theme.textMuted; wrapMode: Text.Wrap; Layout.fillWidth: true; elide: Text.ElideNone }
 
-                    Flow {
+                    NavFlow {
                         Layout.fillWidth: true
                         spacing: Theme.s3
+                        Accessible.name: Tr.t("Theme")
                         Repeater {
                             model: win.st ? win.st.themes : []
                             delegate: ThemeCard { required property var modelData; meta: modelData }
@@ -105,30 +162,40 @@ FloatingWindow {
                     }
 
                     Section { title: "Mode" }
-                    Row {
+                    NavRow {
                         spacing: Theme.s2
-                        Btn { text: "Light"; icon: "sun"; variant: "outline"; active: !Theme.dark; onClicked: Bus.act("theme.switch", { mode: "light" }) }
-                        Btn { text: "Dark"; icon: "moon"; variant: "outline"; active: Theme.dark; onClicked: Bus.act("theme.switch", { mode: "dark" }) }
+                        Accessible.name: Tr.t("Mode")
+                        Btn { text: "Light"; icon: "sun"; variant: "outline"; checkable: true; e2e: "settings-mode-light"; active: !Theme.dark; onClicked: Bus.act("theme.switch", { mode: "light" }) }
+                        Btn { text: "Dark"; icon: "moon"; variant: "outline"; checkable: true; e2e: "settings-mode-dark"; active: Theme.dark; onClicked: Bus.act("theme.switch", { mode: "dark" }) }
                     }
 
                     Section { title: "Accent color" }
-                    Row {
+                    NavRow {
                         spacing: Theme.s2
+                        Accessible.name: Tr.t("Accent color")
                         Repeater {
-                            model: ["#a3472e", "#c0392b", "#d9772b", "#c99a06", "#3f8f4f", "#2f7d78", "#3b6fd1", "#7b4fc9", "#c4497f", "#5f6f7f"]
-                            delegate: Rectangle {
+                            model: [["#a3472e", Tr.t("Terra")], ["#c0392b", Tr.t("Red")], ["#d9772b", Tr.t("Orange")], ["#c99a06", Tr.t("Yellow")],
+                                    ["#3f8f4f", Tr.t("Green")], ["#2f7d78", Tr.t("Teal")], ["#3b6fd1", Tr.t("Blue")], ["#7b4fc9", Tr.t("Violet")],
+                                    ["#c4497f", Tr.t("Pink")], ["#5f6f7f", Tr.t("Slate")]]
+                            delegate: Pressable {
                                 required property var modelData
                                 width: 30; height: 30; radius: 15
-                                color: modelData
-                                border.width: ("" + Theme.accent) === modelData ? 3 : 0
+                                color: modelData[0]
+                                border.width: active ? 3 : 0
                                 border.color: Theme.text
-                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: win.setTokens({ "color.accent": modelData }) }
+                                accessibleName: modelData[1]
+                                e2e: "settings-accent-" + modelData[0].slice(1)
+                                checkable: true
+                                active: ("" + Theme.accent) === modelData[0]
+                                checked: active
+                                onClicked: win.setTokens({ "color.accent": modelData[0] })
                             }
                         }
                     }
 
                     Section { title: "Shape and size" }
                     LabeledSlider {
+                        e2e: "settings-radius"
                         label: "Corner roundness"; from: 0; to: 24; stepSize: 1; value: Theme.radiusMd; suffix: " px"
                         onCommitted: v => win.setTokens({ "radius.sm": Math.round(v * 0.6), "radius.md": v, "radius.lg": Math.min(40, Math.round(v * 1.6)), "radius.window": v })
                     }
@@ -144,18 +211,20 @@ FloatingWindow {
                         label: "Panel opacity"; from: 0.5; to: 1; stepSize: 0.05; value: Theme.panelOpacity
                         onCommitted: v => win.setTokens({ "panel.opacity": v })
                     }
-                    Row {
+                    NavRow {
                         spacing: Theme.s2
+                        Accessible.name: Tr.t("Panel position")
                         Txt { text: "Panel"; width: 160; anchors.verticalCenter: parent.verticalCenter }
-                        Btn { text: "Top"; variant: "outline"; active: Theme.panelPosition === "top"; onClicked: win.setTokens({ "panel.position": "top" }) }
-                        Btn { text: "Bottom"; variant: "outline"; active: Theme.panelPosition === "bottom"; onClicked: win.setTokens({ "panel.position": "bottom" }) }
+                        Btn { text: "Top"; variant: "outline"; checkable: true; active: Theme.panelPosition === "top"; onClicked: win.setTokens({ "panel.position": "top" }) }
+                        Btn { text: "Bottom"; variant: "outline"; checkable: true; active: Theme.panelPosition === "bottom"; onClicked: win.setTokens({ "panel.position": "bottom" }) }
                     }
 
                     Section { title: "Keep this look" }
                     Row {
                         spacing: Theme.s2
-                        Field { id: saveName; width: 260; placeholder: "Name for a new theme" }
+                        Field { id: saveName; width: 260; placeholder: "Name for a new theme"; e2e: "settings-theme-name"; onAccepted: saveBtn.clicked() }
                         Btn {
+                            id: saveBtn
                             text: "Save as theme"; variant: "primary"
                             onClicked: {
                                 const name = saveName.text.trim();
@@ -199,14 +268,16 @@ FloatingWindow {
                     spacing: Theme.s4
                     Txt { text: "Motion"; role: "display" }
                     Txt { text: "Subtle animations by default. Auto turns them off on weak hardware (software rendering, very few CPUs or little memory)."; color: Theme.textMuted; wrapMode: Text.Wrap; Layout.fillWidth: true; elide: Text.ElideNone }
-                    Row {
+                    NavRow {
                         spacing: Theme.s2
+                        Accessible.name: Tr.t("Motion")
                         Repeater {
                             model: [["auto", "Auto"], ["full", "Full"], ["reduced", "Reduced"]]
                             delegate: Btn {
                                 required property var modelData
-                                text: modelData[1]; variant: "outline"
-                                active: win.settings && win.settings.motion === modelData[0]
+                                text: modelData[1]; variant: "outline"; checkable: true
+                                e2e: "settings-motion-" + modelData[0]
+                                active: !!win.settings && win.settings.motion === modelData[0]
                                 onClicked: Bus.act("motion.set", { motion: modelData[0] })
                             }
                         }
@@ -258,8 +329,10 @@ FloatingWindow {
                         text: "Compositor: " + (Bus.desktop.compositor || "none") + (Bus.desktop.version ? " (" + Bus.desktop.version + ")" : "") +
                               ". New windows float by default; tiling is one click away."
                     }
-                    Row {
+                    NavFlow {
+                        Layout.fillWidth: true
                         spacing: Theme.s2
+                        Accessible.name: Tr.t("Arrange windows")
                         Repeater {
                             model: [["grid", "Grid"], ["columns", "Side by side"], ["cascade", "Cascade"], ["center", "Center"], ["tile", "Tile"], ["float", "Float all"]]
                             delegate: Btn { required property var modelData; text: modelData[1]; variant: "outline"; onClicked: Bus.act("windows.arrange", { layout: modelData[0] }) }
@@ -375,6 +448,7 @@ FloatingWindow {
         property real stepSize
         property real value
         property string suffix: ""
+        property string e2e: ""
         property real live: value
         signal committed(real v)
         Layout.fillWidth: true
@@ -383,6 +457,8 @@ FloatingWindow {
         Txt { text: ls.label; Layout.preferredWidth: 160 }
         Slider {
             Layout.fillWidth: true
+            accessibleName: ls.label
+            e2e: ls.e2e
             from: ls.from; to: ls.to; stepSize: ls.stepSize; value: ls.live
             onMoved: v => { ls.live = v; commitTimer.restart(); }
         }
@@ -390,13 +466,20 @@ FloatingWindow {
         Timer { id: commitTimer; interval: 250; onTriggered: ls.committed(ls.live) }
     }
 
-    component ThemeCard: Rectangle {
+    component ThemeCard: Pressable {
         id: tc
         property var meta
         readonly property var sw: Theme.dark ? meta.dark : meta.light
         width: 200; height: 128
         radius: Theme.radiusLg
         color: sw[0]
+        accessibleName: meta.name
+        accessibleDescription: meta.description || ""
+        e2e: "settings-theme-" + meta.id
+        checkable: true
+        active: Theme.themeId === meta.id
+        checked: active
+        onClicked: Bus.act("theme.switch", { theme: tc.meta.id })
         border.width: Theme.themeId === meta.id ? 3 : 1
         border.color: Theme.themeId === meta.id ? Theme.accent : Theme.border
         Behavior on border.color { ColorAnimation { duration: Theme.normal } }
@@ -405,13 +488,15 @@ FloatingWindow {
         Rectangle { x: 90; y: 36; width: 40; height: 14; radius: 7; color: tc.sw[2] }
         Txt { x: 12; anchors.bottom: parent.bottom; anchors.bottomMargin: 26; text: tc.meta.name; color: tc.sw[3]; font.weight: Font.DemiBold }
         Txt { x: 12; anchors.bottom: parent.bottom; anchors.bottomMargin: 8; width: parent.width - 24; text: tc.meta.description || ""; color: tc.sw[3]; opacity: 0.7; role: "small" }
-        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Bus.act("theme.switch", { theme: tc.meta.id }) }
     }
 
     component TokenRow: RowLayout {
         id: tr
         property var spec
         readonly property var val: Bus.tokens ? Bus.tokens[spec.key] : undefined
+        // The number shown while a slider moves, until the daemon answers.
+        property real liveNum: typeof val === "number" ? val : 0
+        onValChanged: if (typeof val === "number") liveNum = val
         spacing: Theme.s3
         Rectangle { width: 6; height: 6; radius: 3; color: Bus.overridden(tr.spec.key) ? Theme.accent : "transparent" }
         Column {
@@ -430,6 +515,7 @@ FloatingWindow {
             }
             Field {
                 width: 140
+                accessibleName: tr.spec.label
                 text: tr.spec.kind === "color" ? (tr.val || "") : ""
                 onAccepted: Bus.setToken(tr.spec.key, text.trim())
             }
@@ -438,31 +524,36 @@ FloatingWindow {
         Slider {
             visible: tr.spec.kind === "number"
             Layout.fillWidth: true
+            accessibleName: tr.spec.label
             from: tr.spec.min || 0; to: tr.spec.max || 1; stepSize: tr.spec.step || 0
-            value: typeof tr.val === "number" ? tr.val : 0
-            onMoved: v => { numLive.text = Math.round(v * 100) / 100; numTimer.v = v; numTimer.restart(); }
+            value: tr.liveNum
+            onMoved: v => { tr.liveNum = v; numTimer.v = v; numTimer.restart(); }
             Timer { id: numTimer; property real v; interval: 250; onTriggered: Bus.setToken(tr.spec.key, v) }
         }
-        Txt { id: numLive; visible: tr.spec.kind === "number"; text: typeof tr.val === "number" ? Math.round(tr.val * 100) / 100 : ""; role: "mono"; Layout.preferredWidth: 60 }
+        Txt { id: numLive; visible: tr.spec.kind === "number"; text: Math.round(tr.liveNum * 100) / 100; role: "mono"; Layout.preferredWidth: 60 }
         // Bool.
         Btn {
             visible: tr.spec.kind === "bool"
             text: tr.val ? "On" : "Off"; variant: "outline"; active: tr.val === true
+            checkable: true
+            accessibleName: tr.spec.label
             onClicked: Bus.setToken(tr.spec.key, !tr.val)
         }
         // Enum.
-        Row {
+        NavRow {
             visible: tr.spec.kind === "enum"
             spacing: Theme.s1
+            Accessible.name: tr.spec.label
             Repeater {
                 model: tr.spec.kind === "enum" ? tr.spec.options : []
-                delegate: Btn { required property var modelData; text: modelData; variant: "outline"; active: tr.val === modelData
+                delegate: Btn { required property var modelData; text: modelData; variant: "outline"; checkable: true; active: tr.val === modelData
                     onClicked: Bus.setToken(tr.spec.key, modelData) }
             }
         }
         // Text.
         Field {
             visible: tr.spec.kind === "text"
+            accessibleName: tr.spec.label
             Layout.preferredWidth: 220
             text: tr.spec.kind === "text" ? (tr.val || "") : ""
             onAccepted: Bus.setToken(tr.spec.key, text.trim())
@@ -471,6 +562,7 @@ FloatingWindow {
         Btn {
             visible: Bus.overridden(tr.spec.key)
             text: "Reset"; variant: "ghost"
+            accessibleName: Tr.t("Reset %1").arg(tr.spec.label)
             onClicked: Bus.act("theme.reset", { tokens: [tr.spec.key] })
         }
     }

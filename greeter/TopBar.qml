@@ -2,10 +2,43 @@ import QtQuick
 
 // The buttons at the top right: keyboard layout, network, battery,
 // accessibility, language and power. Each opens a small menu or acts.
+// Keyboard: Tab reaches them; Left and Right (Home, End) move along them.
 Row {
     id: bar
     property Item popoverHost: null
     spacing: G.s2
+    Accessible.role: Accessible.ToolBar
+    Accessible.name: I18n.t("System")
+
+    // The visible buttons, left to right.
+    function buttons() {
+        const out = [];
+        for (let i = 0; i < children.length; i++) {
+            const c = children[i];
+            if (c.visible && c.activeFocusOnTab) out.push(c);
+        }
+        return out;
+    }
+    function move(delta, toEnd) {
+        const list = buttons();
+        if (list.length === 0) return false;
+        let i = list.findIndex(x => x.activeFocus);
+        let j = toEnd ? (delta > 0 ? list.length - 1 : 0) : Math.max(0, Math.min(list.length - 1, i + delta));
+        if (i < 0 && !toEnd) j = delta > 0 ? 0 : list.length - 1;
+        if (j === i) return false;
+        list[j].forceActiveFocus(delta > 0 ? Qt.TabFocusReason : Qt.BacktabFocusReason);
+        return true;
+    }
+    Keys.onPressed: e => {
+        const rtl = Qt.application.layoutDirection === Qt.RightToLeft;
+        switch (e.key) {
+        case Qt.Key_Left: e.accepted = move(rtl ? 1 : -1, false); break;
+        case Qt.Key_Right: e.accepted = move(rtl ? -1 : 1, false); break;
+        case Qt.Key_Home: e.accepted = move(-1, true); break;
+        case Qt.Key_End: e.accepted = move(1, true); break;
+        default: e.accepted = false;
+        }
+    }
 
     GBtn {
         id: layoutBtn

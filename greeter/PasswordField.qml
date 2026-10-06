@@ -17,7 +17,7 @@ Rectangle {
     radius: G.radiusMd
     color: G.highContrast ? "#000000" : G.alpha(G.bg, 0.72)
     border.width: input.activeFocus ? 2 : G.borderWidth
-    border.color: input.activeFocus ? G.accent : G.border
+    border.color: input.activeFocus ? G.focusRing : G.border
     Behavior on border.color { ColorAnimation { duration: G.fast } }
 
     function focusInput() { input.forceActiveFocus(); }

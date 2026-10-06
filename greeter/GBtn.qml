@@ -3,7 +3,8 @@ import QtQuick
 // Button: icon, text or both. Variants: ghost (default), primary, chip
 // (a quiet pill on the wallpaper). e2e names the button for the tests
 // (objectName "e2e:<name>", the data-e2e of the web apps); label is what
-// a screen reader says when the button shows only an icon.
+// a screen reader says when the button shows only an icon. Tab reaches
+// it; Return, Enter and Space press it; the focus ring is GFocusRing.
 Rectangle {
     id: b
     property string icon: ""
@@ -29,14 +30,16 @@ Rectangle {
         if (variant === "chip") return ma.pressed ? G.pressed : (ma.containsMouse ? G.hover : G.alpha(G.surface, G.highContrast ? 1 : 0.55));
         return ma.pressed ? G.pressed : (ma.containsMouse ? G.hover : "transparent");
     }
-    border.width: activeFocus ? 2 : (variant === "chip" && G.highContrast ? 1 : 0)
-    border.color: activeFocus ? G.accent : G.border
+    border.width: variant === "chip" && G.highContrast ? 1 : 0
+    border.color: G.border
     readonly property color fg: variant === "primary" ? G.accentText : (active ? G.accent : G.text)
     Behavior on color { ColorAnimation { duration: G.fast; easing.type: G.easing } }
 
     Accessible.role: Accessible.Button
     Accessible.name: b.label
     Accessible.onPressAction: b.clicked()
+    Accessible.focusable: true
+    Accessible.focused: activeFocus
 
     Row {
         id: row
@@ -68,4 +71,5 @@ Rectangle {
     Keys.onReturnPressed: b.clicked()
     Keys.onEnterPressed: b.clicked()
     Keys.onSpacePressed: b.clicked()
+    GFocusRing { target: b }
 }

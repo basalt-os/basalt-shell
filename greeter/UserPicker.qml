@@ -16,10 +16,35 @@ Column {
         Accessible.role: Accessible.Heading
         Accessible.name: text
     }
+    // Keyboard: Tab reaches the people; Left and Right (Home, End) move
+    // between them, Return or Space chooses.
     Row {
         id: row
         anchors.horizontalCenter: parent.horizontalCenter
         spacing: picker.large ? G.s4 : G.s2
+        Accessible.role: Accessible.List
+        Accessible.name: I18n.t("Who is logging in?")
+        function move(delta, toEnd) {
+            const list = [];
+            for (let i = 0; i < children.length; i++)
+                if (children[i].visible && children[i].activeFocusOnTab) list.push(children[i]);
+            if (list.length === 0) return false;
+            const i = list.findIndex(x => x.activeFocus);
+            let j = toEnd ? (delta > 0 ? list.length - 1 : 0) : (i < 0 ? 0 : Math.max(0, Math.min(list.length - 1, i + delta)));
+            if (j === i) return false;
+            list[j].forceActiveFocus(delta > 0 ? Qt.TabFocusReason : Qt.BacktabFocusReason);
+            return true;
+        }
+        Keys.onPressed: e => {
+            const rtl = Qt.application.layoutDirection === Qt.RightToLeft;
+            switch (e.key) {
+            case Qt.Key_Left: e.accepted = move(rtl ? 1 : -1, false); break;
+            case Qt.Key_Right: e.accepted = move(rtl ? -1 : 1, false); break;
+            case Qt.Key_Home: e.accepted = move(-1, true); break;
+            case Qt.Key_End: e.accepted = move(1, true); break;
+            default: e.accepted = false;
+            }
+        }
         Repeater {
             model: Sys.users
             delegate: Tile {
@@ -54,12 +79,14 @@ Column {
         height: col.implicitHeight + G.s3 * 2
         radius: G.radiusLg
         color: ma.pressed ? G.pressed : (ma.containsMouse ? G.hover : (picker.large ? G.alpha(G.surface, G.highContrast ? 1 : 0.6) : "transparent"))
-        border.width: activeFocus ? 2 : (picker.large && G.highContrast ? 1 : 0)
-        border.color: activeFocus ? G.accent : G.border
+        border.width: picker.large && G.highContrast ? 1 : 0
+        border.color: G.border
         activeFocusOnTab: true
         Accessible.role: Accessible.Button
         Accessible.name: tile.name
         Accessible.onPressAction: tile.clicked()
+        Accessible.selectable: true
+        Accessible.selected: tile.selected
         Keys.onReturnPressed: tile.clicked()
         Keys.onEnterPressed: tile.clicked()
         Keys.onSpacePressed: tile.clicked()
@@ -92,5 +119,6 @@ Column {
             cursorShape: Qt.PointingHandCursor
             onClicked: tile.clicked()
         }
+        GFocusRing { target: tile }
     }
 }
