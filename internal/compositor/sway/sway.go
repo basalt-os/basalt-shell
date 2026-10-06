@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/basalt-os/basalt-shell/internal/compositor"
 	"github.com/basalt-os/basalt-shell/internal/decor"
@@ -198,6 +199,7 @@ type node struct {
 	Nodes            []node          `json:"nodes"`
 	FloatingNodes    []node          `json:"floating_nodes"`
 	ForeignID        string          `json:"foreign_toplevel_identifier"`
+	FullscreenMode   int             `json:"fullscreen_mode"`
 	Marks            json.RawMessage `json:"marks"`
 }
 
@@ -756,9 +758,108 @@ func (a *Adapter) windowEvent(body []byte) {
 		n := ev.Container
 		// Off the event reader: the decision reads /proc and runs a command.
 		go a.decorate(n.ID, n.PID, n.Shell)
+		go a.keepInside(n.ID)
 	case "close":
 		a.mu.Lock()
 		delete(a.csd, ev.Container.ID)
 		a.mu.Unlock()
 	}
+}
+
+// fitDelays are when a new floating window is checked against the
+// workspace's usable area: at once, and again after X11 apps had time to
+// resize themselves (JetBrains IDEs map a small frame, then ask for the
+// size they remember, which sway centers on the whole output).
+var fitDelays = []time.Duration{0, 400 * time.Millisecond, 1500 * time.Millisecond, 4 * time.Second}
+
+// keepInside keeps a new floating window inside the usable area of its
+// workspace, so its title bar never ends up under the panel. sway
+// centers a floating window on the output, ignoring the panel's
+// exclusive zone, and its maximum floating size is the whole output: a
+// window as tall as the screen (IntelliJ IDEA restoring its size, an
+// X11 app asking for position 0,0) had its toolbar hidden behind the
+// shell's top bar. Only windows that do not fit are touched, and only
+// in their first seconds; fullscreen windows are left alone.
+func (a *Adapter) keepInside(id int64) {
+	for _, d := range fitDelays {
+		time.Sleep(d)
+		win, area, ok := a.floatingPlace(id)
+		if !ok {
+			return
+		}
+		r, changed := fitRect(win, area)
+		if !changed {
+			continue
+		}
+		_ = a.MoveResize(context.Background(), strconv.FormatInt(id, 10), r)
+	}
+}
+
+// floatingPlace finds a floating, non-fullscreen window's frame and the
+// usable area of its workspace (sway's workspace rect excludes the
+// panels' exclusive zones). ok is false when the window is gone, tiled,
+// fullscreen or minimized.
+func (a *Adapter) floatingPlace(id int64) (win, area compositor.Rect, ok bool) {
+	var root node
+	if err := a.do(msgGetTree, nil, &root); err != nil {
+		return win, area, false
+	}
+	var find func(n *node, ws *node) bool
+	find = func(n *node, ws *node) bool {
+		if n.Type == "workspace" {
+			if n.Name == "__i3_scratch" {
+				return false
+			}
+			ws = n
+		}
+		for i := range n.FloatingNodes {
+			f := &n.FloatingNodes[i]
+			if f.ID == id && ws != nil {
+				if f.FullscreenMode != 0 {
+					return false
+				}
+				win, area, ok = outer(f), ws.Rect.toRect(), true
+				return true
+			}
+			if find(f, ws) {
+				return true
+			}
+		}
+		for i := range n.Nodes {
+			if find(&n.Nodes[i], ws) {
+				return true
+			}
+		}
+		return false
+	}
+	find(&root, nil)
+	return win, area, ok
+}
+
+// fitRect moves a window frame into area, shrinking it first when it is
+// larger. It reports whether anything changed.
+func fitRect(w, area compositor.Rect) (compositor.Rect, bool) {
+	if area.W <= 0 || area.H <= 0 || w.W <= 0 || w.H <= 0 {
+		return w, false
+	}
+	r := w
+	if r.W > area.W {
+		r.W = area.W
+	}
+	if r.H > area.H {
+		r.H = area.H
+	}
+	if r.X < area.X {
+		r.X = area.X
+	}
+	if r.Y < area.Y {
+		r.Y = area.Y
+	}
+	if r.X+r.W > area.X+area.W {
+		r.X = area.X + area.W - r.W
+	}
+	if r.Y+r.H > area.Y+area.H {
+		r.Y = area.Y + area.H - r.H
+	}
+	return r, r != w
 }

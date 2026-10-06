@@ -523,6 +523,22 @@ for X11 classes); niri `window-rule { open-floating true }`. Tiling stays
 one key away (Super+T per window) and per workspace (`windows.arrange
 tile`, the Windows settings page, or "tile windows" in the command bar).
 
+New floating windows stay inside the usable area on sway: sway centers a
+floating window on the whole output and lets it be as large as the
+output, so a window as tall as the screen (IntelliJ IDEA restoring the
+size it had, an X11 app asking for position 0,0) had its toolbar under
+the panel. The daemon checks each new floating window in its first
+seconds (at once, then after 0.4, 1.5 and 4 s, since X11 and Java apps
+resize themselves after they map) and, when it does not fit the
+workspace's usable area (the output minus the panel's exclusive zone),
+shrinks and moves it inside. Fullscreen windows and windows that fit are
+left alone.
+
+The panel's window list never runs under the clock: entries shrink down
+to their icon, and when even icons do not fit the list is clipped before
+the clock and scrolls with the mouse wheel or a drag, keeping the
+focused window's entry in view.
+
 ## Regular applications
 
 | Need | How |

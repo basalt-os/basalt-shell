@@ -108,112 +108,145 @@ PanelWindow {
             // the mouse, also one without a title bar of its own (X11 apps
             // on niri) or with a compositor title bar (sway cannot draw
             // buttons on it).
-            Row {
+            //
+            // It never reaches the clock in the middle: entries shrink
+            // down to their icon, and when even icons do not fit the list
+            // is clipped before the clock and scrolls (mouse wheel, drag),
+            // keeping the focused window in view. Before, entries stopped
+            // shrinking at a minimum width and many windows ran under the
+            // clock.
+            ListView {
                 id: taskbar
+                orientation: ListView.Horizontal
                 spacing: Theme.s1
-                // Up to the clock in the middle (many windows used to run
-                // under it).
-                readonly property real maxWidth: Math.max(0, pill.width / 2 - clockBox.width / 2 - Theme.s3 - Theme.s1 - x)
-                readonly property real itemWidth: bar.tasks.length > 0
-                    ? Math.max(Theme.panelHeight * 1.2, Math.min(Theme.fontSize * 15, (maxWidth - spacing * (bar.tasks.length - 1)) / bar.tasks.length))
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                interactive: contentWidth > width
+                readonly property int count0: bar.tasks.length
+                // Room up to the clock (x: where the list starts in the pill).
+                readonly property real maxWidth: Math.max(0, pill.width / 2 - clockBox.width / 2 - Theme.s3 - Theme.s1 - x - Theme.s1)
+                // An icon-only entry.
+                readonly property real minItem: Theme.panelHeight - Theme.s3
+                readonly property real itemWidth: count0 > 0
+                    ? Math.max(minItem, Math.min(Theme.fontSize * 15, (maxWidth - spacing * (count0 - 1)) / count0))
                     : 0
-                Repeater {
-                    model: bar.tasks
-                    delegate: Rectangle {
-                        id: task
-                        required property var modelData
-                        property string e2e: "task"
-                        readonly property bool min: modelData.state === "minimized"
-                        readonly property var entry: DesktopEntries.heuristicLookup(modelData.app_id || "")
-                        height: Theme.panelHeight - Theme.s3
-                        width: taskbar.itemWidth
-                        radius: Theme.radiusSm
-                        color: modelData.focused ? Theme.accentSoft : (task.hot ? Theme.hover : "transparent")
-                        Behavior on color { ColorAnimation { duration: Theme.fast } }
-                        // Focus underline.
-                        Rectangle {
-                            visible: task.modelData.focused
-                            anchors.bottom: parent.bottom
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            width: parent.width * 0.4
-                            height: 2
-                            radius: 1
-                            color: Theme.accent
+                readonly property real wanted: count0 > 0 ? count0 * itemWidth + spacing * (count0 - 1) : 0
+                Layout.preferredWidth: Math.min(maxWidth, wanted)
+                Layout.preferredHeight: Theme.panelHeight - Theme.s3
+                // The focused window's entry stays in view, after the
+                // delegates are laid out (a new window changes the list and
+                // the focus at once). Not ListView's currentIndex: the view
+                // resets it when the model changes.
+                readonly property int focusedIndex: bar.tasks.findIndex(w => w.focused)
+                function showFocused() {
+                    if (focusedIndex >= 0) positionViewAtIndex(focusedIndex, ListView.Contain);
+                }
+                onFocusedIndexChanged: Qt.callLater(showFocused)
+                onContentWidthChanged: Qt.callLater(showFocused)
+                onWidthChanged: Qt.callLater(showFocused)
+                WheelHandler {
+                    acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                    onWheel: event => {
+                        const d = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x;
+                        const max = Math.max(0, taskbar.contentWidth - taskbar.width);
+                        taskbar.contentX = Math.max(0, Math.min(max, taskbar.contentX - d));
+                    }
+                }
+                model: bar.tasks
+                delegate: Rectangle {
+                    id: task
+                    required property var modelData
+                    property string e2e: "task"
+                    readonly property bool min: modelData.state === "minimized"
+                    readonly property var entry: DesktopEntries.heuristicLookup(modelData.app_id || "")
+                    height: Theme.panelHeight - Theme.s3
+                    width: taskbar.itemWidth
+                    radius: Theme.radiusSm
+                    color: modelData.focused ? Theme.accentSoft : (task.hot ? Theme.hover : "transparent")
+                    Behavior on color { ColorAnimation { duration: Theme.fast } }
+                    // Focus underline.
+                    Rectangle {
+                        visible: task.modelData.focused
+                        anchors.bottom: parent.bottom
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width * 0.4
+                        height: 2
+                        radius: 1
+                        color: Theme.accent
+                    }
+                    readonly property bool hot: taskMa.containsMouse || closeMa.containsMouse
+                    // Room for the close button, shown on hover when the
+                    // entry is wide enough for a title.
+                    readonly property bool showClose: hot && width > Theme.fontSize * 6
+                    Row {
+                        anchors.fill: parent
+                        anchors.leftMargin: Theme.s2
+                        anchors.rightMargin: task.showClose ? closeBtn.width + Theme.s1 : Theme.s2
+                        spacing: Theme.s2
+                        IconImage {
+                            anchors.verticalCenter: parent.verticalCenter
+                            implicitSize: Theme.fontSize * 1.5
+                            source: Quickshell.iconPath(task.entry ? task.entry.icon : "", "application-x-executable")
+                            opacity: task.min ? 0.55 : 1
                         }
-                        readonly property bool hot: taskMa.containsMouse || closeMa.containsMouse
-                        // Room for the close button, shown on hover when the
-                        // entry is wide enough for a title.
-                        readonly property bool showClose: hot && width > Theme.fontSize * 6
-                        Row {
-                            anchors.fill: parent
-                            anchors.leftMargin: Theme.s2
-                            anchors.rightMargin: task.showClose ? closeBtn.width + Theme.s1 : Theme.s2
-                            spacing: Theme.s2
-                            IconImage {
-                                anchors.verticalCenter: parent.verticalCenter
-                                implicitSize: Theme.fontSize * 1.5
-                                source: Quickshell.iconPath(task.entry ? task.entry.icon : "", "application-x-executable")
-                                opacity: task.min ? 0.55 : 1
+                        Txt {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width - Theme.fontSize * 1.5 - parent.spacing
+                            visible: width > Theme.fontSize * 2
+                            text: task.modelData.title || (task.entry ? task.entry.name : task.modelData.app_id)
+                            role: "small"
+                            color: task.min ? Theme.textMuted : Theme.text
+                            font.italic: task.min
+                        }
+                    }
+                    MouseArea {
+                        id: taskMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: mouse => {
+                            const w = task.modelData;
+                            if (mouse.button === Qt.MiddleButton) {
+                                Bus.act("window.close", { window: w.id });
+                            } else if (mouse.button === Qt.RightButton) {
+                                const p = task.mapToItem(bar.contentItem, 0, bar.top ? task.height + Theme.s2 : -Theme.s2);
+                                const o = (Bus.desktop.outputs || []).find(o => o.name === bar.screen.name);
+                                Ui.openWindowMenu(w.id, (o ? o.rect.x : 0) + p.x, (o ? o.rect.y : 0) + (bar.top ? p.y : bar.screen.height - 320));
+                            } else if (task.min) {
+                                Bus.act("window.set_state", { window: w.id, state: "normal" });
+                            } else if (w.focused) {
+                                Bus.act("window.set_state", { window: w.id, state: "minimized" });
+                            } else {
+                                Bus.act("window.focus", { window: w.id });
                             }
-                            Txt {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: parent.width - Theme.fontSize * 1.5 - parent.spacing
-                                visible: width > Theme.fontSize * 2
-                                text: task.modelData.title || (task.entry ? task.entry.name : task.modelData.app_id)
-                                role: "small"
-                                color: task.min ? Theme.textMuted : Theme.text
-                                font.italic: task.min
-                            }
+                        }
+                    }
+                    // Close button (hover). Declared after the entry's
+                    // MouseArea so it takes the click.
+                    Rectangle {
+                        id: closeBtn
+                        property string e2e: "task-close"
+                        visible: task.showClose
+                        anchors.right: parent.right
+                        anchors.rightMargin: Theme.s1
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Theme.fontSize * 1.7
+                        height: width
+                        radius: width / 2
+                        color: closeMa.pressed ? Theme.pressed : (closeMa.containsMouse ? Theme.hover : "transparent")
+                        Icon {
+                            anchors.centerIn: parent
+                            name: "close"
+                            size: Theme.fontSize * 1.05
+                            color: closeMa.containsMouse ? Theme.danger : Theme.textMuted
                         }
                         MouseArea {
-                            id: taskMa
+                            id: closeMa
                             anchors.fill: parent
                             hoverEnabled: true
-                            acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: mouse => {
-                                const w = task.modelData;
-                                if (mouse.button === Qt.MiddleButton) {
-                                    Bus.act("window.close", { window: w.id });
-                                } else if (mouse.button === Qt.RightButton) {
-                                    const p = task.mapToItem(bar.contentItem, 0, bar.top ? task.height + Theme.s2 : -Theme.s2);
-                                    const o = (Bus.desktop.outputs || []).find(o => o.name === bar.screen.name);
-                                    Ui.openWindowMenu(w.id, (o ? o.rect.x : 0) + p.x, (o ? o.rect.y : 0) + (bar.top ? p.y : bar.screen.height - 320));
-                                } else if (task.min) {
-                                    Bus.act("window.set_state", { window: w.id, state: "normal" });
-                                } else if (w.focused) {
-                                    Bus.act("window.set_state", { window: w.id, state: "minimized" });
-                                } else {
-                                    Bus.act("window.focus", { window: w.id });
-                                }
-                            }
-                        }
-                        // Close button (hover). Declared after the entry's
-                        // MouseArea so it takes the click.
-                        Rectangle {
-                            id: closeBtn
-                            property string e2e: "task-close"
-                            visible: task.showClose
-                            anchors.right: parent.right
-                            anchors.rightMargin: Theme.s1
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: Theme.fontSize * 1.7
-                            height: width
-                            radius: width / 2
-                            color: closeMa.pressed ? Theme.pressed : (closeMa.containsMouse ? Theme.hover : "transparent")
-                            Icon {
-                                anchors.centerIn: parent
-                                name: "close"
-                                size: Theme.fontSize * 1.05
-                                color: closeMa.containsMouse ? Theme.danger : Theme.textMuted
-                            }
-                            MouseArea {
-                                id: closeMa
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: Bus.act("window.close", { window: task.modelData.id })
-                            }
+                            onClicked: Bus.act("window.close", { window: task.modelData.id })
                         }
                     }
                 }
