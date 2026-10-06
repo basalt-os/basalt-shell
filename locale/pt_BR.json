@@ -1047,6 +1047,15 @@
  "Restart": [
   "Reiniciar"
  ],
+ "Restart and install the security updates?": [
+  "Reiniciar e instalar as atualizações de segurança?"
+ ],
+ "Restart and install the updates?": [
+  "Reiniciar e instalar as atualizações?"
+ ],
+ "Restart and update": [
+  "Reiniciar e atualizar"
+ ],
  "Restart now": [
   "Reiniciar agora"
  ],
@@ -1058,6 +1067,9 @@
  ],
  "Restart to finish": [
   "Reinicie para terminar"
+ ],
+ "Restarting to install the updates.": [
+  "Reiniciando para instalar as atualizações."
  ],
  "Restore size": [
   "Restaurar tamanho"
@@ -1148,6 +1160,9 @@
  ],
  "Software from this source can change your whole system. Only add sources you trust.": [
   "Software desta fonte pode mudar o sistema inteiro. Só adicione fontes em que você confia."
+ ],
+ "Some of these updates replace core parts of the system, so they install while the computer restarts, before the desktop starts. Save your work: the computer restarts when they are downloaded. A snapshot is taken before and after, so you can undo it from this page.": [
+  "Algumas destas atualizações trocam partes centrais do sistema, então são instaladas enquanto o computador reinicia, antes de a área de trabalho abrir. Salve seu trabalho: o computador reinicia quando o download terminar. Um snapshot é feito antes e depois, então dá para desfazer por esta página."
  ],
  "Some updates, such as a new kernel, take effect when the computer restarts. Save your work first.": [
   "Algumas atualizações, como um kernel novo, só valem quando o computador reiniciar. Salve seu trabalho antes."
@@ -1435,6 +1450,9 @@
  "These settings are yours only. They do not change the language of the desktop: you can speak to the assistant and get answers in another language.": [
   "Estas configurações são só suas. Elas não mudam o idioma da área de trabalho: você pode falar com o assistente e receber respostas em outro idioma."
  ],
+ "These updates include core parts of the system, so they install while the computer restarts, before the desktop starts. A snapshot is taken before and after.": [
+  "Estas atualizações incluem partes centrais do sistema, então são instaladas enquanto o computador reinicia, antes de a área de trabalho abrir. Um snapshot é feito antes e depois."
+ ],
  "This NVIDIA GPU is not in the list of the NVIDIA driver Basalt OS ships; it may be newer than that driver. Nothing is recommended.": [
   "Esta GPU NVIDIA não está na lista do driver NVIDIA que o Basalt OS distribui; ela pode ser mais nova que o driver. Nada é recomendado."
  ],
@@ -1696,6 +1714,9 @@
  ],
  "installed": [
   "instaladas"
+ ],
+ "installs at the next start": [
+  "instala no próximo início"
  ],
  "instructions addressed to the assistant": [
   "instruções dirigidas ao assistente"

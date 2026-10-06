@@ -41,6 +41,11 @@ ColumnLayout {
     readonly property var running: upd ? upd.running || null : null
     readonly property bool restartNeeded: (upd !== null && upd.restart && upd.restart.needed) || restartAfter
     readonly property var groups: ["security", "basalt", "apps", "system"]
+    // The set replaces core parts of the system: it installs while the
+    // computer restarts, before the desktop starts (dnf offline).
+    readonly property bool offlineAll: upd !== null && upd.offline === true
+    readonly property bool offlineSecurity: upd !== null && upd.offline_security === true
+    readonly property bool pOffline: (pkind === "install" && offlineAll) || (pkind === "security" && offlineSecurity)
     // The driver channels matter on hardware the NVIDIA driver supports.
     readonly property bool driverHardware: {
         if (!drv || !drv.recommendation) return false;
@@ -77,19 +82,22 @@ ColumnLayout {
     function decide(apply) {
         if (!proposal) return;
         if (!apply) {
-            Bus.call("assistant.ignore", { id: proposal.id }, () => { Bus.refreshAssistant(); });
+            // Not now changes nothing and asks for nothing: the stored
+            // proposal stays pending (the assistant reuses it by its key
+            // the next time) and is never applied without a confirmation.
             proposal = null; status = "";
             return;
         }
         busy = true; applying = true; statusError = false;
         status = Tr.t("Waiting for your password.");
-        const kind = pkind, target = ptarget;
+        const kind = pkind, target = ptarget, offline = offlineAll, offlineSec = offlineSecurity;
         Bus.assistantApply(proposal.id, proposal.code, (ok, res) => {
             busy = false; applying = false;
             const good = ok && res.ok;
             result = ok && res.output ? res.output : "";
             statusError = !good;
             if (!good) status = Tr.t("Nothing was changed, or not everything worked. The assistant's report is under Details.");
+            else if ((kind === "install" && offline) || (kind === "security" && offlineSec)) status = Tr.t("Restarting to install the updates.");
             else if (kind === "install" || kind === "security") status = Tr.t("Updates installed. A snapshot from before them is kept, so you can undo them.");
             else if (kind === "rollback") { status = Tr.t("Done. The computer goes back to how it was before the update when it restarts."); restartAfter = true; }
             else if (kind === "add") { status = Tr.t("Source added. Its software can now be installed and updated."); adding = false; }
@@ -220,8 +228,8 @@ ColumnLayout {
         if (applying && (pkind === "install" || pkind === "security")) return Tr.t("Installing updates");
         if (applying && pkind === "rollback") return Tr.t("Undoing the update");
         switch (pkind) {
-        case "install": return Tr.t("Install the updates?");
-        case "security": return Tr.t("Install the security updates?");
+        case "install": return offlineAll ? Tr.t("Restart and install the updates?") : Tr.t("Install the updates?");
+        case "security": return offlineSecurity ? Tr.t("Restart and install the security updates?") : Tr.t("Install the security updates?");
         case "rollback": return Tr.t("Undo the last update?");
         case "enable": return proposal && ptarget.indexOf("testing") >= 0 ? Tr.t("Turn on preview builds?") : Tr.t("Turn on %1?").arg(chanTitle(ptarget));
         case "disable": return Tr.t("Turn off %1?").arg(ptarget.indexOf("basalt") === 0 ? chanTitle(ptarget) : ptarget);
@@ -232,7 +240,9 @@ ColumnLayout {
     function confirmText() {
         switch (pkind) {
         case "install":
-        case "security": return Tr.t("A snapshot of the system is taken first, so you can undo the update from this page. Some updates need a restart to take effect.");
+        case "security": return pOffline
+                         ? Tr.t("Some of these updates replace core parts of the system, so they install while the computer restarts, before the desktop starts. Save your work: the computer restarts when they are downloaded. A snapshot is taken before and after, so you can undo it from this page.")
+                         : Tr.t("A snapshot of the system is taken first, so you can undo the update from this page. Some updates need a restart to take effect.");
         case "rollback": return Tr.t("The system goes back to the snapshot taken just before the last update, at the next start. Your files in your home folder stay as they are.");
         case "enable": return ptarget.indexOf("testing") >= 0
                        ? Tr.t("Preview builds can break things. A snapshot is taken before each update so you can go back.")
@@ -244,8 +254,10 @@ ColumnLayout {
     }
     function confirmVerb() {
         switch (pkind) {
-        case "install": return Tr.n("Install %1 update", "Install %1 updates", up.counts.total || 0);
-        case "security": return Tr.n("Install %1 security update", "Install %1 security updates", up.counts.security || 0);
+        case "install":
+        case "security": return pOffline ? Tr.t("Restart and update")
+                                : (pkind === "install" ? Tr.n("Install %1 update", "Install %1 updates", up.counts.total || 0)
+                                                       : Tr.n("Install %1 security update", "Install %1 security updates", up.counts.security || 0));
         case "rollback": return Tr.t("Undo the update");
         case "enable": return ptarget.indexOf("testing") >= 0 ? Tr.t("Turn on preview builds") : Tr.t("Turn on");
         case "disable": return Tr.t("Turn off");
@@ -451,13 +463,16 @@ ColumnLayout {
                 enabled: !up.busy; onClicked: up.propose("updates.propose", { security: true }, "security")
             }
             Btn {
-                text: Tr.t("Install updates"); icon: "download"; variant: "primary"; focusable: true; e2e: "updates-install"
+                text: up.offlineAll ? Tr.t("Restart and update") : Tr.t("Install updates")
+                icon: up.offlineAll ? "restart" : "download"; variant: "primary"; focusable: true; e2e: "updates-install"
                 enabled: !up.busy; onClicked: up.propose("updates.propose", { security: false }, "install")
             }
         }
         Txt {
             Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; role: "small"; color: Theme.textMuted
-            text: Tr.t("A snapshot is taken first. You can undo the update from this page.")
+            text: up.offlineAll
+                  ? Tr.t("These updates include core parts of the system, so they install while the computer restarts, before the desktop starts. A snapshot is taken before and after.")
+                  : Tr.t("A snapshot is taken first. You can undo the update from this page.")
         }
     }
 
@@ -505,7 +520,8 @@ ColumnLayout {
                     Layout.fillWidth: true; role: "small"; color: Theme.textMuted
                     text: up.when(modelData.time) + "  " + (modelData.kind === "rollback" ? (modelData.ok ? Tr.t("done") : Tr.t("did not finish"))
                           : (modelData.status === "applied" ? Tr.t("installed") : (modelData.status === "undone" ? Tr.t("undone")
-                          : (modelData.status === "interrupted" ? Tr.t("stopped before the end: undo it to be sure") : Tr.t("did not finish")))))
+                          : (modelData.status === "interrupted" ? Tr.t("stopped before the end: undo it to be sure")
+                          : (modelData.status === "scheduled" ? Tr.t("installs at the next start") : Tr.t("did not finish"))))))
                 }
             }
             Btn {
@@ -729,12 +745,13 @@ ColumnLayout {
     // A holder outside the layout: the sheet itself is reparented to the
     // window's content item.
     Item {
+        id: sheetHolder
         Layout.preferredWidth: 0
         Layout.preferredHeight: 0
         Item {
             id: sheet
             visible: up.proposal !== null
-            parent: up.Window.window ? up.Window.window.contentItem : up
+            parent: up.Window.window ? up.Window.window.contentItem : sheetHolder
             anchors.fill: parent
             z: 1000
             focus: visible

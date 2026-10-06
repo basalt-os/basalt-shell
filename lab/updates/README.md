@@ -13,6 +13,11 @@ remove a software source.
   build of the shell (daemon, client, QML, catalogs, the read helper) and,
   when BIN has it, of the assistant's `basalt` command, over the
   installed packages (originals kept in /root/upd-orig).
+- `vm-prep.sh`: run as root in the VM first: the published repositories and
+  current packages under the development build.
+- `dev-assistant.sh ASSISTANT_SRC BIN`: run as root in the VM: the system
+  assistant's desktop executor (basalt-apply-exec, its units, the polkit
+  rule, the basalt_assistant module).
 - `vm-type.py`: types into the VM through the QEMU monitor (the password
   for polkit, Super+Comma for Settings).
 

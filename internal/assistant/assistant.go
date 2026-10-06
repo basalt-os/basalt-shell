@@ -319,20 +319,120 @@ func (b *Bridge) Show(ctx context.Context, id string) (Proposal, error) {
 var reID = regexp.MustCompile(`^p-[0-9a-f]{6}$`)
 var reCode = regexp.MustCompile(`^[0-9a-f]{8}$`)
 
-// Apply runs the assistant's confirmation flow for a proposal the person
-// accepted in the shell: pkexec (the person authenticates), then
-// `basalt apply ID --yes --confirm CODE`, which re-checks that the code
-// matches the exact commands, takes snapshots, runs, verifies and audits.
-func (b *Bridge) Apply(ctx context.Context, id, code string) (string, error) {
+// applyUnit is the assistant's unit that applies one confirmed proposal.
+func applyUnit(id, code string) (string, error) {
 	if !reID.MatchString(id) || !reCode.MatchString(code) {
 		return "", errors.New("invalid proposal id or confirmation code")
 	}
-	if b.Pkexec == "" {
-		return "", errors.New("pkexec is not installed")
+	return "basalt-apply@" + id + "_" + code + ".service", nil
+}
+
+// ErrNoApplyUnit: the installed assistant is older than its desktop
+// executor (basalt-apply@.service).
+var ErrNoApplyUnit = errors.New("the system assistant on this computer is too old to apply this from the desktop; update it, or run sudo basalt apply in a terminal")
+
+// Apply runs the assistant's confirmation flow for a proposal the person
+// accepted in the shell, where the approval gate does not decide it: it
+// starts the assistant's unit basalt-apply@ID_CODE.service, and polkit
+// asks for an administrator's password in the shell's own dialog. The
+// unit runs `basalt apply ID --yes --confirm CODE` in the assistant's
+// executor (it re-checks that the code matches the exact commands, takes
+// snapshots, runs, verifies and audits). The shell itself never runs
+// basalt apply, dnf or rpm. The answer is the assistant's report of the
+// proposal after the apply.
+func (b *Bridge) Apply(ctx context.Context, id, code string) (string, error) {
+	unit, err := applyUnit(id, code)
+	if err != nil {
+		return "", err
 	}
-	// No short limit: an update installs for as long as it takes (the
-	// assistant's own runner has no wall-clock timeout for a change).
-	return b.runFor(ctx, 3*time.Hour, []string{b.Pkexec, b.Basalt, "apply", id, "--yes", "--confirm", code})
+	if !unitInstalled("basalt-apply@.service") {
+		return "", ErrNoApplyUnit
+	}
+	// Enqueue only: a package transaction may reload or re-execute systemd
+	// and dbus, and a client waiting for the job's end can then wait
+	// forever. The proposal's own record says when and how it ended.
+	start := time.Now()
+	if out, err := b.runFor(ctx, 10*time.Minute, []string{systemctl(), "start", "--no-block", unit}); err != nil {
+		return strings.TrimSpace(out), fmt.Errorf("not started: %s", strings.TrimSpace(out))
+	}
+	status := b.waitApplied(ctx, unit, id, start)
+	report, _ := b.Read(ctx, []string{"show", id})
+	report = strings.TrimSpace(report)
+	switch status {
+	case "applied", "scheduled":
+		return report, nil
+	case "":
+		return report, errors.New("the assistant did not record a result; see journalctl -u " + unit)
+	}
+	return report, fmt.Errorf("the proposal %s", status)
+}
+
+// waitApplied follows the assistant's unit and the proposal's record
+// until the apply ends; it returns the proposal's status then ("" when
+// nothing was recorded).
+func (b *Bridge) waitApplied(ctx context.Context, unit, id string, start time.Time) string {
+	seen := false
+	for {
+		state, _ := b.runFor(ctx, 30*time.Second, []string{systemctl(), "is-active", unit})
+		state = strings.TrimSpace(state)
+		running := state == "activating" || state == "active" || state == "reloading"
+		seen = seen || running
+		if st, at := b.proposalResult(ctx, id); st != "" && st != "pending" && !at.Before(start.Add(-5*time.Second)) {
+			return st
+		}
+		if !running && (seen || time.Since(start) > time.Minute) {
+			st, at := b.proposalResult(ctx, id)
+			if st != "pending" && !at.Before(start.Add(-5*time.Second)) {
+				return st
+			}
+			return ""
+		}
+		select {
+		case <-ctx.Done():
+			return ""
+		case <-time.After(2 * time.Second):
+		}
+	}
+}
+
+// proposalResult is a proposal's status and the time of its last result.
+func (b *Bridge) proposalResult(ctx context.Context, id string) (string, time.Time) {
+	out, err := b.Read(ctx, []string{"show", id, "--json"})
+	if err != nil {
+		return "", time.Time{}
+	}
+	var p struct {
+		Status string `json:"status"`
+		Result *struct {
+			Time time.Time `json:"time"`
+		} `json:"result"`
+	}
+	if json.Unmarshal([]byte(out), &p) != nil {
+		return "", time.Time{}
+	}
+	if p.Result == nil {
+		return p.Status, time.Time{}
+	}
+	return p.Status, p.Result.Time
+}
+
+func systemctl() string {
+	if p, err := exec.LookPath("systemctl"); err == nil {
+		return p
+	}
+	return "/usr/bin/systemctl"
+}
+
+// unitDirs is where the assistant's units are installed.
+var unitDirs = []string{"/usr/lib/systemd/system", "/etc/systemd/system"}
+
+func unitInstalled(name string) bool {
+	for _, d := range unitDirs {
+		if _, err := os.Stat(d + "/" + name); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 // Submitted is a proposal queued in the approval gate.

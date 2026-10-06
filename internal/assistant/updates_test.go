@@ -7,7 +7,7 @@ import (
 
 func TestUpdatesAndChannelsArgs(t *testing.T) {
 	for _, ok := range [][]string{
-		{"updates", "--json"}, {"updates", "check", "--json"}, {"updates", "install", "--security", "--json"}, {"updates", "rollback", "--json"},
+		{"updates", "--json"}, {"updates", "status", "--json"}, {"updates", "install", "--security", "--json"}, {"updates", "rollback", "--json"},
 		{"channels", "--json"}, {"channels", "enable", "basalt-testing", "--consent", "preview-builds-1", "--json"},
 		{"channels", "disable", "basalt-tools", "--json"}, {"channels", "add", "vscode", "--json"},
 		{"channels", "add", "copr", "--id", "someone/tool", "--json"},
@@ -20,7 +20,7 @@ func TestUpdatesAndChannelsArgs(t *testing.T) {
 		}
 	}
 	for _, bad := range [][]string{
-		{"updates", "install", "--apply"}, {"updates", "install", "--json", "--yes"}, {"updates", "upgrade", "--json"},
+		{"updates", "install", "--apply"}, {"updates", "check", "--json"}, {"updates", "install", "--json", "--yes"}, {"updates", "upgrade", "--json"},
 		{"channels", "enable", "basalt-testing", "--consent", "yes", "--json"},
 		{"channels", "enable", "Basalt;rm", "--json"},
 		{"channels", "add", "custom", "--repo-url", "http://repo.example.org/x.repo", "--json"},

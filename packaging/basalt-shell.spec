@@ -353,6 +353,16 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Tue Oct 06 2026 Basalt OS developers - 0.9.0-1
+- Settings, Updates and channels: check for updates and install them with a
+  snapshot first (offline, at the next start, when core packages change),
+  the restart state, the history and undo; Basalt's channels with a consent
+  sheet for testing ones; other software sources from a pinned catalog, a
+  COPR project or a custom https source, with the signing key shown.
+- The shell never runs dnf, rpm or basalt apply: proposals are applied by
+  the system assistant's units (basalt-apply@, basalt-updates-check) or by
+  the approval gate's executor; the Additional drivers page too.
+
 * Tue Oct 06 2026 Basalt OS developers - 0.8.3-1
 - Daily-driver round (the owner's apps on the desktop edition):
 - New floating windows stay below the panel: sway centers a new window

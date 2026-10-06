@@ -290,10 +290,13 @@ selinux, disk, snapshots, pending, show ID, audit N). A polkit rule lets
 local administrators (wheel, active local session) run it without a
 password. When an answer contains a proposal, the shell shows the
 assistant's own report with the exact commands and the confirmation code;
-Apply runs `pkexec basalt apply ID --yes --confirm CODE`, so the person
-authenticates (in the shell's own polkit dialog) and the assistant
-re-checks that the code matches the commands, takes snapshots, runs,
-verifies and audits. The shell never applies system changes itself.
+Apply starts the assistant's unit `basalt-apply@ID_CODE.service`
+(`systemctl start`), so the person authenticates (an administrator's
+password, in the shell's own polkit dialog) and the assistant's executor
+runs `basalt apply ID --yes --confirm CODE`: it re-checks that the code
+matches the commands, takes snapshots, runs, verifies and audits. The
+shell never applies system changes itself and never runs dnf, rpm or
+basalt apply in its own domains.
 
 Where the approval gate decides the system assistant's proposals
 (`apply`), Apply first queues the proposal in the gate (`assistant-read
@@ -320,9 +323,9 @@ shown on the page and must be accepted before the Install button works;
 GeForce and Titan GPUs also get the license's datacenter notice. Install
 stores the assistant's `driver.install` proposal (through the read helper,
 `drivers install nvidia --json`), shows its report with the exact commands
-and applies it like any other proposal (pkexec, `basalt apply ID --yes
---confirm CODE`). GPUs that need NVIDIA's 580 legacy driver (Maxwell,
-Pascal, Volta, for example a GTX 1070) get an explanation and a link: the
+and applies it like any other proposal (the assistant's unit
+`basalt-apply@ID_CODE.service`, an administrator's password). GPUs that
+need NVIDIA's 580 legacy driver (Maxwell, Pascal, Volta, for example a GTX 1070) get an explanation and a link: the
 assistant will guide that path later; nothing is packaged for them.
 
 Install shows only when the report says the basalt-nonfree repository's
@@ -349,10 +352,27 @@ the basalt-os repository's `docs/updates.md`) and changes nothing by
 itself: every button stores one of the assistant's proposals through the
 read helper and shows it on a sheet, in plain words, with the exact
 commands under Details; the person confirms it, and it is applied like
-any other proposal (pkexec and an administrator's password, `basalt apply
-ID --yes --confirm CODE`, or the approval gate where it decides the
-assistant's proposals). The shell never runs dnf and never writes a
-repository file.
+any other proposal: where the approval gate decides the assistant's
+proposals, through the gate and its executor (basalt-gate-exec@.service);
+otherwise the shell starts the assistant's unit
+`basalt-apply@ID_CODE.service` and polkit asks for an administrator's
+password in the shell's own dialog. The unit runs `basalt apply ID --yes
+--confirm CODE` in the assistant's executor (basalt_apply_t). The shell's
+domains never run dnf, rpm or basalt apply and never write a repository
+file; a test (internal/assistant/policy_test.go) fails if the shell's
+policy gains an rpm transition. Checking for updates starts
+`basalt-updates-check.service` (no password for an administrator at the
+computer); the page reads the report the assistant keeps.
+
+An update set that replaces core packages (the kernel, systemd, dbus,
+glibc, the package manager, the SELinux policy, Basalt's shell, login
+screen and gate, Mesa, the compositor) installs offline: the page says
+so in one sentence and its button is "Restart and update"; the packages
+are downloaded and prepared, the computer restarts, dnf installs them
+before the session starts, and the assistant records the result with the
+snapshot after it (basalt-offline-finish.service). Smaller sets without
+core packages install live. Both take a snapshot before and after and can
+be undone.
 
 - Updates: Check for updates (update.check, the last check's time), the
   updates grouped and explained (security updates highlighted, Basalt OS

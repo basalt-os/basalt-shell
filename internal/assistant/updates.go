@@ -31,7 +31,7 @@ const TestingConsent = "preview-builds-1"
 // updatesArgs validates `basalt updates` requests.
 func updatesArgs(rest []string) error {
 	switch strings.Join(rest, " ") {
-	case "", "--json", "status --json", "check --json", "install --json", "install --security --json", "rollback --json":
+	case "", "--json", "status --json", "install --json", "install --security --json", "rollback --json":
 		return nil
 	}
 	return fmt.Errorf("not an Updates request: updates %s", strings.Join(rest, " "))
@@ -101,10 +101,35 @@ func (b *Bridge) UpdatesProgress(ctx context.Context) (json.RawMessage, error) {
 	return b.readJSON(ctx, 30*time.Second, []string{"updates", "status", "--json"})
 }
 
-// UpdatesCheck is update.check: the package lists are refreshed (as root,
-// through the read helper; nothing is installed), then the same report.
+// UpdatesCheck is update.check: the assistant's unit
+// basalt-updates-check.service refreshes the package lists and the report
+// (as root, in its executor; nothing is installed; no password for an
+// administrator at the computer), then the shell reads the report.
 func (b *Bridge) UpdatesCheck(ctx context.Context) (json.RawMessage, error) {
-	return b.readJSON(ctx, 10*time.Minute, []string{"updates", "check", "--json"})
+	if !unitInstalled("basalt-updates-check.service") {
+		return nil, ErrNoApplyUnit
+	}
+	const unit = "basalt-updates-check.service"
+	start := time.Now()
+	if out, err := b.runFor(ctx, time.Minute, []string{systemctl(), "start", "--no-block", unit}); err != nil {
+		return nil, fmt.Errorf("the check did not start: %s", strings.TrimSpace(out))
+	}
+	seen := false
+	for time.Since(start) < 10*time.Minute {
+		state, _ := b.runFor(ctx, 30*time.Second, []string{systemctl(), "is-active", unit})
+		state = strings.TrimSpace(state)
+		running := state == "activating" || state == "active"
+		seen = seen || running
+		if !running && (seen || time.Since(start) > 20*time.Second) {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(time.Second):
+		}
+	}
+	return b.Updates(ctx)
 }
 
 // UpdatesPropose stores the update.install proposal (all updates, or the
