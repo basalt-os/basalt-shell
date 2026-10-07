@@ -122,11 +122,27 @@ function layoutFromNiri(json) {
     return { names: names, active: active };
 }
 
-// layoutLabel: the short label of the active layout, from the system's
+// layoutFromIndicator reads the shell daemon's keyboard indicator
+// (keyboard.indicator: the labels of the layouts the session uses, the
+// person's own from Settings, Keyboard or the system's, and the active
+// one; names when a real keyboard reports them). The same state as the
+// Keyboard page and the panel's indicator.
+function layoutFromIndicator(ind) {
+    const labels = ind && Array.isArray(ind.labels) ? ind.labels.filter(l => typeof l === "string" && l !== "") : [];
+    if (labels.length === 0) return { names: [], active: 0, labels: [] };
+    const names = ind.live && Array.isArray(ind.names) && ind.names.length === labels.length ? ind.names : labels;
+    let active = typeof ind.current === "number" ? ind.current : 0;
+    if (active < 0 || active >= labels.length) active = 0;
+    return { names: names, active: active, labels: labels };
+}
+
+// layoutLabel: the short label of the active layout: the daemon's label
+// (layoutFromIndicator), else from the system's
 // layout codes (XKB_DEFAULT_LAYOUT, "br,us") when they line up with the
 // names, else the start of the name ("English (US)" -> "EN").
 function layoutLabel(layouts, codes) {
     if (!layouts || layouts.names.length === 0) return "";
+    if (Array.isArray(layouts.labels) && layouts.labels[layouts.active]) return layouts.labels[layouts.active];
     const c = String(codes || "").split(",").map(s => s.trim()).filter(s => s !== "");
     if (c.length === layouts.names.length && c[layouts.active]) return c[layouts.active].toUpperCase();
     const name = layouts.names[layouts.active] || "";

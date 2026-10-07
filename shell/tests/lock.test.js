@@ -97,6 +97,17 @@ test("keyboard layouts from sway and niri", () => {
   assert.equal(L.layoutLabel(L.layoutFromNiri(""), "us"), "");
 });
 
+test("keyboard layouts from the shell daemon (the Keyboard page's state)", () => {
+  const live = L.layoutFromIndicator({ labels: ["BR", "US"], current: 1, live: true, names: ["Portuguese (Brazil)", "English (US)"] });
+  same(live, { names: ["Portuguese (Brazil)", "English (US)"], active: 1, labels: ["BR", "US"] });
+  // The person's labels win over the system's codes (XKB_DEFAULT_LAYOUT).
+  assert.equal(L.layoutLabel(live, "us"), "US");
+  assert.equal(L.layoutLabel(L.layoutFromIndicator({ labels: ["BR", "US1", "US2"], current: 2, live: false, names: [] }), "us"), "US2");
+  same(L.layoutFromIndicator({ labels: [], current: 0 }), { names: [], active: 0, labels: [] });
+  same(L.layoutFromIndicator(null), { names: [], active: 0, labels: [] });
+  assert.equal(L.layoutFromIndicator({ labels: ["BR"], current: 7 }).active, 0);
+});
+
 // ------------------------------------------------------------ Lock.qml rules
 
 const qml = fs.readFileSync(path.join(shell, "Lock.qml"), "utf8");

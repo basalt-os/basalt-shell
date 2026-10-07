@@ -312,18 +312,32 @@ function parseNmcli(text) {
 function parseInputs(json, codes) {
     let list = [];
     try { list = JSON.parse(String(json || "[]")); } catch (e) { list = []; }
-    const kb = (Array.isArray(list) ? list : []).find(i => i && i.type === "keyboard" && Array.isArray(i.xkb_layout_names) && i.xkb_layout_names.length > 0);
+    // Virtual keyboards (wtype, an agent's) keep their own keymap: a real
+    // keyboard's layouts are the system's (as the shell's indicator reads them).
+    const real = i => !/virtual/.test(String(i.identifier || "") + String(i.name || ""));
+    const kb = (Array.isArray(list) ? list : []).find(i => i && i.type === "keyboard" && real(i) && Array.isArray(i.xkb_layout_names) && i.xkb_layout_names.length > 0);
     const c = String(codes || "").split(",").map(s => s.trim()).filter(s => s !== "");
     if (!kb) return { names: [], codes: c, active: 0 };
     const active = typeof kb.xkb_active_layout_index === "number" ? kb.xkb_active_layout_index : 0;
     return { names: kb.xkb_layout_names, codes: c, active: active };
 }
 
+// layoutLabels: the labels of the system's layout codes, as the shell's
+// Settings, Keyboard and panel show them: the code in capitals, and its
+// position when a layout is listed twice ("us,us" gives US1, US2).
+function layoutLabels(codes) {
+    const c = (codes || []).map(x => String(x).toUpperCase());
+    const count = {}, seen = {};
+    for (const x of c) count[x] = (count[x] || 0) + 1;
+    return c.map(x => count[x] > 1 ? x + (seen[x] = (seen[x] || 0) + 1) : x);
+}
+
 // layoutCode: the short label of the active layout ("BR", "US").
 function layoutCode(inputs) {
     if (!inputs) return "";
-    const code = inputs.codes[inputs.active] || inputs.codes[0] || "";
-    if (code !== "") return code.toUpperCase();
+    const labels = layoutLabels(inputs.codes);
+    const code = labels[inputs.active] || labels[0] || "";
+    if (code !== "") return code;
     const name = inputs.names[inputs.active] || "";
     return name.slice(0, 2).toUpperCase();
 }

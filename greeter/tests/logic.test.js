@@ -147,4 +147,11 @@ test("network and keyboard status", () => {
   assert.equal(L.layoutCode(inputs), "US");
   assert.equal(L.layoutCode(L.parseInputs("[]", "br")), "BR");
   assert.equal(L.layoutCode(L.parseInputs("garbage", "")), "");
+  // The same labels as the shell's Keyboard page: a layout listed twice
+  // gets its position; a virtual keyboard is not the system's.
+  const twice = L.parseInputs(JSON.stringify([{ type: "keyboard", identifier: "0:0:wlr_virtual_keyboard_v1", xkb_layout_names: ["English (US)"] },
+    { type: "keyboard", identifier: "1:1:AT_Translated_Set_2_keyboard", xkb_layout_names: ["English (US)", "English (US, intl., with dead keys)"], xkb_active_layout_index: 1 }]), "us,us");
+  assert.equal(twice.names.length, 2);
+  assert.equal(L.layoutCode(twice), "US2");
+  same(L.layoutLabels(["br", "us", "us"]), ["BR", "US1", "US2"]);
 });

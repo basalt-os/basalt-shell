@@ -483,9 +483,18 @@ converted keymap of the first layout, else systemd's kbd-model-map), then
 checks localed's files. The shell never runs localectl or talks to
 systemd-localed (internal/assistant/policy_test.go refuses it in the
 shell's code, session scripts, helper and policy). People who chose their
-own layouts keep them. The lock screen runs inside the session and types
-with the session's layouts (the person's, switchable from the panel's
-indicator before locking); the login screen uses the system's.
+own layouts keep them.
+
+One source for the layouts shown everywhere. The page, the panel's
+indicator and the lock screen's layout chip read the daemon's keyboard
+state (`keyboard.indicator`: the person's layouts, or the system's when
+they chose none, labelled "BR", "US", "US1" and "US2" for a layout listed
+twice, and the active one from a real keyboard) and switch through it;
+the lock screen asks the compositor itself only while the daemon does not
+answer. The lock screen runs inside the session, so it types with the
+person's layouts; its chip switches them. The login screen has no person:
+it shows and types with the system's keyboard (localed's file, the
+page's "Login screen and new accounts" section), with the same labels.
 
 First start. The installer writes the keymap the person chose: Basalt's
 installer the console keymap (`/etc/vconsole.conf`, `KEYMAP=br-abnt2`),

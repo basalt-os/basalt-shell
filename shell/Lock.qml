@@ -74,8 +74,13 @@ Scope {
     property var capsLed: null
     readonly property bool capsOn: capsLed !== null ? capsLed : capsGuess
 
-    // The keyboard layouts and the active one.
-    property var layouts: ({ names: [], active: 0 })
+    // The keyboard layouts and the active one: the shell daemon's keyboard
+    // state (Bus.keyboard, the person's layouts from Settings, Keyboard or
+    // the system's), the same as the panel's indicator; asked of the
+    // compositor directly only while the daemon does not answer.
+    property var probed: ({ names: [], active: 0 })
+    readonly property bool shellLayouts: Bus.connected && Bus.keyboard && (Bus.keyboard.labels || []).length > 0
+    readonly property var layouts: shellLayouts ? L.layoutFromIndicator(Bus.keyboard) : probed
     readonly property string layoutLabel: L.layoutLabel(layouts, Quickshell.env("XKB_DEFAULT_LAYOUT") || "")
     readonly property string layoutName: layouts.names[layouts.active] || ""
     readonly property bool canSwitchLayout: layouts.names.length > 1
@@ -275,16 +280,26 @@ Scope {
         id: layoutProc
         command: lockCtl.niri ? ["niri", "msg", "--json", "keyboard-layouts"] : ["swaymsg", "-t", "get_inputs", "-r"]
         stdout: StdioCollector {
-            onStreamFinished: lockCtl.layouts = lockCtl.niri ? L.layoutFromNiri(text) : L.layoutFromSway(text)
+            onStreamFinished: lockCtl.probed = lockCtl.niri ? L.layoutFromNiri(text) : L.layoutFromSway(text)
         }
     }
-    function refreshLayouts() { if (!layoutProc.running) layoutProc.running = true; }
+    function refreshLayouts() {
+        if (Bus.connected) {
+            Bus.call("keyboard.indicator", {}, (ok, res) => { if (ok && res) Bus.keyboard = res; });
+            return;
+        }
+        if (!layoutProc.running) layoutProc.running = true;
+    }
     Process {
         id: switchProc
         command: lockCtl.niri ? ["niri", "msg", "action", "switch-layout", "next"] : ["swaymsg", "input", "type:keyboard", "xkb_switch_layout", "next"]
         onExited: lockCtl.refreshLayouts()
     }
-    function nextLayout() { if (canSwitchLayout && !switchProc.running) switchProc.running = true; }
+    function nextLayout() {
+        if (!canSwitchLayout) return;
+        if (shellLayouts) { Bus.switchLayout(); return; }
+        if (!switchProc.running) switchProc.running = true;
+    }
     Process {
         id: capsProc
         command: ["/bin/sh", "-c", "cat /sys/class/leds/*::capslock/brightness 2>/dev/null; true"]
