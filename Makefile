@@ -10,7 +10,7 @@ GO ?= go
 GOFLAGS ?= -trimpath
 BUILD := build
 
-.PHONY: all build test test-greeter vet install install-greeter uninstall clean rpm selinux install-selinux help
+.PHONY: all build test test-greeter test-js vet install install-greeter uninstall clean rpm selinux install-selinux help
 
 all: build
 
@@ -31,9 +31,14 @@ build:
 test:
 	$(GO) vet ./...
 	$(GO) test ./...
-	@if command -v node >/dev/null 2>&1; then $(MAKE) test-greeter; else echo "node not found: greeter logic tests skipped (make test-greeter)"; fi
+	@if command -v node >/dev/null 2>&1; then $(MAKE) test-js; else echo "node not found: JavaScript tests skipped (make test-js)"; fi
 
-# The greeter's JavaScript logic (greeter/logic.js) with Node's test runner.
+# The JavaScript logic with Node's test runner: the greeter's
+# (greeter/logic.js) and the lock screen's (shell/lock.js, and the rules of
+# shell/Lock.qml that keep the session locked until PAM says yes).
+test-js: test-greeter
+	node --test shell/tests/
+
 test-greeter:
 	node --test greeter/tests/
 
@@ -55,12 +60,13 @@ install:
 	install -Dm644 config/systemd/80-basalt-shell.preset $(DESTDIR)$(PREFIX)/lib/systemd/user-preset/80-basalt-shell.preset
 	install -Dm644 config/voice/voice.conf $(DESTDIR)$(SYSCONFDIR)/basalt/voice.conf
 	install -Dm644 config/voice/desktop-models.conf $(DESTDIR)$(SYSCONFDIR)/basalt/desktop-models.conf
+	install -Dm644 config/pam/basalt-lock $(DESTDIR)$(SYSCONFDIR)/pam.d/basalt-lock
 	install -Dm755 bin/basalt-shell-ui $(DESTDIR)$(PREFIX)/bin/basalt-shell-ui
 	install -Dm755 bin/basalt-session $(DESTDIR)$(PREFIX)/bin/basalt-session
 	install -Dm755 bin/basalt-lock $(DESTDIR)$(PREFIX)/bin/basalt-lock
 	install -Dm755 bin/basalt-session-init $(DESTDIR)$(PREFIX)/bin/basalt-session-init
 	install -d $(DESTDIR)$(PREFIX)/share/basalt-shell/qml/wallpapers $(DESTDIR)$(PREFIX)/share/basalt-shell/themes
-	install -m644 shell/*.qml $(DESTDIR)$(PREFIX)/share/basalt-shell/qml/
+	install -m644 shell/*.qml shell/*.js $(DESTDIR)$(PREFIX)/share/basalt-shell/qml/
 	install -m644 shell/wallpapers/* $(DESTDIR)$(PREFIX)/share/basalt-shell/qml/wallpapers/
 	install -m644 themes/*.json $(DESTDIR)$(PREFIX)/share/basalt-shell/themes/
 	install -d $(DESTDIR)$(PREFIX)/share/basalt-shell/locale
@@ -99,6 +105,7 @@ uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-session.target $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-headless.service
 	rm -f $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-voice.service $(DESTDIR)$(PREFIX)/lib/systemd/user-preset/80-basalt-shell.preset
 	rm -f $(DESTDIR)$(POLKITDIR)/actions/org.openbasalt.shell.policy $(DESTDIR)$(POLKITDIR)/rules.d/50-basalt-shell.rules
+	rm -f $(DESTDIR)$(SYSCONFDIR)/pam.d/basalt-lock
 	rm -rf $(DESTDIR)$(PREFIX)/share/basalt-greeter $(DESTDIR)$(LIBEXECDIR)/basalt-greeter
 	rm -f $(DESTDIR)$(PREFIX)/lib/tmpfiles.d/basalt-greeter.conf
 

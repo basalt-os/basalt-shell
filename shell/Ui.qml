@@ -61,6 +61,9 @@ Singleton {
     property bool confirmActive: false
     property bool chooserActive: false
     readonly property bool modal: polkitActive || confirmActive || chooserActive
+    // The lock screen holds the session (Lock.qml): the daemon refuses
+    // push to talk and agent input while it does.
+    property bool locked: false
     // A surface the person opened holds the keyboard: cards that ask
     // something on their own (a model download offer) wait for it to close
     // before they take the keyboard.

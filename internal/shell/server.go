@@ -749,10 +749,12 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 			return nil, err
 		}
 		var a struct {
-			Modal bool `json:"modal"`
+			Modal  bool `json:"modal"`
+			Locked bool `json:"locked"`
 		}
 		_ = decode(req.Args, &a)
 		c.SetUIModal(a.Modal)
+		c.SetUILocked(a.Locked)
 		return nil, nil
 	case "voice.press":
 		// Push to talk: only the shell UI (the key binding reaches it

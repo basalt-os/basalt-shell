@@ -124,8 +124,10 @@ type Core struct {
 	// Voice is the push-to-talk voice service (basalt-voiced); nil when
 	// not running.
 	Voice *voice.Client
-	// ScreenLocked reports a locked screen (push to talk is refused);
-	// replaced in tests.
+	// ScreenLocked reports a locker program running (swaylock, the
+	// fallback; push to talk is refused); replaced in tests. The shell's
+	// own lock screen is reported by the UI (SetUILocked); Locked
+	// combines both.
 	ScreenLocked func() bool
 	// Ledger receives the security-relevant records (nil: not running).
 	Ledger *ledger.Sink
@@ -159,6 +161,7 @@ type Core struct {
 	control   *Control
 	virt      *wlvirt.Device
 	uiModal   bool
+	uiLocked  bool
 	lastInput time.Time
 	// voice is the push-to-talk state shown by the UI.
 	voice            VoiceState

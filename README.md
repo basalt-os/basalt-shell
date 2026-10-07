@@ -1,6 +1,6 @@
 # basalt-shell
 
-> Pre-release prototype (0.9.1). Expect breaking changes. Part of
+> Pre-release prototype (0.9.2). Expect breaking changes. Part of
 > [Basalt OS](https://basalt-os.org), a Linux distribution built as a
 > Fedora remix; not affiliated with or endorsed by the Fedora Project or
 > Red Hat.
@@ -58,9 +58,8 @@ More screenshots and short recordings are in [media/](media/).
 
 A working prototype, not yet a release: everything below runs on sway and
 niri on Fedora 44, in a lab VM and in the container described under "Try
-it". Before 1.0 it still needs a lock screen of its own (a themed swaylock
-today), more typed actions, an
-independent review of the confirmation boundary, and translations. The
+it". Before 1.0 it still needs more typed actions, an independent review
+of the confirmation boundary, and translations. The
 packages are not yet in a public repository; until they are, build them
 from source (below) or try the shell in a container.
 
@@ -69,7 +68,8 @@ from source (below) or try the shell in a container.
 | Piece | What |
 |---|---|
 | `basalt-shelld` | the daemon. Go, no third-party modules. Desktop state from the compositor adapter, design tokens and themes, the closed set of typed actions, proposals and confirmations, the audit log, the local socket (peer checked by SELinux context), application appearance (GTK, libadwaita, Qt 5 and 6, portals), screen capture and virtual input for agents |
-| `basalt-shell-ui` | Quickshell (Qt 6 / QML): panel, launcher, command bar, confirmation sheet, agent-control indicator, quick settings, notification center, activity feed, settings window, polkit dialog, wallpaper |
+| `basalt-shell-ui` | Quickshell (Qt 6 / QML): panel, launcher, command bar, confirmation sheet, agent-control indicator, quick settings, notification center, activity feed, settings window, polkit dialog, wallpaper, lock screen |
+| `basalt-lock` | locks the session (Super+L, the power menu, idle, before sleep, `loginctl lock-session`): the shell's lock screen through ext-session-lock-v1, unlocked only by PAM (`/etc/pam.d/basalt-lock`); a themed swaylock when the shell UI is not running or stops while locked |
 | `basalt-shell mcp` | MCP server on stdio for a local model or any MCP client (confined in `basalt_agent_mcp_t`) |
 | `basalt-shell ctl`, `propose`, `screenshot` | the same from scripts |
 | `basalt-greeter` | the login screen: a greetd greeter in Quickshell, run by a locked-down sway, confined in `basalt_greeter_t`; the text login (tuigreet) takes over when it cannot run ([docs/greeter.md](docs/greeter.md)) |

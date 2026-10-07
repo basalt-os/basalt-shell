@@ -328,7 +328,7 @@ func (c *Core) VoiceKeyDown(ctx context.Context, commandBar, latch bool) error {
 		}
 		return nil
 	}
-	if c.ScreenLocked != nil && c.ScreenLocked() {
+	if c.Locked() {
 		_, _ = c.Audit.Append("refuse", "ui", "microphone refused: the screen is locked", nil)
 		err := errors.New(i18n.G("The screen is locked. Unlock it to talk."))
 		c.setVoice(VoiceState{State: "error", Error: err.Error()})

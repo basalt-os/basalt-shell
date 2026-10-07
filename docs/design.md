@@ -641,7 +641,7 @@ to the entry with the keyboard focus.
 | Tray | StatusNotifierItem host in the panel |
 | Notifications | org.freedesktop.Notifications served by the shell |
 | Clipboard | wl-clipboard, cliphist history |
-| Idle and lock | swayidle and swaylock in the theme's colors (basalt-lock) |
+| Idle and lock | swayidle runs basalt-lock after 15 minutes, before sleep and on logind's lock request; the shell's own lock screen (ext-session-lock-v1, PAM), swaylock in the theme's colors only as the fallback (below, Lock screen) |
 | Autostart | basalt-session.target wants xdg-desktop-autostart.target |
 | Flatpak apps | the session adds the Flatpak export directories to XDG_DATA_DIRS (login shells do it through profile.d; greetd starts no login shell), so the launcher and the panel find their launchers and icons, and those of RPMs whose scripts put icons there (Google Chrome) |
 | Keyboard layouts | the session starts with the system's layouts (XKB_DEFAULT_* from /etc/X11/xorg.conf.d/00-keyboard.conf, as the login screen does); Super+Shift+Space switches to the next one |
@@ -689,6 +689,75 @@ through the shell's dialog). Lock runs `basalt-lock`, as Super+L, and
 the idle lock (swayidle) also answers logind's lock request. Without a
 running shell UI, Super+Shift+E falls back to the compositor's own
 confirmation (swaynag on sway, niri's quit dialog).
+
+### Lock screen
+
+Locking never shows a blank screen. The shell UI locks the session
+through the compositor's session lock (ext-session-lock-v1, Quickshell's
+WlSessionLock; sway and niri): from the first frame every output shows
+the blurred wallpaper with the time and the date (shell/LockSurface.qml),
+and the output that had the focus also shows the card, in the login
+screen's look: the person's picture (AccountsService, else `~/.face`) or
+initials, their name, and the password field with the keyboard already
+in it and its hint, "Type your password to unlock" ("Digite sua senha
+para desbloquear"). Under the field, one line says what the person
+should know: Caps Lock (from the keyboard's LED, else guessed from the
+typed letters), "That password did not work. Try again." after a refusal
+(the card shakes and the field is cleared; after three, it points at
+Caps Lock and the keyboard layout), "Too many attempts" when PAM says so,
+and PAM's own messages (a fingerprint reader's prompt, an expiring
+password). While PAM checks, the field says "Checking" and the button
+spins. At the top right: the keyboard layout (press it to switch when
+there are several), the network and the battery. The compositor gives
+the keyboard to one lock surface (the first that appears, or the one
+clicked), so keys typed on any output go into the card's field.
+
+Keyboard: Return sends (only once something was typed), Escape clears
+the field and the message, Tab moves between the field, the show
+password and unlock buttons and the layout button, with the focus ring
+on each (design rules above); nothing traps the focus.
+
+Nothing from the desktop shows while locked: the compositor draws only
+the lock surfaces, and they carry no notification text, window list or
+preview. Volume keys work (niri's `allow-when-locked`); no other key
+binding runs, so push to talk cannot start, and the daemon refuses it
+anyway, with agent input and agent screenshots, while the UI reports the
+lock (`ui.state`, which only the shell UI may send) or a locker program
+runs.
+
+Authentication is PAM's, in the UI process (Quickshell's PamContext,
+service `basalt-lock`, `/etc/pam.d/basalt-lock`: system-auth, so
+pam_unix checks the password through unix_chkpwd and a fingerprint
+module added by authselect works through the same conversation); the
+password goes from the field to PAM and nowhere else (never to the
+daemon, never logged), and is cleared as soon as it is sent. The session
+is unlocked in one place, after PAM's success for an answer the person
+sent; the IPC target `lock` has only `lock` and `state`, there is no
+unlock call, and shell/tests/lock.test.js checks both rules. While
+locked the shell does not reload its files (an update installed meanwhile
+waits until the unlock): rebuilding the lock surfaces under a held session
+lock made Quickshell drop the lock in the lab, which the compositor turned
+into its red "lock client gone" screen. The lock state is also kept in
+PersistentProperties, should a reload happen anyway.
+
+`basalt-lock` (Super+L, the power menu, swayidle on idle, before sleep
+and for `loginctl lock-session`) asks the running shell UI (`ipc call
+lock lock`), waits until the compositor confirms the lock (so the
+computer never sleeps unlocked) and leaves a small guard: if the shell
+UI stops while the screen is locked, the compositor keeps the session
+locked and swaylock takes the abandoned lock over, so the person can
+still unlock; the shell UI is started again after that. Without a
+running shell UI, swaylock locks at once: the theme's colors over the
+wallpaper, its indicator always visible (`--indicator-idle-visible`),
+the keyboard layout, Caps Lock and failed attempts shown. Each lock is
+written to the journal (`journalctl -t basalt-lock`).
+
+Between the request and the first frame of the lock surfaces the
+compositor shows a plain black screen (sway and niri blank every output
+as soon as a session lock starts, before its surfaces arrive): about a
+quarter of a second in the lab VM, from `loginctl lock-session` to the
+clock and the field. If the shell UI dies, sway shows red and niri dark
+red for about a second until swaylock takes over.
 
 ## Keyboard and focus
 
@@ -820,7 +889,10 @@ each step the shell's IPC says which control holds the keyboard
 (`ipc call shell focused`) and which surfaces are open (`surfaces`);
 screenshots go to the output directory. `lab/greeter/e2e-fake.sh` does the
 same for the login screen (the top bar and the language menu with the
-keyboard alone, then the login).
+keyboard alone, then the login), and `lab/lock/run.sh` for the lock
+screen (two outputs, the real PAM stack: the field focused at once, a
+wrong password, Escape, Caps Lock, the right password, the shell UI
+killed while locked, the swaylock fallback).
 
 ## Packaging
 

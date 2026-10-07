@@ -1,0 +1,9 @@
+#%PAM-1.0
+# The Basalt lock screen (basalt-shell). The shell UI asks PAM to check the
+# password of the person who is logged in: pam_unix verifies it through
+# unix_chkpwd (the standard helper for unprivileged programs), so the shell
+# never reads /etc/shadow. The conversation is generic: a fingerprint reader
+# (pam_fprintd, when authselect enables it in system-auth) works here too,
+# and its messages are shown as PAM writes them.
+auth       include      system-auth
+account    include      system-auth

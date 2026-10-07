@@ -105,6 +105,19 @@ dontaudit basalt_agent_mcp_t self:capability { dac_override dac_read_search };
 
 ########################################
 #
+# The lock screen (shell/Lock.qml, docs/design.md "Lock screen"): the UI
+# asks PAM (service basalt-lock) to check the person's password. pam_unix
+# runs unix_chkpwd, which moves into chkpwd_t, the standard helper domain
+# that may read /etc/shadow (as swaylock's check does from unconfined_t):
+# the shell's own domains never read it. The UI is unconfined_domain
+# today; this keeps the check in chkpwd_t and keeps working once the UI
+# is confined.
+#
+
+auth_domtrans_chk_passwd(basalt_shell_ui_t)
+
+########################################
+#
 # The approval gate (basalt-gate, when installed): the daemon asks it on
 # behalf of the person or an agent and claims what it allowed; the UI is
 # the gate's desktop decider. Both are unconfined_domain today, so this

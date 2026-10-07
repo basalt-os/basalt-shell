@@ -274,7 +274,7 @@ Singleton {
             bus.uiCatalog = s.ui_catalog || ({});
             bus.gate = s.gate || ({ present: false, enforce: [] });
             bus.ready = true;
-            bus.call("ui.state", { modal: Ui.modal });
+            bus.call("ui.state", { modal: Ui.modal, locked: Ui.locked });
             bus.refreshAssistant();
         });
     }
@@ -292,10 +292,12 @@ Singleton {
         }
     }
 
-    // The daemon refuses agent input while the person has a dialog open.
+    // The daemon refuses agent input while the person has a dialog open,
+    // and push to talk and agent input while the screen is locked.
     Connections {
         target: Ui
-        function onModalChanged() { bus.call("ui.state", { modal: Ui.modal }); }
+        function onModalChanged() { bus.call("ui.state", { modal: Ui.modal, locked: Ui.locked }); }
+        function onLockedChanged() { bus.call("ui.state", { modal: Ui.modal, locked: Ui.locked }); }
     }
 
     function stopControl() { call("control.stop", {}); }

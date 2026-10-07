@@ -247,8 +247,31 @@ func (c *Core) SetUIModal(on bool) {
 	c.mu.Unlock()
 }
 
-// modalOpen reports whether the person has something to answer.
+// SetUILocked records whether the shell UI's lock screen holds the
+// session. It can only take power away: while it is set, push to talk,
+// agent input and agent screenshots are refused; it never unlocks
+// anything (only PAM does, in the UI).
+func (c *Core) SetUILocked(on bool) {
+	c.mu.Lock()
+	c.uiLocked = on
+	c.mu.Unlock()
+}
+
+// Locked reports a locked screen: the shell's lock screen (as the UI
+// reports it) or a locker program (swaylock, the fallback).
+func (c *Core) Locked() bool {
+	c.mu.Lock()
+	ui := c.uiLocked
+	c.mu.Unlock()
+	return ui || (c.ScreenLocked != nil && c.ScreenLocked())
+}
+
+// modalOpen reports whether the person has something to answer, or the
+// screen is locked (nobody can see what an agent does then).
 func (c *Core) modalOpen() string {
+	if c.Locked() {
+		return "the screen is locked"
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.uiModal {
@@ -360,6 +383,10 @@ type CaptureResult struct {
 // control session with screen access, else as a proposal the person
 // confirms (waiting up to wait).
 func (c *Core) Capture(ctx context.Context, m Meta, args map[string]any, wait time.Duration) (CaptureResult, error) {
+	if c.Locked() {
+		_, _ = c.Audit.Append("refuse", m.Actor, "screenshot refused: the screen is locked", map[string]any{"pid": m.PID})
+		return CaptureResult{}, errors.New("screenshot refused: the screen is locked; try again after the person unlocks it")
+	}
 	if ct := c.controlFor(m.PID); ct != nil && ct.Screen {
 		p := c.planner(ctx)
 		p.meta = m

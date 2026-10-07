@@ -5,8 +5,8 @@ import QtQuick
 import Quickshell
 
 // Basalt shell: panel, launcher, command bar, notifications, quick
-// settings, activity, settings and confirmation sheets, all drawn from the
-// design tokens served by the basalt-shell daemon.
+// settings, activity, settings, confirmation sheets and the lock screen,
+// all drawn from the design tokens served by the basalt-shell daemon.
 ShellRoot {
     Variants {
         model: Quickshell.screens
@@ -30,6 +30,7 @@ ShellRoot {
     AgentFrame {}
     VoiceHud {}
     ModelCard {}
+    Lock {}
 
     // Make sure the singletons start with the shell.
     Component.onCompleted: { Bus.connected; Notifs.unread; Ui.launcher; }

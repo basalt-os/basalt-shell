@@ -325,6 +325,9 @@
  "Cancel drops the words.": [
   "Cancelar descarta as palavras."
  ],
+ "Caps Lock is on": [
+  "Caps Lock está ativado"
+ ],
  "Channels": [
   "Canais"
  ],
@@ -333,6 +336,9 @@
  ],
  "Check this source": [
   "Conferir esta fonte"
+ ],
+ "Checking": [
+  "Verificando"
  ],
  "Checking for updates": [
   "Procurando atualizações"
@@ -509,6 +515,9 @@
  "Hide details": [
   "Ocultar detalhes"
  ],
+ "Hide password": [
+  "Ocultar senha"
+ ],
  "Hide the assistant's report": [
   "Ocultar o relatório do assistente"
  ],
@@ -669,6 +678,12 @@
  ],
  "Key %1, %2": [
   "Chave %1, %2"
+ ],
+ "Keyboard layout: %1": [
+  "Layout do teclado: %1"
+ ],
+ "Keyboard layout: %1. Press to switch.": [
+  "Layout do teclado: %1. Pressione para trocar."
  ],
  "Language model": [
   "Modelo de linguagem"
@@ -1128,6 +1143,9 @@
  "Show all channels": [
   "Mostrar todos os canais"
  ],
+ "Show password": [
+  "Mostrar senha"
+ ],
  "Show the assistant's report": [
   "Mostrar o relatório do assistente"
  ],
@@ -1254,6 +1272,12 @@
  "That message has no sender to answer.": [
   "Essa mensagem não tem remetente para responder."
  ],
+ "That password did not work. Check Caps Lock and the keyboard layout (%1).": [
+  "Essa senha não funcionou. Confira o Caps Lock e o layout do teclado (%1)."
+ ],
+ "That password did not work. Try again.": [
+  "Essa senha não funcionou. Tente de novo."
+ ],
  "The Basalt kernel module CA waits for its confirmation at the next start (blue MokManager screen); the NVIDIA module loads after it.": [
   "A CA de módulos do kernel do Basalt aguarda a sua confirmação na próxima inicialização (tela azul do MokManager); o módulo NVIDIA carrega depois disso."
  ],
@@ -1367,6 +1391,9 @@
  ],
  "The page dictates what the assistant should say. Its summary was withheld; read the page yourself.": [
   "A página dita o que o assistente deve falar. O resumo foi retido; leia a página você mesmo."
+ ],
+ "The password could not be checked. Try again.": [
+  "Não foi possível verificar a senha. Tente de novo."
  ],
  "The permission to read that folder has ended. Allow it again to open the file.": [
   "A permissão para ler essa pasta terminou. Permita de novo para abrir o arquivo."
@@ -1513,6 +1540,9 @@
  "To try the NVIDIA driver again instead, run sudo basalt-nvidia retry in a terminal and restart.": [
   "Para tentar o driver NVIDIA de novo, rode sudo basalt-nvidia retry num terminal e reinicie."
  ],
+ "Too many attempts. Wait a few minutes, then try again.": [
+  "Muitas tentativas. Espere alguns minutos e tente de novo."
+ ],
  "Trust and add": [
   "Confiar e adicionar"
  ],
@@ -1559,6 +1589,9 @@
  "Type this into %1?": [
   "Digitar isto em %1?"
  ],
+ "Type your password to unlock": [
+  "Digite sua senha para desbloquear"
+ ],
  "Undo the last update": [
   "Desfazer a última atualização"
  ],
@@ -1570,6 +1603,12 @@
  ],
  "Undoing the update": [
   "Desfazendo a atualização"
+ ],
+ "Unlock": [
+  "Desbloquear"
+ ],
+ "Unlocking": [
+  "Desbloqueando"
  ],
  "Update history": [
   "Histórico de atualizações"
@@ -1705,6 +1744,9 @@
  ],
  "checking that everything works": [
   "conferindo se tudo funciona"
+ ],
+ "dddd, MMMM d": [
+  "dddd, d 'de' MMMM"
  ],
  "deceptive links": [
   "links enganosos"

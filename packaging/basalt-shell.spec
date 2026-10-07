@@ -52,7 +52,8 @@ Recommends:     qadwaitadecorations-qt5
 Recommends:     rsms-inter-fonts
 Recommends:     jetbrains-mono-fonts
 Recommends:     swayidle
-Recommends:     swaylock
+# The lock screen's fallback when the shell UI is not running (basalt-lock).
+Requires:       swaylock
 Recommends:     wl-clipboard
 Recommends:     cliphist
 Recommends:     slurp
@@ -314,6 +315,7 @@ fi
 %dir %{_sysconfdir}/basalt
 %config(noreplace) %{_sysconfdir}/basalt/voice.conf
 %config(noreplace) %{_sysconfdir}/basalt/desktop-models.conf
+%config(noreplace) %{_sysconfdir}/pam.d/basalt-lock
 %{_libexecdir}/basalt-shell/
 %{_datadir}/polkit-1/actions/org.openbasalt.shell.policy
 %{_datadir}/polkit-1/rules.d/50-basalt-shell.rules
@@ -353,6 +355,24 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Tue Oct 06 2026 Basalt OS developers - 0.9.2-1
+- A real lock screen in the shell, in the login screen's look: the
+  wallpaper, the time and the date, the person's picture and name, and a
+  password field that has the keyboard at once, with its hint ("Type your
+  password to unlock"), Caps Lock, the keyboard layout, the network and
+  the battery. A wrong password shakes the card and says so. Locking no
+  longer shows a blank screen until a key is pressed.
+- It locks through the compositor's ext-session-lock-v1 (sway and niri)
+  and unlocks only when PAM accepts the password (the basalt-lock PAM
+  service: pam_unix through unix_chkpwd; fingerprints later through the
+  same conversation). No IPC call unlocks. While it is locked the daemon
+  refuses push to talk, agent input and agent screenshots.
+- basalt-lock asks the shell UI and falls back to swaylock (themed, over
+  the wallpaper, its indicator always visible) when the UI is not
+  running; if the UI stops while the screen is locked, swaylock takes the
+  lock over and the UI is started again after the unlock. swayidle, before
+  sleep and logind's lock request (loginctl lock-session) work as before.
+
 * Tue Oct 06 2026 Basalt OS developers - 0.9.1-1
 - An offline update never restarts the computer without warning: once it
   is staged, the power menu's 60 second countdown opens ("Restarting to

@@ -1,12 +1,120 @@
 #!/bin/bash
-# Lock the screen with swaylock in the current theme's colors (read from
-# the daemon); falls back to plain colors.
+# Lock the session (Super+L, the power menu, swayidle on idle, before
+# sleep and on logind's lock request: loginctl lock-session).
+#
+# The shell's own lock screen first: `basalt-shell-ui ipc call lock lock`
+# asks the running shell UI, which locks through the compositor
+# (ext-session-lock-v1) and unlocks only when PAM accepts the person's
+# password. This script returns once the compositor confirms the lock
+# (swayidle -w waits for it before the computer sleeps), and leaves a
+# small guard behind: if the shell UI stops while the screen is locked
+# (the compositor keeps the session locked, showing nothing), swaylock
+# takes the lock over so the person can still unlock, then the shell UI
+# is started again.
+#
+# Without a running shell UI (or one too old to lock), swaylock locks
+# instead, in the theme's colors, over the wallpaper, with its indicator
+# always visible (never a blank screen), the keyboard layout and Caps Lock.
+# BASALT_LOCK_FALLBACK=1 uses swaylock even with the shell UI running.
+# Each lock is written to the journal (journalctl -t basalt-lock).
 set -u
-bg=111418; ring=b5502f; text=ece7e1
-if out=$(basalt-shell ctl theme 2>/dev/null); then
-  t() { printf '%s' "$out" | sed -n "s/.*\"$1\": \"#\([0-9a-f]\{6\}\).*/\1/p" | head -1; }
-  bg=$(t color.bg || echo $bg); ring=$(t color.accent || echo $ring); text=$(t color.text || echo $text)
+uid=$(id -u)
+rt=${XDG_RUNTIME_DIR:-/run/user/$uid}
+state=$rt/basalt-lock.state
+share=${BASALT_SHELL_DATA:-}
+if [ -z "$share" ]; then
+  for d in "$(dirname "$(readlink -f "$0")")/../share/basalt-shell" /usr/local/share/basalt-shell /usr/share/basalt-shell; do
+    if [ -d "$d" ]; then share=$d; break; fi
+  done
 fi
-exec swaylock -f -c "${bg:-111418}" --ring-color "${ring:-b5502f}" --key-hl-color "${text:-ece7e1}" \
-  --inside-color "${bg:-111418}" --line-color 00000000 --separator-color 00000000 --text-color "${text:-ece7e1}" \
-  --indicator-radius 80 --indicator-thickness 8
+
+# swaylock_run [ARGS]: swaylock in the theme's colors (read from the
+# daemon), plain Basalt colors without it.
+swaylock_run() {
+  local bg=111418 ring=b5502f text=ece7e1 mode=dark out wall
+  if out=$(timeout 3 basalt-shell ctl theme 2>/dev/null); then
+    t() { printf '%s' "$out" | sed -n "s/.*\"$1\": \"#\([0-9a-fA-F]\{6\}\).*/\1/p" | head -1; }
+    bg=$(t color.bg); ring=$(t color.accent); text=$(t color.text)
+    case $out in *'"mode": "light"'*) mode=light ;; esac
+  fi
+  bg=${bg:-111418}; ring=${ring:-b5502f}; text=${text:-ece7e1}
+  local img=()
+  wall=$share/qml/wallpapers/basalt-$mode-1920x1080.png
+  [ -f "$wall" ] && img=(-i "$wall" -s fill)
+  swaylock "$@" -c "$bg" "${img[@]}" \
+    --indicator-idle-visible --show-keyboard-layout --indicator-caps-lock --ignore-empty-password \
+    --show-failed-attempts --indicator-radius 90 --indicator-thickness 9 \
+    --ring-color "$ring" --key-hl-color "$text" --inside-color "${bg}e6" \
+    --ring-ver-color "$ring" --inside-ver-color "${bg}e6" --text-ver-color "$text" \
+    --ring-clear-color "$ring" --inside-clear-color "${bg}e6" --text-clear-color "$text" \
+    --ring-wrong-color e0605a --inside-wrong-color "${bg}e6" --text-wrong-color e0605a \
+    --ring-caps-lock-color d9a23a --inside-caps-lock-color "${bg}e6" --text-caps-lock-color d9a23a \
+    --line-color 00000000 --line-clear-color 00000000 --line-ver-color 00000000 \
+    --line-wrong-color 00000000 --line-caps-lock-color 00000000 --separator-color 00000000 \
+    --text-color "$text" --layout-bg-color "${bg}cc" --layout-border-color 00000000 --layout-text-color "$text"
+}
+
+# shell_pid: the shell UI (Quickshell) on this Wayland display.
+shell_pid() {
+  local pid
+  for pid in $(pgrep -u "$uid" -x quickshell; pgrep -u "$uid" -x qs); do
+    if [ -z "${WAYLAND_DISPLAY:-}" ] ||
+       tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null | grep -qx "WAYLAND_DISPLAY=$WAYLAND_DISPLAY"; then
+      echo "$pid"; return 0
+    fi
+  done
+  return 1
+}
+
+lock_state() { timeout 3 basalt-shell-ui ipc call lock state 2>/dev/null; }
+
+# guard PID: while the shell UI holds the lock, watch it; if it stops
+# before the person unlocked, swaylock takes the abandoned lock over. It
+# stops watching only when the shell UI itself says it is unlocked (the
+# state file says when to ask); a shell UI that is gone counts as locked.
+guard() {
+  local pid=$1 st
+  exec 9>"$rt/basalt-lock.guard"
+  flock -n 9 || exit 0
+  while [ -d "/proc/$pid" ]; do
+    st=""
+    read -r st <"$state" 2>/dev/null
+    if [ "$st" != locked ] && [ "$(lock_state)" = unlocked ]; then
+      exit 0
+    fi
+    sleep 1
+  done
+  logger -t basalt-lock "the shell UI stopped while the screen was locked: swaylock takes over" 2>/dev/null
+  # Until the person unlocks: no -f, swaylock returns after the unlock.
+  swaylock_run
+  printf 'unlocked\n' >"$state"
+  setsid -f basalt-shell-ui </dev/null >/dev/null 2>&1
+}
+
+if [ "${1:-}" = --guard ]; then
+  guard "${2:-0}"
+  exit 0
+fi
+
+# Already locked by swaylock: nothing to do (a swaylock that already
+# exited and waits to be reaped does not count).
+if pgrep -u "$uid" -x swaylock -r R,S,D >/dev/null; then
+  exit 0
+fi
+
+# The shell's lock screen.
+if [ "${BASALT_LOCK_FALLBACK:-0}" != 1 ] && pid=$(shell_pid) &&
+   timeout 3 basalt-shell-ui ipc call lock lock >/dev/null 2>&1; then
+  for _ in $(seq 1 50); do
+    if [ "$(lock_state)" = locked ]; then
+      logger -t basalt-lock "locked by the shell UI" 2>/dev/null
+      setsid -f "$0" --guard "$pid" </dev/null >/dev/null 2>&1
+      exit 0
+    fi
+    sleep 0.1
+  done
+  logger -t basalt-lock "the shell UI did not lock the screen: swaylock instead" 2>/dev/null
+fi
+
+logger -t basalt-lock "locking with swaylock" 2>/dev/null
+swaylock_run -f

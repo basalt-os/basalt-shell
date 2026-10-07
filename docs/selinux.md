@@ -223,6 +223,19 @@ decider domains and its rule store). The shell module connects the daemon
 and the UI to the gate's socket when the gate's policy is loaded
 (`optional_policy`).
 
+## The lock screen (0.9.2)
+
+The lock screen checks the person's password with PAM inside the UI
+process (`basalt_shell_ui_t`, PAM service `basalt-lock`). pam_unix cannot
+read `/etc/shadow` as the person, so it runs `unix_chkpwd`; the module
+moves that helper into `chkpwd_t` (`auth_domtrans_chk_passwd`), the
+standard domain for it, as swaylock's check does from `unconfined_t`.
+Neither the UI nor the daemon reads the shadow file, and the password
+never reaches the daemon. Tested in the lab VM, enforcing: lock and
+unlock on sway and niri, wrong and right passwords, the shell UI killed
+while locked and restarted by basalt-lock's guard (back in
+`basalt_shell_ui_t`), with no AVC denials.
+
 ## Limits
 
 - This is a boundary against confined agents. Code running unconfined as

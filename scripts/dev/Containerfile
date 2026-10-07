@@ -3,14 +3,14 @@
 # host's Wayland session (or headless for screenshots).
 FROM registry.fedoraproject.org/fedora:44
 RUN dnf -y install --setopt=install_weak_deps=False \
-      sway niri quickshell xwayland-satellite xorg-x11-server-Xwayland \
+      sway niri quickshell xwayland-satellite xorg-x11-server-Xwayland swaylock swayidle \
       foot grim slurp wf-recorder wtype wl-clipboard jq \
       rsms-inter-fonts jetbrains-mono-fonts google-noto-sans-fonts google-noto-emoji-fonts \
       adwaita-icon-theme adwaita-cursor-theme adw-gtk3-theme qt6ct qt5ct qt6-qtwayland wayvnc \
       gnome-text-editor mesa-dri-drivers mesa-vulkan-drivers dbus-daemon dbus-tools \
       glib2 gsettings-desktop-schemas dconf libnotify xdg-utils \
       && dnf clean all
-RUN dnf -y install --setopt=install_weak_deps=False make golang && dnf clean all
+RUN dnf -y install --setopt=install_weak_deps=False make golang nodejs procps-ng util-linux shadow-utils pam && dnf clean all
 RUN useradd -m -u 1000 basalt
 ENV XDG_RUNTIME_DIR=/run/user/1000
 USER basalt

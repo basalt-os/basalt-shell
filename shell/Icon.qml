@@ -51,6 +51,10 @@ Item {
         "info": '<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="8" r="0.8"/>',
         "screen": '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
         "mic": '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>',
+        "keyboard": '<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.5M9.5 10h.5M13 10h.5M16.5 10h1M6 14h.5M9 14h6M17.5 14h.5"/>',
+        "eye": '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+        "eye-off": '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/>',
+        "spinner": '<path d="M12 3a9 9 0 1 1-9 9"/>',
         "logo": '<path d="M20.9 6.7L21.6 16.1L13.4 22.1L3.4 17.8L2.6 7.7L12.5 2.2" stroke-width="2.6"/><path d="M12 8.4L15.4 11L14.2 15.1L9.6 14.9L8.6 10.8Z" fill="ACCENT" stroke="none"/>'
     })
 
