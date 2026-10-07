@@ -102,6 +102,9 @@ Newline-delimited JSON over a Unix socket (mode 0600, directory 0700).
 | `updates.check` | ui | update.check: the assistant's unit basalt-updates-check.service refreshes the package lists and the report (nothing is installed) |
 | `updates.restart` | ui | the restart into a staged offline update, when the power menu's countdown ends: the assistant's unit basalt-offline-reboot.service |
 | `updates.propose`, `updates.rollback`, `channels.propose` | ui | store the assistant's update.install, update.rollback, repo.enable, repo.disable, source.add or source.remove proposal for the confirmation step |
+| `keyboard.state`, `keyboard.layouts`, `keyboard.indicator` | any | Settings, Keyboard: the person's settings, the system's keyboard, the layouts in use; every layout and variant of the XKB registry for the picker; the panel's indicator (labels, the active one) |
+| `keyboard.set`, `keyboard.switch` | ui | save and apply the person's keyboard (checked against the XKB registry); switch to the next layout or to one |
+| `keyboard.system` | ui | store the assistant's keyboard.system proposal (the login screen, the console, new accounts) for the confirmation step |
 | `toplevels` | any | the windows (with their foreign-toplevel identifiers) |
 | `capture` | agent | a screenshot for this agent: confirmed by the person, or inside its control session |
 | `input` | agent | one synthetic input step (type, key, move, click, scroll), only inside the agent's control session |
@@ -416,6 +419,87 @@ every other confirmation, and each is in the activity log. A request in
 natural language reaches only the reports (`basalt updates`, `basalt
 channels`); checking and proposing start from the page.
 
+## Keyboard
+
+Settings, Keyboard (pt-BR "Teclado") is the person's keyboard, kept in
+`~/.config/basalt/keyboard.conf` (next to voice-and-assistant.conf, only
+the daemon writes it) and applied to the running session at once:
+
+- Layouts: a list, the first is the default. "Add a layout" searches every
+  layout and variant of the system's XKB registry by name (translated
+  with xkeyboard-config's own catalog, with a few clearer names such as
+  "Portuguese (Brazil, ABNT2)" and "English (US, international with dead
+  keys)"), its English name or its code; Return takes the first match.
+  Each row moves up or down or goes away. While the person has not
+  changed them the list shows the system's layouts; "Use the system's
+  layouts" goes back to them. At most four (XKB's limit).
+- Switch layouts: Super+Shift+Space always (a compositor key binding),
+  plus one XKB combination if the person wants it (Alt+Shift, Ctrl+Shift,
+  both Alt keys). The panel shows the layout in use ("BR", "US"; a layout
+  listed twice gets its position, "US1") when there is more than one; a
+  click or Return on it switches to the next.
+- Try typing: a field to type in, and which layout is in use.
+- Caps Lock (Caps Lock, Ctrl, Escape, swapped with Escape, off), the
+  compose key (none, right Alt, Menu, right Ctrl, Caps Lock) and key repeat
+  (delay 150 to 1000 ms, 10 to 80 per second), as XKB options and the
+  compositor's repeat settings.
+
+Every value is checked against the XKB registry the system ships
+(`/usr/share/X11/xkb/rules/evdev.xml` and `evdev.extras.xml`): a layout,
+variant or option that is not there is refused before anything reaches
+the compositor (internal/keyboard). The system's own XKB options that
+these settings do not own (`terminate:ctrl_alt_bksp`) are kept.
+
+How it reaches the session. sway: `input type:keyboard xkb_variant "",
+xkb_layout "br,us", xkb_variant ",intl", xkb_options ..., repeat_delay,
+repeat_rate` over IPC (the lists quoted: sway splits commands on commas;
+the variant is cleared first, so every step compiles), and the same in a
+start-up file the shipped config includes before the person's own
+additions (`~/.config/basalt-shell/keyboard/sway.conf`), so the next
+session types with them from the first key; an input block in
+`sway.d/` still wins. niri: the managed include `basalt-keyboard.kdl` next
+to the niri config (basalt-session creates it empty), which niri reloads
+at once. When the person uses the system's layouts the start-up files do
+not name any, so a later change of the system's layouts reaches them.
+Virtual keyboards (wtype, an agent's input) keep the keymap their client
+gives them, so the indicator reads a real keyboard (sway GET_INPUTS, niri
+KeyboardLayouts) and follows input and KeyboardLayout events.
+
+The login screen and new accounts. The system's keyboard is what
+systemd-localed keeps (`/etc/X11/xorg.conf.d/00-keyboard.conf` and the
+console's `/etc/vconsole.conf`); the login screen and every new session
+start from it. "Use my layouts there too" stores the system assistant's
+`keyboard.system` proposal (`basalt keyboard set br,us(intl) --options
+... --json` through the read helper, which only stores it): the sheet
+opens on Not now, says what changes in plain words and shows the exact
+commands under Details. The person applies it like any other proposal:
+where the approval gate decides the assistant's proposals, through the
+gate (class C2, a system change) and its executor; otherwise
+basalt-apply@ID_CODE.service and an administrator's password in the
+shell's polkit dialog. The executor runs `localectl set-x11-keymap
+--no-convert LAYOUTS MODEL VARIANTS OPTIONS` and `localectl set-keymap
+--no-convert KEYMAP` (the console keymap localed would pick: kbd's
+converted keymap of the first layout, else systemd's kbd-model-map), then
+checks localed's files. The shell never runs localectl or talks to
+systemd-localed (internal/assistant/policy_test.go refuses it in the
+shell's code, session scripts, helper and policy). People who chose their
+own layouts keep them. The lock screen runs inside the session and types
+with the session's layouts (the person's, switchable from the panel's
+indicator before locking); the login screen uses the system's.
+
+First start. The installer writes the keymap the person chose: Basalt's
+installer the console keymap (`/etc/vconsole.conf`, `KEYMAP=br-abnt2`),
+a kickstart's `keyboard` command both localed files. The session and the
+login screen use the X11 keymap when there is one, else the layout of the
+console keymap (`br-abnt2` and `br` give `br`, `uk` gives `gb`, otherwise
+the part before the first hyphen), so the first session already types
+with the chosen keyboard and there is nothing to do; the page shows those
+layouts as the system's. A keymap whose layout this mapping cannot tell
+(a console keymap with a variant, such as `us-acentos`, gives plain `us`),
+or a computer installed with US, is fixed from the page: the person's own
+layouts at once, and "Use my layouts there too" for the login screen,
+which also writes the X11 keymap, so the mapping is no longer needed.
+
 ## Design tokens
 
 One flat, closed set of tokens (`internal/theme/tokens.go`), each with a
@@ -644,7 +728,7 @@ to the entry with the keyboard focus.
 | Idle and lock | swayidle runs basalt-lock after 15 minutes, before sleep and on logind's lock request; the shell's own lock screen (ext-session-lock-v1, PAM), swaylock in the theme's colors only as the fallback (below, Lock screen) |
 | Autostart | basalt-session.target wants xdg-desktop-autostart.target |
 | Flatpak apps | the session adds the Flatpak export directories to XDG_DATA_DIRS (login shells do it through profile.d; greetd starts no login shell), so the launcher and the panel find their launchers and icons, and those of RPMs whose scripts put icons there (Google Chrome) |
-| Keyboard layouts | the session starts with the system's layouts (XKB_DEFAULT_* from /etc/X11/xorg.conf.d/00-keyboard.conf, as the login screen does); Super+Shift+Space switches to the next one |
+| Keyboard layouts | the session starts with the system's layouts (XKB_DEFAULT_* from /etc/X11/xorg.conf.d/00-keyboard.conf, as the login screen does), then the person's own from Settings, Keyboard (below); Super+Shift+Space switches to the next one |
 | Java (JetBrains IDEs) | native Wayland by default in the 2026 IDEs; new windows are kept inside the usable area (above) |
 
 ## Session
@@ -884,7 +968,9 @@ opens on Ignore and Return declines it; Left and Return apply one), an
 agent's proposal (the sheet opens on Decline and Return right away
 declines; Right to Confirm and Return confirms; Escape declines), the
 screen-share chooser (opens on Cancel, Return cancels, Shift+Tab and
-Return choose), the drawer's tabs, in dark and light mode. After
+Return choose), the drawer's tabs, the Keyboard page (the picker, a layout
+added, moved and removed, the switch key, the try field) and the panel's
+layout indicator, in dark and light mode. After
 each step the shell's IPC says which control holds the keyboard
 (`ipc call shell focused`) and which surfaces are open (`surfaces`);
 screenshots go to the output directory. `lab/greeter/e2e-fake.sh` does the

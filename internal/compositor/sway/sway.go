@@ -695,7 +695,7 @@ func (a *Adapter) Subscribe(ctx context.Context) (<-chan compositor.Event, error
 	if err != nil {
 		return nil, err
 	}
-	if err := c.write(msgSubscribe, []byte(`["window","workspace","output"]`)); err != nil {
+	if err := c.write(msgSubscribe, []byte(`["window","workspace","output","input"]`)); err != nil {
 		_ = c.close()
 		return nil, err
 	}
@@ -731,6 +731,13 @@ func (a *Adapter) Subscribe(ctx context.Context) (<-chan compositor.Event, error
 				kind = "outputs"
 			case 3:
 				kind = "windows"
+			case evInput:
+				// A keyboard's layouts or its active layout changed, or a
+				// keyboard came or went (the panel's indicator follows).
+				if !keyboardEvent(body) {
+					continue
+				}
+				kind = "keyboard"
 			default:
 				continue
 			}

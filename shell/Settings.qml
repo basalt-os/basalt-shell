@@ -50,6 +50,7 @@ FloatingWindow {
         { id: "tokens", label: "Design tokens", icon: "sliders" },
         { id: "motion", label: "Motion", icon: "motion" },
         { id: "windows", label: "Windows", icon: "window" },
+        { id: "keyboard", label: Tr.t("Keyboard"), icon: "keyboard" },
         { id: "ai", label: "Assistant and AI", icon: "spark" },
         { id: "voice", label: Tr.t("Voice and assistant"), icon: "mic" },
         { id: "updates", label: Tr.t("Updates and channels"), icon: "download" },
@@ -396,6 +397,12 @@ FloatingWindow {
                             Txt { text: modelData.name + ": " + modelData.description; role: "small"; color: Theme.textMuted; width: page.width; wrapMode: Text.Wrap; elide: Text.ElideNone }
                         }
                     }
+                }
+
+                // Keyboard: layouts, the switch key, Caps Lock, compose, repeat.
+                KeyboardSettings {
+                    visible: Ui.settingsPage === "keyboard" && Ui.settings
+                    Layout.fillWidth: true
                 }
 
                 // Voice and assistant: the person's own languages and models.

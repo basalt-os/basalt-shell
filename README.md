@@ -1,6 +1,6 @@
 # basalt-shell
 
-> Pre-release prototype (0.9.2). Expect breaking changes. Part of
+> Pre-release prototype (0.9.3). Expect breaking changes. Part of
 > [Basalt OS](https://basalt-os.org), a Linux distribution built as a
 > Fedora remix; not affiliated with or endorsed by the Fedora Project or
 > Red Hat.
@@ -35,6 +35,14 @@ a snapshot first, undoes the last update, and turns Basalt OS's channels
 (testing ones with a clear consent) and other software sources on and
 off, each one through the system assistant's confirmation and with its
 signing key shown ([docs/design.md](docs/design.md#updates-and-channels)).
+
+Settings, Keyboard sets your layouts (search by name, reorder, remove;
+Brazilian ABNT2, US international and every layout of the system's XKB
+data), the switch key, Caps Lock, a compose key and key repeat, live and
+for you only; the panel shows the layout in use. "Use my layouts there
+too" asks the system assistant to set them for the login screen and new
+accounts, with the same confirmation as every system change
+([docs/design.md](docs/design.md#keyboard)).
 
 The shell runs on sway (the default; on SwayFX, when installed, with
 rounded corners, shadows, blur and dimmed inactive windows from the
@@ -123,7 +131,8 @@ Super+N notifications, Super+Comma settings, Super+Return terminal,
 Super+T float or tile, Super+Q close, Super+Up maximize, Super+Left and
 Super+Right snap, Super+Down restore, Super+H minimize (the panel's window
 list brings it back), Super+Alt+Space window menu, Super+1..5 workspaces,
-Super+Shift+Escape stop an agent's control session, Super+L lock,
+Super+Shift+Escape stop an agent's control session, Super+Shift+Space
+next keyboard layout, Super+L lock,
 Super+Shift+E the power menu (lock, log out, suspend, restart, power off;
 also the power button at the right end of the panel and in quick
 settings), Ctrl+Alt+Tab or Super+B the panel (then Left and Right along

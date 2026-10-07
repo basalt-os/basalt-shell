@@ -10,7 +10,9 @@
 # Unix socket, which only the assistant and administrators may open; the
 # model has no power, its answer is validated by the shell), drivers,
 # updates and channels (their reports; storing a proposal, which changes
-# nothing until the person applies it). Package queries never run here:
+# nothing until the person applies it), keyboard (the system's keyboard
+# report, or storing the keyboard.system proposal: localectl runs only in
+# the assistant's executor, after the person applied it). Package queries never run here:
 # the updates and drivers reports are the ones the assistant's root units
 # wrote (basalt-updates-check, basalt-drivers-refresh), and a test of the
 # shell (internal/assistant/policy_test.go) refuses rpm or dnf in this
@@ -104,5 +106,16 @@ case "$cmd" in
     esac
     [ "$ok" = yes ] || { echo "refused argument" >&2; exit 3; }
     exec basalt channels "$@" ;;
+  keyboard)
+    layouts='^[a-z][a-z0-9_-]{0,31}(\([A-Za-z0-9][A-Za-z0-9_.+-]{0,47}\))?(,[a-z][a-z0-9_-]{0,31}(\([A-Za-z0-9][A-Za-z0-9_.+-]{0,47}\))?){0,3}$'
+    options='^[a-z][a-z0-9_]{0,31}:[A-Za-z0-9_+.-]{1,48}(,[a-z][a-z0-9_]{0,31}:[A-Za-z0-9_+.-]{1,48}){0,15}$'
+    ok=no
+    case $# in
+      1) [ "$1" = --json ] && ok=yes ;;
+      3) if [ "$1" = set ] && [[ $2 =~ $layouts ]] && [ "$3" = --json ]; then ok=yes; fi ;;
+      5) if [ "$1" = set ] && [[ $2 =~ $layouts ]] && [ "$3" = --options ] && [[ $4 =~ $options ]] && [ "$5" = --json ]; then ok=yes; fi ;;
+    esac
+    [ "$ok" = yes ] || { echo "refused argument" >&2; exit 3; }
+    exec basalt keyboard "$@" ;;
   *) echo "refused: $cmd is not a read command" >&2; exit 3 ;;
 esac

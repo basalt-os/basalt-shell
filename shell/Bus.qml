@@ -45,6 +45,9 @@ Singleton {
     // settings (Settings, Voice and assistant).
     property string uiLang: "en"
     property var uiCatalog: ({})
+    // The panel's keyboard layout indicator: the labels of the layouts in
+    // use ("BR", "US") and the active one (keyboard.indicator).
+    property var keyboard: ({ labels: [], current: 0, live: false, names: [] })
 
     signal notify(var data)           // notification.show from an agent
     signal openRequested(string surface, string page)
@@ -162,6 +165,10 @@ Singleton {
         p.voices = Object.assign({}, prefs.voices || {}, change.voices || {});
         call("voice.settings.set", p, cb);
     }
+    // The next keyboard layout (the panel's indicator).
+    function switchLayout() {
+        call("keyboard.switch", {}, (ok, res) => { if (ok && res) bus.keyboard = res; });
+    }
     function revokeGrant(id) { call("grant.revoke", { id: id || "" }); }
     // Model downloads: only this UI agrees to one (models.download) or
     // removes a model; the daemon refuses them from anyone else.
@@ -234,6 +241,7 @@ Singleton {
             case "voice-settings": bus.voiceSettings(m.data); break;
             case "models": bus.models = m.data || ({ offers: [], jobs: [], ask: "person" }); break;
             case "translator": bus.translatorAvailable = !!(m.data && m.data.available); break;
+            case "keyboard": bus.keyboard = m.data || ({ labels: [], current: 0, live: false, names: [] }); break;
             }
             return;
         }
@@ -273,6 +281,7 @@ Singleton {
             bus.uiLang = s.ui_lang || "en";
             bus.uiCatalog = s.ui_catalog || ({});
             bus.gate = s.gate || ({ present: false, enforce: [] });
+            bus.keyboard = s.keyboard || ({ labels: [], current: 0, live: false, names: [] });
             bus.ready = true;
             bus.call("ui.state", { modal: Ui.modal, locked: Ui.locked });
             bus.refreshAssistant();

@@ -131,6 +131,8 @@ func run(ctx context.Context) error {
 		map[string]any{"hardware": rep, "ui_check": ui, "agent_io": core.AgentIO()})
 	core.Refresh(ctx)
 	core.ApplyTheme(ctx)
+	// The person's keyboard (Settings, Keyboard) over the system's.
+	core.ApplyKeyboard(ctx)
 	go core.Watch(ctx)
 	go core.WatchVoice(ctx)
 	if os.Getenv("BASALT_HEADLESS") != "1" {

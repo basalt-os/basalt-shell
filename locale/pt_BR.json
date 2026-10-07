@@ -17,6 +17,9 @@
  "%1 MB, multilingual": [
   "%1 MB, multilíngue"
  ],
+ "%1 is now the default layout.": [
+  "%1 agora é o layout padrão."
+ ],
  "%1 is off.": [
   "%1 está desligado."
  ],
@@ -26,8 +29,18 @@
  "%1 kB": [
   "%1 kB"
  ],
+ "%1 layout": [
+  "%1 layout",
+  "%1 layouts"
+ ],
+ "%1 ms": [
+  "%1 ms"
+ ],
  "%1 needs NVIDIA's 580 legacy driver, made for Maxwell, Pascal and Volta GPUs. Basalt OS does not package it: the system assistant will guide that install step by step in a later version. Until then nouveau drives this GPU.": [
   "%1 precisa do driver legado 580 da NVIDIA, feito para GPUs Maxwell, Pascal e Volta. O Basalt OS não empacota esse driver: o assistente do sistema vai guiar essa instalação passo a passo numa versão futura. Até lá, o nouveau cuida desta GPU."
+ ],
+ "%1 per second": [
+  "%1 por segundo"
  ],
  "%1 s": [
   "%1 s"
@@ -180,6 +193,9 @@
  "Add": [
   "Adicionar"
  ],
+ "Add a layout": [
+  "Adicionar um layout"
+ ],
  "Add a software source": [
   "Adicionar uma fonte de software"
  ],
@@ -194,6 +210,9 @@
  ],
  "Added %1": [
   "Adicionada em %1"
+ ],
+ "Added %1. Switch to it with Super+Shift+Space.": [
+  "%1 adicionado. Troque para ele com Super+Shift+Espaço."
  ],
  "Adding a source needs an administrator's password.": [
   "Adicionar uma fonte pede a senha de um administrador."
@@ -230,6 +249,9 @@
  ],
  "Allow the assistant to read pages of %s for %s, in a separate browser profile? It never submits forms.": [
   "Permitir que o assistente leia páginas de %s por %s, num perfil de navegador separado? Ele nunca envia formulários."
+ ],
+ "Alt+Shift": [
+  "Alt+Shift"
  ],
  "Always on": [
   "Sempre ligado"
@@ -274,6 +296,9 @@
   "Pergunte ao sistema, %1 pedido esperando",
   "Pergunte ao sistema, %1 pedidos esperando"
  ],
+ "At most %1 layouts can be used at once. Remove one first.": [
+  "No máximo %1 layouts podem ser usados ao mesmo tempo. Remova um antes."
+ ],
  "Audio stays on this computer and is not kept.": [
   "O áudio fica neste computador e não é guardado."
  ],
@@ -316,6 +341,9 @@
  "Blue": [
   "Azul"
  ],
+ "Both Alt keys": [
+  "As duas teclas Alt"
+ ],
  "COPR project": [
   "Projeto do COPR"
  ],
@@ -325,8 +353,17 @@
  "Cancel drops the words.": [
   "Cancelar descarta as palavras."
  ],
+ "Caps Lock": [
+  "Caps Lock"
+ ],
  "Caps Lock is on": [
   "Caps Lock está ativado"
+ ],
+ "Change %1": [
+  "Alterar %1"
+ ],
+ "Changing the keyboard of the login screen needs the system assistant (basalt).": [
+  "Mudar o teclado da tela de login precisa do assistente do sistema (basalt)."
  ],
  "Channels": [
   "Canais"
@@ -355,6 +392,9 @@
  "Coming with the approval gate's schedules. Until then, security updates are shown here first.": [
   "Chega com os agendamentos do portão de aprovações. Até lá, as atualizações de segurança aparecem aqui primeiro."
  ],
+ "Compose key": [
+  "Tecla de composição"
+ ],
  "Confirm and apply": [
   "Confirmar e aplicar"
  ],
@@ -370,11 +410,23 @@
  "Could not do it: %s": [
   "Não foi possível: %s"
  ],
+ "Ctrl": [
+  "Ctrl"
+ ],
+ "Ctrl+Shift": [
+  "Ctrl+Shift"
+ ],
  "December": [
   "dezembro"
  ],
  "Decided by: %1": [
   "Decidido por: %1"
+ ],
+ "Default": [
+  "Padrão"
+ ],
+ "Delay before repeating": [
+  "Espera antes de repetir"
  ],
  "Deleting is not available to the assistant. I can move or rename files, and you can undo that.": [
   "Apagar não está disponível para o assistente. Posso mover ou renomear arquivos, e você pode desfazer isso."
@@ -405,6 +457,9 @@
  ],
  "Done. The computer goes back to how it was before the update when it restarts.": [
   "Pronto. O computador volta a como estava antes da atualização quando reiniciar."
+ ],
+ "Done. The login screen and new accounts use these layouts from now on.": [
+  "Pronto. A tela de login e as novas contas usam estes layouts a partir de agora."
  ],
  "Done: one of your rules allowed it.": [
   "Feito: uma das suas regras permitiu."
@@ -449,11 +504,23 @@
   "Encerrei %d permissão. O assistente não pode mais ler seus arquivos, e-mails ou sites até você permitir de novo.",
   "Encerrei %d permissões. O assistente não pode mais ler seus arquivos, e-mails ou sites até você permitir de novo."
  ],
+ "English (US, alternative international)": [
+  "Inglês (EUA, internacional alternativo)"
+ ],
+ "English (US, international with AltGr dead keys)": [
+  "Inglês (EUA, internacional com acentos pelo AltGr)"
+ ],
+ "English (US, international with dead keys)": [
+  "Inglês (EUA, internacional com acentos)"
+ ],
  "English only": [
   "só inglês"
  ],
  "Esc cancels.": [
   "Esc cancela."
+ ],
+ "Escape": [
+  "Esc"
  ],
  "February": [
   "fevereiro"
@@ -679,11 +746,20 @@
  "Key %1, %2": [
   "Chave %1, %2"
  ],
+ "Key repeat": [
+  "Repetição de teclas"
+ ],
+ "Keyboard": [
+  "Teclado"
+ ],
  "Keyboard layout: %1": [
   "Layout do teclado: %1"
  ],
  "Keyboard layout: %1. Press to switch.": [
   "Layout do teclado: %1. Pressione para trocar."
+ ],
+ "Keyboard layouts": [
+  "Layouts de teclado"
  ],
  "Language model": [
   "Modelo de linguagem"
@@ -693,6 +769,9 @@
  ],
  "Last checked: %1": [
   "Última procura: %1"
+ ],
+ "Layouts": [
+  "Layouts"
  ],
  "Let the assistant read and search the files in %s (and below; hidden files, keys and browser data stay closed) for %s": [
   "Deixar o assistente ler e pesquisar os arquivos em %s (e subpastas; arquivos ocultos, chaves e dados do navegador continuam fechados) por %s"
@@ -733,6 +812,9 @@
  "Log out now?": [
   "Sair da sessão agora?"
  ],
+ "Login screen and new accounts": [
+  "Tela de login e novas contas"
+ ],
  "Looking at the hardware.": [
   "Olhando o hardware."
  ],
@@ -747,6 +829,9 @@
  ],
  "May": [
   "maio"
+ ],
+ "Menu key": [
+  "Tecla Menu"
  ],
  "Microphone open only while you hold the key. Audio stays on this computer and is not kept.": [
   "O microfone só fica aberto enquanto você segura a tecla. O áudio fica neste computador e não é guardado."
@@ -765,6 +850,12 @@
  ],
  "Motion": [
   "Movimento"
+ ],
+ "Move %1 down": [
+  "Mover %1 para baixo"
+ ],
+ "Move %1 up": [
+  "Mover %1 para cima"
  ],
  "Move %d file to %s": [
   "Mover %d arquivo para %s",
@@ -807,6 +898,12 @@
  "No internet connection. The download starts again by itself when the computer is back online.": [
   "Sem conexão com a internet. O download recomeça sozinho quando o computador voltar a ficar online."
  ],
+ "No layout matches.": [
+  "Nenhum layout encontrado."
+ ],
+ "No layout was chosen for this computer, so the login screen uses English (US).": [
+  "Nenhum layout foi escolhido para este computador, então a tela de login usa Inglês (EUA)."
+ ],
  "No mail account is set up for the assistant (skills.conf).": [
   "Nenhuma conta de e-mail está configurada para o assistente (skills.conf)."
  ],
@@ -833,6 +930,9 @@
  ],
  "No voice for %1 is installed: answers in it are shown, not spoken.": [
   "Nenhuma voz para %1 está instalada: as respostas nesse idioma aparecem na tela, sem fala."
+ ],
+ "None": [
+  "Nenhuma"
  ],
  "Not allowed: %s": [
   "Não permitido: %s"
@@ -861,6 +961,9 @@
  "Nothing was changed, or not everything worked. The assistant's report is under Details.": [
   "Nada foi alterado, ou nem tudo funcionou. O relatório do assistente está em Detalhes."
  ],
+ "Nothing was changed, or not everything worked: %1": [
+  "Nada foi alterado, ou nem tudo deu certo: %1"
+ ],
  "Notifications": [
   "Notificações"
  ],
@@ -870,6 +973,9 @@
  ],
  "November": [
   "novembro"
+ ],
+ "Now typing with: %1": [
+  "Digitando agora com: %1"
  ],
  "October": [
   "outubro"
@@ -952,6 +1058,9 @@
  "Please say which one: %s": [
   "Diga qual: %s"
  ],
+ "Portuguese (Brazil, ABNT2)": [
+  "Português (Brasil, ABNT2)"
+ ],
  "Power": [
   "Energia"
  ],
@@ -966,6 +1075,9 @@
  ],
  "Press to start and stop": [
   "Apertar para começar e parar"
+ ],
+ "Press to switch to the next layout": [
+  "Pressione para trocar para o próximo layout"
  ],
  "Preview builds can break things, the display included.": [
   "Versões de teste podem quebrar coisas, inclusive a tela."
@@ -1038,6 +1150,9 @@
  "Remove": [
   "Remover"
  ],
+ "Remove %1": [
+  "Remover %1"
+ ],
  "Remove source": [
   "Remover fonte"
  ],
@@ -1052,6 +1167,9 @@
  ],
  "Rename %s to %s? You can undo it afterwards.": [
   "Renomear %s para %s? Você pode desfazer depois."
+ ],
+ "Repeat speed": [
+  "Velocidade da repetição"
  ],
  "Replies need the account's address and sending server in skills.conf (address, smtp_host).": [
   "Para responder, a conta precisa do endereço e do servidor de envio em skills.conf (address, smtp_host)."
@@ -1092,6 +1210,12 @@
  "Retry now": [
   "Tentar agora"
  ],
+ "Right Alt": [
+  "Alt da direita"
+ ],
+ "Right Ctrl": [
+  "Ctrl da direita"
+ ],
  "Roll back to the snapshot": [
   "Voltar ao snapshot"
  ],
@@ -1101,14 +1225,26 @@
  "Saved in %1.": [
   "Salvo em %1."
  ],
+ "Saved, but the compositor did not take them: %s": [
+  "Salvo, mas o compositor não aceitou: %s"
+ ],
  "Saved. It applies to your next request.": [
   "Salvo. Vale a partir do seu próximo pedido."
  ],
  "Saved. The multilingual speech model %1 is used for %2.": [
   "Salvo. O modelo de fala multilíngue %1 será usado para %2."
  ],
+ "Saved. Your keyboard changed at once.": [
+  "Salvo. Seu teclado mudou na hora."
+ ],
  "Search applications": [
   "Buscar aplicativos"
+ ],
+ "Search keyboard layouts": [
+  "Procurar layouts de teclado"
+ ],
+ "Search layouts, like Portuguese or ABNT2": [
+  "Procure layouts, como Português ou ABNT2"
  ],
  "Searching failed: %s": [
   "A pesquisa falhou: %s"
@@ -1242,6 +1378,12 @@
  "Suggestions": [
   "Sugestões"
  ],
+ "Super+Shift+Space always switches, and so does the layout shown in the panel. You can add one more key combination:": [
+  "Super+Shift+Espaço sempre troca, assim como o layout mostrado no painel. Você pode adicionar mais uma combinação de teclas:"
+ ],
+ "Super+Shift+Space only": [
+  "Só Super+Shift+Espaço"
+ ],
  "Supported by the NVIDIA driver %1 (open kernel modules)": [
   "Suportada pelo driver NVIDIA %1 (módulos abertos do kernel)"
  ],
@@ -1250,6 +1392,12 @@
  ],
  "Suspend the computer": [
   "Suspender o computador"
+ ],
+ "Swap with Escape": [
+  "Trocar com Esc"
+ ],
+ "Switch layouts": [
+  "Trocar de layout"
  ],
  "System": [
   "Sistema"
@@ -1353,6 +1501,9 @@
  "The edited draft could not be sent for approval.": [
   "O rascunho editado não pôde ser enviado para aprovação."
  ],
+ "The first one is the default. Super+Shift+Space switches to the next one.": [
+  "O primeiro é o padrão. Super+Shift+Espaço troca para o próximo."
+ ],
  "The focused field is for a password or code: it gets no dictation.": [
   "O campo em foco é de senha ou código: não recebe ditado."
  ],
@@ -1362,11 +1513,23 @@
  "The key file %s must be private (mode 0600).": [
   "O arquivo de chave %s precisa ser privado (modo 0600)."
  ],
+ "The keyboard layouts of this system could not be read: %s": [
+  "Não foi possível ler os layouts de teclado deste sistema: %s"
+ ],
  "The language you speak to the assistant. Automatic detection needs a multilingual model and is slower and less reliable on short requests.": [
   "O idioma em que você fala com o assistente. A detecção automática precisa de um modelo multilíngue e é mais lenta e menos confiável em pedidos curtos."
  ],
  "The local model that fits this computer is %1 (%2). It runs on this computer: what you ask stays here.": [
   "O modelo local que cabe neste computador é o %1 (%2). Ele roda neste computador: o que você pede fica aqui."
+ ],
+ "The login screen already uses your layouts.": [
+  "A tela de login já usa os seus layouts."
+ ],
+ "The login screen, the text console and accounts created from now on will use: %1. People who chose their own layouts keep them.": [
+  "A tela de login, o console de texto e as contas criadas a partir de agora vão usar: %1. Quem escolheu os próprios layouts continua com eles."
+ ],
+ "The login screen, the text console and new accounts use the system's layouts: %1.": [
+  "A tela de login, o console de texto e as novas contas usam os layouts do sistema: %1."
  ],
  "The mail password file is missing or not private (0600).": [
   "O arquivo de senha do e-mail não existe ou não é privado (0600)."
@@ -1434,6 +1597,9 @@
  "The system assistant (basalt) is not installed: Updates and channels needs it.": [
   "O assistente do sistema (basalt) não está instalado: Atualizações e canais precisa dele."
  ],
+ "The system assistant (basalt) is not installed: changing the keyboard of the login screen needs it.": [
+  "O assistente do sistema (basalt) não está instalado: mudar o teclado da tela de login precisa dele."
+ ],
  "The system assistant on this computer is older than this page. A coming update of Basalt OS brings it.": [
   "O assistente do sistema neste computador é mais antigo que esta página. Uma próxima atualização do Basalt OS traz o que falta."
  ],
@@ -1480,6 +1646,12 @@
  "There is nothing to undo.": [
   "Não há nada para desfazer."
  ],
+ "These are the system's layouts, the same as the login screen. Change them here to make them yours.": [
+  "Estes são os layouts do sistema, os mesmos da tela de login. Mude aqui para que sejam só seus."
+ ],
+ "These keyboard settings cannot be used: %s": [
+  "Estas configurações de teclado não podem ser usadas: %s"
+ ],
  "These settings are yours only. They do not change the language of the desktop: you can speak to the assistant and get answers in another language.": [
   "Estas configurações são só suas. Elas não mudam o idioma da área de trabalho: você pode falar com o assistente e receber respostas em outro idioma."
  ],
@@ -1494,6 +1666,9 @@
  ],
  "This NVIDIA GPU is supported only by an old NVIDIA driver that no longer gets updates. nouveau drives it.": [
   "Esta GPU NVIDIA só tem suporte de um driver NVIDIA antigo que não recebe mais atualizações. O nouveau cuida dela."
+ ],
+ "This changes the whole computer, so it needs an administrator's password.": [
+  "Isto muda o computador inteiro, então precisa da senha de um administrador."
  ],
  "This download offer is no longer open.": [
   "Esta oferta de download não está mais aberta."
@@ -1549,6 +1724,9 @@
  "Try again": [
   "Tentar de novo"
  ],
+ "Try typing": [
+  "Experimente digitar"
+ ],
  "Turn off": [
   "Desligar"
  ],
@@ -1581,6 +1759,12 @@
  ],
  "Type a request (at most 500 characters).": [
   "Digite um pedido (no máximo 500 caracteres)."
+ ],
+ "Type accents and symbols in sequence: the compose key, then ' and e, gives é.": [
+  "Digite acentos e símbolos em sequência: a tecla de composição, depois ' e e, dá é."
+ ],
+ "Type here to try your layout": [
+  "Digite aqui para experimentar seu layout"
  ],
  "Type the dictated text (%d character) into %s": [
   "Digitar o texto ditado (%d caractere) em %s",
@@ -1630,6 +1814,18 @@
  ],
  "Updates will also come from this channel. Its packages are signed with the OpenBasalt release key.": [
   "As atualizações também virão deste canal. Os pacotes dele são assinados com a chave de lançamento da OpenBasalt."
+ ],
+ "Use for the login screen": [
+  "Usar na tela de login"
+ ],
+ "Use my layouts there too": [
+  "Usar meus layouts lá também"
+ ],
+ "Use the system's layouts": [
+  "Usar os layouts do sistema"
+ ],
+ "Use these layouts for the login screen?": [
+  "Usar estes layouts na tela de login?"
  ],
  "Violet": [
   "Violeta"
@@ -1715,6 +1911,9 @@
  "You can keep working. This card says when it is ready.": [
   "Você pode continuar trabalhando. Este cartão avisa quando estiver pronto."
  ],
+ "You use the system's layouts again.": [
+  "Você voltou a usar os layouts do sistema."
+ ],
  "You will be logged out in %1 s.": [
   "Sua sessão termina em %1 s."
  ],
@@ -1729,6 +1928,12 @@
  ],
  "Your administrator does not allow the voice %s.": [
   "O administrador não permite a voz %s."
+ ],
+ "Your layouts and how your keys behave. These settings are yours: other people on this computer keep theirs.": [
+  "Seus layouts e como suas teclas se comportam. Estas configurações são só suas: as outras pessoas deste computador mantêm as delas."
+ ],
+ "Your layouts: %1": [
+  "Seus layouts: %1"
  ],
  "Your speech language setting is not a language. Choose one in Settings, Voice and assistant.": [
   "O idioma de fala configurado não é um idioma válido. Escolha um em Configurações, Voz e assistente."

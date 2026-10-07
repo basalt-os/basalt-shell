@@ -81,3 +81,50 @@ func TestReadHelperRunsNoRPMOrDNF(t *testing.T) {
 		}
 	}
 }
+
+// The system's keyboard (the login screen, the console, new accounts) is
+// set by the assistant's executor (keyboard.system: localectl, after the
+// person applied the proposal), never from the shell's domains: no code of
+// the shell, its UI, its session scripts or its helper runs localectl or
+// talks to systemd-localed, and its policy grants no localed D-Bus access.
+func TestShellNeverSetsTheSystemKeyboard(t *testing.T) {
+	re := regexp.MustCompile(`\blocalectl\b|org\.freedesktop\.locale1|\bset-x11-keymap\b|\bset-keymap\b|systemd_dbus_chat_localed|\blocaled\b`)
+	var files []string
+	for _, glob := range []string{"../../internal/*/*.go", "../../internal/*/*/*.go", "../../cmd/*/*.go", "../../shell/*.qml",
+		"../../greeter/*.qml", "../../greeter/*.js", "../../greeter/bin/*", "../../bin/*", "../../libexec/*", "../../selinux/*.te", "../../selinux/*.if"} {
+		m, _ := filepath.Glob(glob)
+		files = append(files, m...)
+	}
+	if len(files) < 50 {
+		t.Fatalf("only %d files scanned", len(files))
+	}
+	for _, f := range files {
+		if strings.HasSuffix(f, "_test.go") {
+			continue
+		}
+		b, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		hash := !strings.HasSuffix(f, ".go") && !strings.HasSuffix(f, ".qml") && !strings.HasSuffix(f, ".js")
+		for i, line := range strings.Split(string(b), "\n") {
+			code := line
+			if hash {
+				code, _, _ = strings.Cut(code, "#")
+			} else {
+				code, _, _ = strings.Cut(code, "//")
+				if t := strings.TrimSpace(code); strings.HasPrefix(t, "*") || strings.HasPrefix(t, "/*") {
+					continue
+				}
+			}
+			if re.MatchString(code) {
+				t.Errorf("%s:%d: %s: the system's keyboard is the assistant's keyboard.system proposal, not the shell's", f, i+1, strings.TrimSpace(line))
+			}
+		}
+	}
+	// The helper only stores the proposal (basalt keyboard set ... --json).
+	b, _ := os.ReadFile("../../libexec/assistant-read")
+	if !strings.Contains(string(b), `exec basalt keyboard "$@"`) {
+		t.Error("assistant-read does not offer the keyboard forms")
+	}
+}

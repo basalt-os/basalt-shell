@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/basalt-os/basalt-shell/internal/compositor"
@@ -30,6 +31,9 @@ type Adapter struct {
 	Style  compositor.Style
 	Calls  []string
 	nextID int
+	// Kbd is the keyboard last set; KbdIndex its active layout.
+	Kbd      compositor.KeyboardConfig
+	KbdIndex int
 }
 
 // New returns a desktop with two workspaces and two windows.
@@ -225,5 +229,38 @@ func (a *Adapter) Unminimize(_ context.Context, id string) error {
 		a.Wins[j].Focused = j == i
 	}
 	a.Wins[i].Workspace, a.Wins[i].State = ws, ""
+	return nil
+}
+
+// SetKeyboard records the keyboard.
+func (a *Adapter) SetKeyboard(_ context.Context, kb compositor.KeyboardConfig) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.Kbd, a.KbdIndex = kb, 0
+	a.Calls = append(a.Calls, fmt.Sprintf("keyboard %s (%s) %s", kb.Layout, kb.Variant, kb.Options))
+	return nil
+}
+
+// KeyboardState reports the layouts last set, by their XKB names.
+func (a *Adapter) KeyboardState(context.Context) (compositor.KeyboardState, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.Kbd.Layout == "" {
+		return compositor.KeyboardState{}, nil
+	}
+	names := strings.Split(a.Kbd.Layout, ",")
+	return compositor.KeyboardState{Names: names, Current: a.KbdIndex % len(names), Live: true}, nil
+}
+
+// SwitchLayout moves the active layout.
+func (a *Adapter) SwitchLayout(_ context.Context, index int) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if index < 0 {
+		a.KbdIndex++
+	} else {
+		a.KbdIndex = index
+	}
+	a.Calls = append(a.Calls, fmt.Sprintf("switch layout %d", index))
 	return nil
 }

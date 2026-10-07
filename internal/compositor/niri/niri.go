@@ -661,6 +661,9 @@ func (a *Adapter) Subscribe(ctx context.Context) (<-chan compositor.Event, error
 					kind = "workspaces"
 				case strings.HasPrefix(k, "Window"):
 					kind = "windows"
+				case strings.HasPrefix(k, "KeyboardLayout"):
+					// KeyboardLayoutsChanged, KeyboardLayoutSwitched.
+					kind = "keyboard"
 				}
 				if kind == "" {
 					continue

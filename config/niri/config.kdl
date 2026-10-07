@@ -10,11 +10,9 @@
 
 include "basalt-theme.kdl"
 
+// Keyboard: the system's layouts (localed, as at the login screen); the
+// person's own come from basalt-keyboard.kdl, included below.
 input {
-    keyboard {
-        xkb {
-        }
-    }
     touchpad {
         tap
         natural-scroll
@@ -22,6 +20,10 @@ input {
     }
     focus-follows-mouse max-scroll-amount="0%"
 }
+
+// The person's keyboard (Settings, Keyboard): layouts, switch key, Caps
+// Lock, compose key, key repeat. Rewritten by basalt-shell; niri reloads it.
+include "basalt-keyboard.kdl"
 
 layout {
     center-focused-column "on-overflow"

@@ -73,6 +73,9 @@ func readArgs(args []string) error {
 	if args[0] == "channels" {
 		return channelsArgs(args[1:])
 	}
+	if args[0] == "keyboard" {
+		return keyboardArgs(args[1:])
+	}
 	for _, a := range args {
 		if !reWord.MatchString(a) && !strings.HasPrefix(a, "--") {
 			return fmt.Errorf("invalid argument %q", a)
@@ -518,6 +521,10 @@ func Understood(out string) []string {
 	// Updates and channels: only their reports. Checking, and storing a
 	// proposal (an update, a channel, a source), start from the page.
 	if (args[0] == "updates" || args[0] == "channels") && len(args) > 1 {
+		return nil
+	}
+	// The keyboard: storing keyboard.system starts from Settings, Keyboard.
+	if args[0] == "keyboard" && (len(args) < 2 || args[1] == "set") {
 		return nil
 	}
 	return args

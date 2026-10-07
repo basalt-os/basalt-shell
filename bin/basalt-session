@@ -49,7 +49,9 @@ export _JAVA_AWT_WM_NONREPARENTING=1
 # XKB_DEFAULT_* for keyboards without a configuration of their own, and
 # without them the session typed with the US layout on a computer set to
 # Brazilian ABNT2 (or any other), although the login screen used the
-# right one. A person's own setting (these variables, or an input block in
+# right one. A person's own setting (these variables, Settings, Keyboard,
+# which the compositor reads from ~/.config/basalt-shell/keyboard or
+# basalt-keyboard.kdl and the daemon applies again, or an input block in
 # ~/.config/basalt-shell/sway.d) still wins.
 if [ -z "${XKB_DEFAULT_LAYOUT:-}" ]; then
   kb=/etc/X11/xorg.conf.d/00-keyboard.conf
@@ -244,6 +246,9 @@ case "$which" in
     # niri reads NIRI_CONFIG; the theme include is written next to it.
     mkdir -p "$conf/niri"
     cp -n "$share/niri/basalt-theme.kdl" "$conf/niri/basalt-theme.kdl" 2>/dev/null || true
+    # The person's keyboard (Settings, Keyboard), included by config.kdl.
+    cp -n "$share/niri/basalt-keyboard.kdl" "$conf/niri/basalt-keyboard.kdl" 2>/dev/null ||
+      [ -e "$conf/niri/basalt-keyboard.kdl" ] || printf '// Your keyboard (Settings, Keyboard).\n' >"$conf/niri/basalt-keyboard.kdl"
     [ -e "$conf/niri/local.kdl" ] || printf '// Your additions to the Basalt niri config (kept across updates).\n' >"$conf/niri/local.kdl"
     if [ ! -e "$conf/niri/config.kdl" ] || [ "$conf/niri/config.kdl" -ot "$share/niri/config.kdl" ]; then
       cp "$share/niri/config.kdl" "$conf/niri/config.kdl"

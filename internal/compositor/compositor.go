@@ -132,8 +132,9 @@ type TitleStyle struct {
 	ColorScheme string  `json:"color_scheme"`
 }
 
-// Event is a change notification. Kind is "windows", "workspaces" or
-// "outputs"; consumers refetch what they need.
+// Event is a change notification. Kind is "windows", "workspaces",
+// "outputs" or "keyboard" (the layouts or the active layout changed);
+// consumers refetch what they need.
 type Event struct {
 	Kind string `json:"kind"`
 }
@@ -187,6 +188,41 @@ type Minimizer interface {
 // shell's sway config); niri cannot change its bindings at run time.
 type VoiceKeys interface {
 	SetVoiceKeys(ctx context.Context, on bool) error
+}
+
+// KeyboardConfig is the keyboard of the session, in XKB names already
+// checked against the system's registry (internal/keyboard). Zero repeat
+// values leave the compositor's defaults.
+type KeyboardConfig struct {
+	Layout      string `json:"layout"`  // "br,us"
+	Variant     string `json:"variant"` // ",intl"
+	Model       string `json:"model"`
+	Options     string `json:"options"` // "grp:alt_shift_toggle,compose:ralt"
+	RepeatDelay int    `json:"repeat_delay"`
+	RepeatRate  int    `json:"repeat_rate"`
+	// SystemLayouts: the layouts are the system's. They are set on the
+	// running session, but the file the next session starts with does
+	// not name them, so it follows the system's layouts as they are then.
+	SystemLayouts bool `json:"system_layouts"`
+}
+
+// KeyboardState is what the seat's keyboards use now.
+type KeyboardState struct {
+	Names   []string `json:"names"`   // the layouts, in the compositor's words
+	Current int      `json:"current"` // index of the active one
+	// Live: a keyboard reported them. Virtual keyboards (an agent's, wtype)
+	// keep their own keymap, so a session with only those reports none.
+	Live bool `json:"live"`
+}
+
+// Keyboard is implemented by backends that set the keyboard layouts of
+// the running session and switch between them.
+type Keyboard interface {
+	SetKeyboard(ctx context.Context, kb KeyboardConfig) error
+	KeyboardState(ctx context.Context) (KeyboardState, error)
+	// SwitchLayout goes to the layout at index, or the next one when
+	// index is negative.
+	SwitchLayout(ctx context.Context, index int) error
 }
 
 // ErrUnsupported is returned for an operation a backend cannot do.

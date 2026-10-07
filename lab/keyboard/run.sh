@@ -3,7 +3,8 @@
 # (scripts/dev/Containerfile) runs sway headless with this checkout's
 # daemon and QML, wtype types the keys a person would (through the
 # compositor, as from a keyboard), the shell's IPC says which control
-# holds the keyboard after each step, and grim captures the focus rings.
+# holds the keyboard after each step, and grim captures the focus rings;
+# then Settings, Keyboard (settings.sh).
 #
 #   lab/keyboard/run.sh [OUTDIR]       (default: build/keyboard)
 #   IMG=localhost/other:44 lab/keyboard/run.sh
@@ -24,3 +25,4 @@ podman run -d --rm --name "$name" --network none --userns=keep-id --cap-add=SYS_
   --shm-size=512m -v "$PWD:/src:ro" -v "$out:/out:rw" "$img" sleep infinity >/dev/null
 podman exec "$name" bash /src/lab/keyboard/session.sh
 podman exec "$name" bash /src/lab/keyboard/drive.sh
+podman exec "$name" bash /src/lab/keyboard/settings.sh

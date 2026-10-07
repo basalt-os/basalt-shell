@@ -175,6 +175,8 @@ type Core struct {
 	voiceLangNoticed map[string]bool // answer languages told "shown, not spoken" this session
 	// prefs are the person's voice and assistant settings (voiceprefs.go).
 	prefs prefsState
+	// kbd is the person's keyboard (keyboard.go).
+	kbd kbdState
 	// im is the seat's input method (dictation); nil when not held.
 	im *wlime.IM
 	// placed remembers windows the shell maximized or snapped: their
@@ -341,9 +343,14 @@ func (c *Core) Watch(ctx context.Context) {
 			select {
 			case <-ctx.Done():
 				return
-			case _, ok := <-ch:
+			case ev, ok := <-ch:
 				if !ok {
 					break loop
+				}
+				if ev.Kind == "keyboard" {
+					// The panel's layout indicator (not the window list).
+					go c.keyboardChanged(ctx)
+					continue
 				}
 				if !pending {
 					pending = true

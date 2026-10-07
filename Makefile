@@ -74,6 +74,7 @@ install:
 	install -Dm644 config/sway/config $(DESTDIR)$(PREFIX)/share/basalt-shell/sway/config
 	install -Dm644 config/niri/config.kdl $(DESTDIR)$(PREFIX)/share/basalt-shell/niri/config.kdl
 	install -Dm644 config/niri/basalt-theme.kdl $(DESTDIR)$(PREFIX)/share/basalt-shell/niri/basalt-theme.kdl
+	install -Dm644 config/niri/basalt-keyboard.kdl $(DESTDIR)$(PREFIX)/share/basalt-shell/niri/basalt-keyboard.kdl
 	install -Dm644 config/portals/xdpw-config $(DESTDIR)$(PREFIX)/share/basalt-shell/portals/xdpw-config
 	install -Dm644 config/sessions/basalt-sway.desktop $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-sway.desktop
 	install -Dm644 config/sessions/basalt-niri.desktop $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-niri.desktop

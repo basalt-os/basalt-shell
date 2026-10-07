@@ -101,7 +101,7 @@ k shift+Tab
 expect "settings-accent-c0392b" "Shift+Tab returns to the swatch focused last (roving stop)"
 k Escape
 expect settings-nav-appearance "Escape in the page returns to the sidebar"
-for _ in 1 2 3 4 5; do k Down; done
+for _ in 1 2 3 4 5 6; do k Down; done
 expect settings-nav-voice "Down to Voice and assistant"
 sleep 1
 k Tab

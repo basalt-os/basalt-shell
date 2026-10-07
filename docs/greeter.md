@@ -48,7 +48,8 @@ repository) uses the same colors, mark and card:
   default), Basalt on niri (basalt-shell-niri), and other installed
   sessions. Each person's last choice is remembered.
 - At the top right: the keyboard layout (click to switch when the system
-  has several), the network (NetworkManager), the battery (UPower, laptops
+  has several; the system's keyboard, which localed keeps and Settings,
+  Keyboard changes with "Use my layouts there too"), the network (NetworkManager), the battery (UPower, laptops
   only), accessibility (large text, high contrast), the language of the
   screen (English, Brazilian Portuguese) and power (suspend, restart,
   power off, through logind; polkit decides as for any local session).

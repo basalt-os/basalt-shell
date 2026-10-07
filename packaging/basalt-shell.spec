@@ -37,6 +37,9 @@ Requires:       qt6ct
 Requires:       qt5ct
 Requires:       gnome-keyring
 Requires:       gnome-keyring-pam
+# Settings, Keyboard: the layouts, variants and options of the XKB
+# registry (rules/evdev.xml) and their translated names.
+Requires:       xkeyboard-config
 # The read-only skills: PDF text (poppler), the browse skill (headless
 # Chromium). Speech: basalt-voice (whisper.cpp) and the PipeWire tools.
 Requires:       poppler-utils
@@ -355,6 +358,23 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Tue Oct 06 2026 Basalt OS developers - 0.9.3-1
+- Settings, Keyboard: the person's layouts (add with a search by name,
+  remove, reorder; the first is the default; variants), applied to the
+  running session at once on sway and niri, the key that switches them
+  (Super+Shift+Space, plus Alt+Shift, Ctrl+Shift or both Alt keys), Caps
+  Lock as Ctrl, Escape or off, a compose key, key repeat, and a field to
+  try them. Kept in ~/.config/basalt/keyboard.conf and applied at every
+  session start on top of the system's keyboard. Layouts, variants and
+  options are checked against the system's XKB registry.
+- The panel shows the layout in use when there is more than one; a click
+  switches to the next.
+- "Use my layouts there too" stores the system assistant's
+  keyboard.system proposal (the login screen, the text console and new
+  accounts) and applies it like every other system change (the approval
+  gate, or an administrator's password); the shell never runs localectl,
+  and a test refuses it in the shell's domains.
+
 * Tue Oct 06 2026 Basalt OS developers - 0.9.2-1
 - A real lock screen in the shell, in the login screen's look: the
   wallpaper, the time and the date, the person's picture and name, and a

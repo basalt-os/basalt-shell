@@ -57,9 +57,9 @@ exec basalt-shell-ui
 # Shell surfaces.
 bindsym $mod+space exec $ui toggle launcher
 bindsym $mod+d exec $ui toggle launcher
-# Next keyboard layout, when the system has more than one (for example
-# Brazilian ABNT2 and US international, set with localectl; the session
-# starts with the system's layouts).
+# Next keyboard layout, when there is more than one (for example
+# Brazilian ABNT2 and US international: Settings, Keyboard, or the
+# system's layouts).
 bindsym $mod+Shift+space input type:keyboard xkb_switch_layout next
 bindsym $mod+a exec $ui toggle commandbar
 bindsym $mod+n exec $ui toggle notifications
@@ -153,6 +153,12 @@ bindsym XF86MonBrightnessDown exec brightnessctl set 5%-
 # restart, power off; log out, restart and power off ask first). Without
 # a running shell UI, sway's own exit prompt.
 bindsym $mod+Shift+e exec $ui toggle power || swaynag -t warning -m 'Exit sway? This ends your session.' -B 'Exit' 'swaymsg exit'
+
+# The person's keyboard (Settings, Keyboard: layouts, switch key, Caps
+# Lock, compose key, key repeat), written by basalt-shell; the daemon also
+# applies changes at once over IPC. Without it, the system's layouts
+# (basalt-session sets XKB_DEFAULT_* from localed's file).
+include ~/.config/basalt-shell/keyboard/*.conf
 
 # Local additions (not overwritten by updates).
 include ~/.config/basalt-shell/sway.d/*

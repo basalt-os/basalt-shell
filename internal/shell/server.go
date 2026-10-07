@@ -19,6 +19,7 @@ import (
 	"github.com/basalt-os/basalt-shell/internal/assistant"
 	"github.com/basalt-os/basalt-shell/internal/audit"
 	"github.com/basalt-os/basalt-shell/internal/i18n"
+	"github.com/basalt-os/basalt-shell/internal/keyboard"
 	"github.com/basalt-os/basalt-shell/internal/models"
 	"github.com/basalt-os/basalt-shell/internal/voiceprefs"
 )
@@ -297,7 +298,7 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 			"desktop": d, "theme": c.Theme(), "pending": c.Pending(), "activity": c.Audit.Tail(60),
 			"actions": Catalog(), "assistant": c.Assistant != nil && c.Assistant.Available(),
 			"translator": c.translator() != nil, "version": Version, "control": c.ControlState(),
-			"ui_check": ss.s.UI, "agent_io": c.AgentIO(),
+			"ui_check": ss.s.UI, "agent_io": c.AgentIO(), "keyboard": c.KeyboardIndicator(ctx),
 			"voice": c.VoiceStatus(), "grants": grantsOf(c), "skills": c.Skills != nil,
 			// The shell UI's own language is the session's (the desktop's
 			// texts); the voice and the answers have the person's own
@@ -705,6 +706,61 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 			return nil, err
 		}
 		return p, nil
+	case "keyboard.state":
+		// Settings, Keyboard: the person's settings, the system's, the
+		// layouts in use (read only).
+		return c.KeyboardInfo(ctx), nil
+	case "keyboard.layouts":
+		// The picker: every layout and variant of the system's registry.
+		return c.KeyboardLayouts()
+	case "keyboard.indicator":
+		return c.KeyboardIndicator(ctx), nil
+	case "keyboard.set":
+		// Only the person, in Settings, changes their keyboard.
+		if err := ss.requireUI(); err != nil {
+			_, _ = c.Audit.Append("refuse", ss.actor(), "keyboard settings refused: not the shell UI", map[string]any{"pid": ss.pid})
+			return nil, err
+		}
+		if c.recentInput() {
+			return nil, errors.New("a change right after agent input is not accepted; choose again")
+		}
+		var s keyboard.Settings
+		if err := decode(req.Args, &s); err != nil {
+			return nil, err
+		}
+		if err := c.SetKeyboard(ctx, s); err != nil {
+			return nil, err
+		}
+		return c.KeyboardInfo(ctx), nil
+	case "keyboard.switch":
+		// The panel's indicator: the next layout, or one.
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		a := struct {
+			Index *int `json:"index"`
+		}{}
+		_ = decode(req.Args, &a)
+		i := -1
+		if a.Index != nil {
+			i = *a.Index
+		}
+		if err := c.SwitchKeyboardLayout(ctx, i); err != nil {
+			return nil, err
+		}
+		return c.KeyboardIndicator(ctx), nil
+	case "keyboard.system":
+		// "Use for the login screen and new accounts too": store the
+		// assistant's keyboard.system proposal; the page shows it and
+		// applies it with assistant.apply (or the approval gate), like
+		// any other system change. The shell never runs localectl.
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		if c.recentInput() {
+			return nil, errors.New("a request right after agent input is not accepted; ask again")
+		}
+		return c.KeyboardSystemProposal(ctx)
 	case "toplevels":
 		d := c.Refresh(ctx)
 		return d.Windows, nil

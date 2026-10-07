@@ -485,6 +485,25 @@ PanelWindow {
                     }
                 }
 
+                // The keyboard layout in use, when there is more than one:
+                // click (or Return) switches to the next, as Super+Shift+Space.
+                Pressable {
+                    id: kbdInd
+                    readonly property var kb: Bus.keyboard || ({ labels: [], current: 0 })
+                    readonly property var labels: kb.labels || []
+                    readonly property string label: labels.length > 0 ? labels[Math.max(0, Math.min(kb.current || 0, labels.length - 1))] : ""
+                    visible: labels.length > 1
+                    e2e: "panel-keyboard"
+                    accessibleName: Tr.t("Keyboard layout: %1").arg(label)
+                    accessibleDescription: Tr.t("Press to switch to the next layout")
+                    implicitHeight: Theme.panelHeight - Theme.s2
+                    implicitWidth: kbdLabel.implicitWidth + Theme.s3
+                    radius: Theme.radiusSm
+                    color: hovered ? Theme.hover : "transparent"
+                    onClicked: Bus.switchLayout()
+                    Txt { id: kbdLabel; anchors.centerIn: parent; text: kbdInd.label; role: "small"; font.weight: Font.DemiBold }
+                }
+
                 StatusIcons { height: Theme.panelHeight - Theme.s2; onOpen: bar.openSurface("quicksettings", "panel-status") }
 
                 Btn {
