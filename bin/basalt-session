@@ -169,6 +169,27 @@ fi
 conf=${XDG_CONFIG_HOME:-$HOME/.config}/basalt-shell
 mkdir -p "$conf/sway.d"
 
+# The wallpaper from the compositor's first frame. The shell UI draws the
+# wallpaper itself, but only once Quickshell has loaded (about 2 s on a
+# virtual machine, more on a slow disk), and the screen stayed black from
+# the login screen's fade until then. sway's own background (swaybg) shows
+# the same picture, in the person's light or dark mode, a few hundred
+# milliseconds after sway starts; the shell's wallpaper layer then covers
+# it. The sway config includes this file.
+session_background() {
+  local rt=${XDG_RUNTIME_DIR:-} mode=dark f
+  [ -n "$rt" ] || return 0
+  if grep -qs '"mode"[[:space:]]*:[[:space:]]*"light"' "$conf/settings.json"; then mode=light; fi
+  f="$share/qml/wallpapers/basalt-$mode-1920x1080.png"
+  mkdir -p "$rt/basalt-session" || return 0
+  if [ -r "$f" ]; then
+    printf 'output * bg "%s" fill "#14171b"\n' "$f" >"$rt/basalt-session/background.conf"
+  else
+    printf 'output * bg "#14171b" solid_color\n' >"$rt/basalt-session/background.conf"
+  fi
+}
+session_background
+
 # The NVIDIA driver (Basalt OS: basalt-nonfree, nvidia-driver): sway and
 # SwayFX refuse to start while NVIDIA's kernel module is loaded unless
 # given --unsupported-gpu, even on a laptop where the integrated GPU drives

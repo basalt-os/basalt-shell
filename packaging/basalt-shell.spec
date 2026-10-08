@@ -20,6 +20,8 @@ BuildRequires:  bzip2
 
 Requires:       quickshell
 Requires:       sway
+# The session's background from sway's first frame (bin/basalt-session).
+Requires:       swaybg
 Requires:       xdg-desktop-portal
 Requires:       xdg-desktop-portal-gtk
 Requires:       polkit

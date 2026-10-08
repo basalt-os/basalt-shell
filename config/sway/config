@@ -13,6 +13,13 @@
 set $mod Mod4
 set $ui basalt-shell-ui ipc call shell
 
+# The wallpaper from the first frame, under the shell's own wallpaper
+# layer: basalt-session writes the picture for the person's light or dark
+# mode, so the session never starts on a black screen while the shell UI
+# loads.
+output * bg "#14171b" solid_color
+include $XDG_RUNTIME_DIR/basalt-session/background.conf
+
 # Floating by default (Wayland and X11 windows).
 for_window [app_id=".*"] floating enable
 for_window [class=".*"] floating enable
