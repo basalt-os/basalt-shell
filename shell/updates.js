@@ -7,19 +7,26 @@
 // The channels the basalt-nonfree-release package defines.
 const nonfreeChannels = ["basalt-nonfree", "basalt-nonfree-testing"];
 
-// channelAvailable: can this channel be turned on here? A channel defined
-// on this computer can. A channel defined by basalt-nonfree-release
-// that is not here yet needs that package: installed, or offered by the
-// enabled repositories according to dnf's cached metadata (the
-// assistant's drivers report, state.nonfree_available and
-// state.release_package). Until the package is published nothing offers
-// it, and turning the channel on would fail half way, so the page shows
-// it as not available yet. An unknown report (not read yet, or an
-// assistant without it) counts as not available.
+// channelAvailable: can this channel be turned on here? Channels defined
+// by basalt-release always can. A channel defined by basalt-nonfree-release
+// needs two things:
+// - its own repository published: the daemon fetched its repomd.xml
+//   (c.published, from channels.state). basalt-nonfree-release can be
+//   installed long before a driver build is published, and a channel
+//   turned on before that leaves dnf failing on a 404;
+// - the definition: defined here already, or basalt-nonfree-release
+//   installed or offered by the enabled repositories according to dnf's
+//   cached metadata (the assistant's drivers report,
+//   state.nonfree_available and state.release_package).
+// Until then the page shows it as not available yet. Anything unknown (a
+// report not read yet, an assistant or daemon without the field) counts as
+// not available. A channel that is on can always be turned off.
 function channelAvailable(c, chan, drv) {
     if (!c) return false;
     if (nonfreeChannels.indexOf(c.id) < 0) return true;
-    if (c.defined || c.enabled) return true;
+    if (c.enabled) return true;
+    if (c.published !== true) return false;
+    if (c.defined) return true;
     const st = drv && drv.state ? drv.state : null;
     if (!st) return false;
     return st.release_package === true || st.nonfree_available === true;

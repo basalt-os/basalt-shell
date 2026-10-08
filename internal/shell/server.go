@@ -586,7 +586,11 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 			// driver installation is coming soon, never an error.
 			return map[string]any{"coming_soon": true, "reason": "assistant"}, nil
 		}
-		return raw, err
+		if err != nil {
+			return raw, err
+		}
+		// Whether basalt-nonfree is published (repoprobe.go).
+		return annotateDrivers(ctx, raw), nil
 	case "drivers.propose", "drivers.rollback":
 		// Store the assistant's proposal; the shell UI then shows it on the
 		// confirmation sheet and applies it with assistant.apply.
@@ -659,6 +663,11 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		}
 		if errors.Is(err, assistant.ErrUpdatesUnsupported) {
 			return map[string]any{"coming_soon": true}, nil
+		}
+		if err == nil && req.Op == "channels.state" {
+			// Whether each driver channel's repository is published
+			// (repoprobe.go).
+			raw = annotateChannels(ctx, raw)
 		}
 		return raw, err
 	case "updates.check":

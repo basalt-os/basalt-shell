@@ -336,7 +336,9 @@ need NVIDIA's 580 legacy driver (Maxwell, Pascal, Volta, for example a GTX 1070)
 assistant will guide that path later; nothing is packaged for them.
 
 Install shows only when the report says the basalt-nonfree repository's
-definition can be installed (`state.nonfree_available`). While that
+definition can be installed (`state.nonfree_available`) and the
+repository itself answers (`state.nonfree_published`: the daemon fetched
+its `repodata/repomd.xml`, see Channels below). While that
 repository is not published (the assistant then reports the action
 `unavailable`; an older report without the field counts the same), or
 with an assistant older than `basalt drivers` (it answers `unknown
@@ -402,11 +404,19 @@ be undone.
   hardware the NVIDIA driver supports, or after "Show all channels".
   Turning on a testing channel shows the consent sheet: "Preview builds can
   break things. A snapshot is taken before each update so you can go back."
-  A driver channel that is not defined here yet needs basalt-nonfree-release:
+  A driver channel can be turned on only once its own repository is
+  published: basalt-nonfree-release can be installed long before a driver
+  build is, and a channel turned on before that leaves dnf failing on a
+  404. The daemon fetches the channel's `repodata/repomd.xml` (its baseurl
+  with `$releasever`, `$basearch` and `/etc/dnf/vars` expanded, or the
+  defaults basalt-nonfree-release ships; cached 30 minutes when found, 2
+  when not) and adds `published` to the channel in `channels.state`. A
+  channel that is not defined here yet also needs basalt-nonfree-release:
   until the drivers report says it is installed or offered by the enabled
   repositories (`state.release_package`, `state.nonfree_available`, from
-  dnf's cached metadata), its toggle is disabled and the card says "Not
-  available yet: its packages are not published."
+  dnf's cached metadata), its toggle is disabled. Either way the card says
+  "Not available yet: its packages are not published." A channel that is
+  on can always be turned off.
 - A change that did not work ends with one line in plain words (not
   published yet, the sources could not be reached, a failed signature
   check, a full disk, the approval not given, else "Nothing was changed, or
