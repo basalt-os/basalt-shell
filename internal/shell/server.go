@@ -246,7 +246,7 @@ func (ss *session) actor() string {
 
 // meta describes this connection for proposals.
 func (ss *session) meta(origin, request string) Meta {
-	return Meta{Origin: origin, Actor: ss.actor(), Request: request, PID: ss.pid, Domain: ss.peer.Type}
+	return Meta{Origin: origin, Actor: ss.actor(), Request: request, PID: ss.pid, Domain: ss.peer.Type, Client: ss.client}
 }
 
 // sanitizeClient keeps a client's self-chosen name short and printable.
@@ -455,9 +455,27 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		}
 		var a struct {
 			Text string `json:"text"`
+			// App: the id of an app's question (ask.open) the person ran
+			// unchanged; it runs in the narrow mode of appask.go.
+			App string `json:"app"`
 		}
 		_ = decode(req.Args, &a)
+		if a.App != "" {
+			return c.AskApp(ctx, a.App), nil
+		}
 		return c.Ask(ctx, a.Text), nil
+	case "ask.open":
+		// Any client (an app): open the command bar with a question. It
+		// changes nothing, so the person is not asked to confirm it; the
+		// question runs in the narrow mode of appask.go.
+		var a struct {
+			Text   string   `json:"text"`
+			System []string `json:"system"`
+		}
+		if err := decode(req.Args, &a); err != nil {
+			return nil, err
+		}
+		return c.AskOpen(ss.meta("ipc", a.Text), ss.client, a.Text, a.System)
 	case "theme.save_as":
 		if err := ss.requireUI(); err != nil {
 			return nil, err

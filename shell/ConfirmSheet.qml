@@ -36,6 +36,7 @@ PanelWindow {
     readonly property var actionNames: shown ? (shown.calls || []).map(c => c.action) : []
     readonly property bool asksControl: actionNames.indexOf("agent.control") >= 0
     readonly property bool asksScreen: actionNames.indexOf("screen.capture") >= 0
+    readonly property bool fromApp: shown !== null && shown.from_kind === "app"
     onHasKeyboardChanged: if (hasKeyboard) declineBtn.forceActiveFocus(Qt.TabFocusReason)
 
     property int remaining: 0
@@ -99,13 +100,16 @@ PanelWindow {
                     anchors.verticalCenter: parent.verticalCenter
                     Txt {
                         id: sheetTitle
-                        text: win.asksControl ? "An assistant wants to control your desktop"
-                            : (win.asksScreen ? "An assistant wants to see your screen" : "An assistant wants to change your desktop")
+                        text: win.asksControl ? Tr.t("An assistant wants to control your desktop")
+                            : (win.asksScreen ? Tr.t("An assistant wants to see your screen")
+                               : (win.fromApp ? Tr.t("An app wants to change your desktop") : Tr.t("An assistant wants to change your desktop")))
                         role: "title"
                     }
                     Txt {
-                        text: win.shown ? ("Requested by " + win.shown.actor + " through " + (win.shown.origin === "mcp" ? "MCP" : "local IPC") +
-                              (win.queue.length > 1 ? "  (" + (win.queue.length - 1) + " more waiting)" : "")) : ""
+                        // Plain words only; the technical facts (program,
+                        // SELinux domain, connection) are in the activity log.
+                        text: win.shown ? (Tr.t("Asked by %1").arg(win.shown.from || Tr.t("an AI agent")) +
+                              (win.queue.length > 1 ? "  " + Tr.n("(%1 more waiting)", "(%1 more waiting)", win.queue.length - 1) : "")) : ""
                         color: Theme.textMuted; role: "small"
                     }
                 }
@@ -128,8 +132,8 @@ PanelWindow {
                     wrapMode: Text.Wrap
                     elide: Text.ElideNone
                     text: win.asksControl
-                        ? "It will see everything on your screens and can type and click in any window until the time runs out. A frame shows while it is in control; stop it any time with the Stop button or Super+Shift+Escape. It cannot answer this kind of request for itself."
-                        : "It will receive an image of what is on the screen now, including any private content shown there."
+                        ? Tr.t("It will see everything on your screens and can type and click in any window until the time runs out. A frame shows while it is in control; stop it any time with the Stop button or Super+Shift+Escape. It cannot answer this kind of request for itself.")
+                        : Tr.t("It will receive an image of what is on the screen now, including any private content shown there.")
                 }
             }
 
@@ -139,16 +143,16 @@ PanelWindow {
                 role: "small"
                 color: Theme.textMuted
                 text: (win.viaGate ? Tr.t("Nothing runs unless you confirm. Your decision goes to the approvals queue and is recorded.")
-                                   : "Nothing runs unless you confirm. Your decision is recorded in the activity log.") +
-                      (win.remaining > 0 ? "  Expires in " + Math.floor(win.remaining / 60) + ":" + ("0" + win.remaining % 60).slice(-2) + "." : "")
+                                   : Tr.t("Nothing runs unless you confirm. Your decision is recorded in the activity log.")) +
+                      (win.remaining > 0 ? "  " + Tr.t("Expires in %1.").arg(Math.floor(win.remaining / 60) + ":" + ("0" + win.remaining % 60).slice(-2)) : "")
             }
 
             Row {
                 spacing: Theme.s2
                 anchors.right: parent.right
-                Btn { id: declineBtn; text: "Decline"; variant: "outline"; e2e: "confirm-decline"; KeyNavigation.right: rememberBtn.visible ? rememberBtn : confirmBtn; onClicked: win.decide(false) }
+                Btn { id: declineBtn; text: Tr.t("Decline"); variant: "outline"; e2e: "confirm-decline"; KeyNavigation.right: rememberBtn.visible ? rememberBtn : confirmBtn; onClicked: win.decide(false) }
                 Btn { id: rememberBtn; visible: win.remember !== ""; text: Tr.t("Approve and remember (%1)").arg(win.remember); variant: "outline"; e2e: "confirm-remember"; opacity: win.armed ? 1 : 0.5; KeyNavigation.left: declineBtn; KeyNavigation.right: confirmBtn; onClicked: win.decideRemember() }
-                Btn { id: confirmBtn; text: win.asksControl ? "Allow control" : (win.asksScreen ? "Show screenshot" : "Confirm"); icon: "check"; variant: "primary"; e2e: "confirm-allow"; opacity: win.armed ? 1 : 0.5; KeyNavigation.left: rememberBtn.visible ? rememberBtn : declineBtn; onClicked: win.decide(true) }
+                Btn { id: confirmBtn; text: win.asksControl ? Tr.t("Allow control") : (win.asksScreen ? Tr.t("Show screenshot") : Tr.t("Confirm")); icon: "check"; variant: "primary"; e2e: "confirm-allow"; opacity: win.armed ? 1 : 0.5; KeyNavigation.left: rememberBtn.visible ? rememberBtn : declineBtn; onClicked: win.decide(true) }
             }
         }
     }

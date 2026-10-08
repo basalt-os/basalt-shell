@@ -2,6 +2,7 @@ package assistant
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -161,5 +162,32 @@ func TestDriversWithoutRefreshUnit(t *testing.T) {
 	b := &Bridge{Basalt: "/bin/true"}
 	if _, err := b.Drivers(context.Background()); !errors.Is(err, ErrDriversUnsupported) {
 		t.Fatal(err)
+	}
+}
+
+func TestReportOnly(t *testing.T) {
+	var ps []Proposal
+	raw := `[{"id":"p-8bd6c8","title":"SELinux blocked x","actions":null},
+		{"id":"p-000001","title":"fix","actions":[{"kind":"unit.restart","params":{"unit":"a.service"}}]},
+		{"id":"p-000002","title":"hint","hints":[{"actions":[],"reason":"r"}]}]`
+	if err := json.Unmarshal([]byte(raw), &ps); err != nil {
+		t.Fatal(err)
+	}
+	ps = markReports(ps)
+	if !ps[0].ReportOnly || ps[1].ReportOnly || ps[2].ReportOnly {
+		t.Errorf("report_only: %v %v %v", ps[0].ReportOnly, ps[1].ReportOnly, ps[2].ReportOnly)
+	}
+}
+
+func TestSecurityArgs(t *testing.T) {
+	for _, ok := range [][]string{{"security", "audit"}, {"security", "accept", "encryption"}, {"security", "review", "tpm"}, {"security", "risks", "--json"}} {
+		if err := readArgs(ok); err != nil {
+			t.Errorf("%v: %v", ok, err)
+		}
+	}
+	for _, bad := range [][]string{{"security", "accept", "selinux"}, {"security", "audit", "--apply"}, {"security", "accept", "encryption", "x"}} {
+		if err := readArgs(bad); err == nil {
+			t.Errorf("%v accepted", bad)
+		}
 	}
 }

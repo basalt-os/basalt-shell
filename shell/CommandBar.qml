@@ -35,6 +35,7 @@ PanelWindow {
     readonly property bool isMove: actName === "files.move"
     property string retry: ""        // run again after a grant is applied
     property var voiceData: null     // a spoken request's answer, shown when the bar opens
+    property var appAsk: null        // an app's question being shown ({ id, text, from })
 
     // A spoken request: show what was heard and the answer.
     Connections {
@@ -65,7 +66,14 @@ PanelWindow {
         // A new request replaces the previous proposal: ignore it.
         if (proposal && proposal.status === "pending") Bus.decide(proposal.id, false, () => {});
         busy = true; result = null; status = "";
-        Bus.ask(t, (ok, res) => {
+        // An app's question, unchanged: the daemon runs it in its narrow
+        // mode for apps (never as the person's own words).
+        // It runs once; asking again is the person's own request.
+        const fromApp = appAsk !== null && !appAsk.used && t === appAsk.text;
+        const appId = fromApp ? appAsk.id : "";
+        if (fromApp) appAsk = Object.assign({}, appAsk, { used: true });
+        const ask = fromApp ? (cb) => Bus.call("ask", { app: appId }, cb) : (cb) => Bus.ask(t, cb);
+        ask((ok, res) => {
             busy = false;
             win.result = ok ? res : { kind: "error", error: res };
             win.retry = ok && res.retry ? res.retry : "";
@@ -150,8 +158,33 @@ PanelWindow {
         }
     }
 
+    // Takes an app's question from Ui (set by Bus on its "ask" event).
+    function takeAppAsk() {
+        appAsk = Ui.commandAsk;
+        Ui.commandAsk = null;
+    }
+    Connections {
+        target: Bus
+        function onAskRequested() {
+            if (!Ui.commandBar) return;
+            win.takeAppAsk();
+            field.text = Ui.commandText;
+            Ui.commandText = "";
+            win.status = "";
+            if (!win.busy) win.result = null;
+            field.focusInput();
+            if (field.text !== "") win.submit();
+        }
+    }
+    // Editing an app's question makes it the person's own request.
+    Connections {
+        target: field
+        function onTextChanged() { if (win.appAsk && field.text !== win.appAsk.text) win.appAsk = null; }
+    }
+
     onVisibleChanged: if (Ui.commandBar) {
         if (voiceData) { showVoice(); field.focusInput(); return; }
+        takeAppAsk();
         field.text = Ui.commandText;
         Ui.commandText = "";
         status = "";
@@ -196,10 +229,21 @@ PanelWindow {
                     onAccepted: win.submit()
                 }
 
+                // Where an app's question came from.
+                Row {
+                    visible: win.appAsk !== null
+                    spacing: Theme.s2
+                    Icon { name: "spark"; color: Theme.textMuted; size: Theme.fontSmall * 1.4; anchors.verticalCenter: parent.verticalCenter }
+                    Txt {
+                        role: "small"; color: Theme.textMuted
+                        text: win.appAsk ? Tr.t("Asked from %1. It only reads; any change waits for your approval.").arg(win.appAsk.from) : ""
+                    }
+                }
+
                 NavFlow {
                     width: parent.width
                     spacing: Theme.s2
-                    visible: !win.result && !win.busy && win.status === ""
+                    visible: !win.result && !win.busy && win.status === "" && win.appAsk === null
                     Accessible.name: Tr.t("Suggestions")
                     Repeater {
                         model: ["make it darker with rounder corners", "light mode", "arrange windows side by side", "open text editor", "system status"]

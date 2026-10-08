@@ -51,6 +51,7 @@ Singleton {
 
     signal notify(var data)           // notification.show from an agent
     signal openRequested(string surface, string page)
+    signal askRequested()             // an app's question for the command bar (Ui.commandAsk)
     signal proposalChanged(var proposal)
     signal chooseRequested(var req)
     signal chooseDone(string id)
@@ -231,6 +232,14 @@ Singleton {
             }
             case "notify": bus.notify(m.data); break;
             case "ui": bus.openRequested(m.data.open || "", m.data.page || ""); break;
+            case "ask":
+                // An app asks: open the command bar with its question (no
+                // confirmation: opening the bar changes nothing).
+                Ui.commandAsk = m.data;
+                Ui.commandText = m.data.text || "";
+                Ui.focusVisible = true;
+                if (Ui.commandBar) bus.askRequested(); else Ui.open("commandbar", "");
+                break;
             case "choose": bus.chooseRequested(m.data); break;
             case "choice-done": bus.chooseDone(m.data.id); break;
             case "control": bus.control = m.data; break;

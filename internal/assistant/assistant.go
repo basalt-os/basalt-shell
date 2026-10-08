@@ -76,6 +76,9 @@ func readArgs(args []string) error {
 	if args[0] == "keyboard" {
 		return keyboardArgs(args[1:])
 	}
+	if args[0] == "security" {
+		return securityArgs(args[1:])
+	}
 	for _, a := range args {
 		if !reWord.MatchString(a) && !strings.HasPrefix(a, "--") {
 			return fmt.Errorf("invalid argument %q", a)
@@ -161,6 +164,23 @@ func (b *Bridge) Ask(ctx context.Context, text string) (string, error) {
 		}
 	}
 	return b.run(ctx, []string{b.Basalt, "ask", text})
+}
+
+var reRiskItem = regexp.MustCompile(`^(encryption|secure_boot|tpm|audit|ledger)$`)
+
+// securityArgs validates `basalt security` requests (Security and
+// Activity): the accepted risks, and storing the audit.run, risk.accept
+// or risk.review proposal (applying it still goes through Apply and the
+// approval gate).
+func securityArgs(rest []string) error {
+	switch strings.Join(rest, " ") {
+	case "", "risks", "risks --json", "audit":
+		return nil
+	}
+	if len(rest) == 2 && (rest[0] == "accept" || rest[0] == "review") && reRiskItem.MatchString(rest[1]) {
+		return nil
+	}
+	return fmt.Errorf("not a Security and Activity request: security %s", strings.Join(rest, " "))
 }
 
 // driversArgs validates `basalt drivers` requests (Additional drivers):
@@ -275,6 +295,20 @@ type Proposal struct {
 	// Evidence lines (a new software source: its key's fingerprint and
 	// owner, which the confirmation shows in plain words).
 	Evidence []string `json:"evidence,omitempty"`
+	// Actions and Hints are the proposal's changes (only counted here).
+	Actions []json.RawMessage `json:"actions,omitempty"`
+	Hints   []json.RawMessage `json:"hints,omitempty"`
+	// ReportOnly: nothing to apply, a report to read ("Nothing will be
+	// changed"). The desktop does not count it as waiting for a decision.
+	ReportOnly bool `json:"report_only"`
+}
+
+// markReports sets ReportOnly on proposals without changes.
+func markReports(ps []Proposal) []Proposal {
+	for i := range ps {
+		ps[i].ReportOnly = len(ps[i].Actions) == 0 && len(ps[i].Hints) == 0
+	}
+	return ps
 }
 
 var (
@@ -300,7 +334,7 @@ func (b *Bridge) Pending(ctx context.Context) ([]Proposal, error) {
 		if err != nil || json.Unmarshal([]byte(out), &ps) != nil {
 			return []Proposal{}, nil
 		}
-		return ps, nil
+		return markReports(ps), nil
 	}
 	out, err := b.Read(ctx, []string{"pending", "--json"})
 	if err != nil {
@@ -310,7 +344,7 @@ func (b *Bridge) Pending(ctx context.Context) ([]Proposal, error) {
 	if err := json.Unmarshal([]byte(out), &ps); err != nil {
 		return nil, fmt.Errorf("pending: %v", err)
 	}
-	return ps, nil
+	return markReports(ps), nil
 }
 
 // Show returns one proposal with its rendered report and code.

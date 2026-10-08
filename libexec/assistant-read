@@ -106,6 +106,16 @@ case "$cmd" in
     esac
     [ "$ok" = yes ] || { echo "refused argument" >&2; exit 3; }
     exec basalt channels "$@" ;;
+  security)
+    # Security and Activity: the accepted risks, or storing the audit.run,
+    # risk.accept or risk.review proposal (the person applies it).
+    case "$*" in
+      "" | "risks" | "risks --json" | "audit" | \
+        "accept encryption" | "accept secure_boot" | "accept tpm" | "accept audit" | "accept ledger" | \
+        "review encryption" | "review secure_boot" | "review tpm" | "review audit" | "review ledger")
+        exec basalt security "$@" ;;
+      *) echo "refused argument" >&2; exit 3 ;;
+    esac ;;
   keyboard)
     layouts='^[a-z][a-z0-9_-]{0,31}(\([A-Za-z0-9][A-Za-z0-9_.+-]{0,47}\))?(,[a-z][a-z0-9_-]{0,31}(\([A-Za-z0-9][A-Za-z0-9_.+-]{0,47}\))?){0,3}$'
     options='^[a-z][a-z0-9_]{0,31}:[A-Za-z0-9_+.-]{1,48}(,[a-z][a-z0-9_]{0,31}:[A-Za-z0-9_+.-]{1,48}){0,15}$'

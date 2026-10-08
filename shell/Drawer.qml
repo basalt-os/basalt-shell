@@ -124,24 +124,56 @@ PanelWindow {
 
                 Repeater {
                     model: Bus.assistantPending
+                    // A proposal waits for a decision (warning colors); a
+                    // report with nothing to apply is only read (neutral,
+                    // not counted on the panel) and can be dismissed.
                     delegate: Rectangle {
+                        id: apCard
                         required property var modelData
+                        readonly property bool report: modelData.report_only === true
+                        property string note: ""
                         Layout.fillWidth: true
                         implicitHeight: apRow.implicitHeight + Theme.s3 * 2
                         radius: Theme.radiusMd
-                        color: Theme.alpha(Theme.warning, 0.12)
-                        border.width: 1; border.color: Theme.alpha(Theme.warning, 0.5)
+                        color: report ? Theme.alpha(Theme.textMuted, 0.08) : Theme.alpha(Theme.warning, 0.12)
+                        border.width: 1; border.color: report ? Theme.alpha(Theme.textMuted, 0.3) : Theme.alpha(Theme.warning, 0.5)
                         RowLayout {
                             id: apRow
                             anchors.fill: parent
                             anchors.margins: Theme.s3
-                            Icon { name: "shield"; color: Theme.warning }
+                            Icon { name: apCard.report ? "info" : "shield"; color: apCard.report ? Theme.textMuted : Theme.warning }
                             Column {
                                 Layout.fillWidth: true
                                 Txt { width: parent.width; text: modelData.title; font.weight: Font.Medium; wrapMode: Text.Wrap; elide: Text.ElideNone }
-                                Txt { text: "System assistant proposal " + modelData.id; role: "small"; color: Theme.textMuted }
+                                Txt {
+                                    width: parent.width; wrapMode: Text.Wrap; elide: Text.ElideNone
+                                    text: apCard.note !== "" ? apCard.note
+                                        : (apCard.report ? Tr.t("A report for you to read: nothing to decide.") : Tr.t("The system assistant proposes a change (%1).").arg(modelData.id))
+                                    role: "small"; color: Theme.textMuted
+                                }
                             }
-                            Btn { text: "Review"; variant: "outline"; onClicked: { Ui.commandText = "show " + modelData.id; Bus.call("assistant.show", { id: modelData.id }, () => {}); Ui.open("commandbar", ""); } }
+                            Btn {
+                                text: apCard.report ? Tr.t("Read") : Tr.t("Review")
+                                variant: "outline"
+                                e2e: "assistant-review"
+                                onClicked: { Ui.commandText = "show " + modelData.id; Bus.call("assistant.show", { id: modelData.id }, () => {}); Ui.open("commandbar", ""); }
+                            }
+                            Btn {
+                                visible: apCard.report
+                                text: Tr.t("Dismiss")
+                                variant: "outline"
+                                e2e: "assistant-dismiss"
+                                accessibleName: Tr.t("Dismiss this report")
+                                // Closing it changes the assistant's own records
+                                // (as root): an administrator authenticates.
+                                onClicked: {
+                                    apCard.note = Tr.t("Waiting for authentication.");
+                                    Bus.call("assistant.ignore", { id: modelData.id }, (ok, res) => {
+                                        apCard.note = ok && res.ok ? "" : Tr.t("Not dismissed.");
+                                        Bus.refreshAssistant();
+                                    });
+                                }
+                            }
                         }
                     }
                 }

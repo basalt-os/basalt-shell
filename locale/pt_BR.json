@@ -145,6 +145,10 @@
  "%s, created %s, in %s": [
   "%s, criado em %s, em %s"
  ],
+ "(%1 more waiting)": [
+  "(mais %1 esperando)",
+  "(mais %1 esperando)"
+ ],
  "(not allowed by your administrator)": [
   "(não permitido pelo administrador)"
  ],
@@ -174,6 +178,9 @@
  ],
  "A remote model receives your requests and the text the assistant reads for you (files, messages, pages). Each answer says which model wrote it.": [
   "Um modelo remoto recebe seus pedidos e o texto que o assistente lê para você (arquivos, mensagens, páginas). Cada resposta diz qual modelo a escreveu."
+ ],
+ "A report for you to read: nothing to decide.": [
+  "Um relatório para você ler: nada a decidir."
  ],
  "A restart is needed at the end.": [
   "No final é preciso reiniciar."
@@ -244,6 +251,9 @@
  "Allow a remote model: on": [
   "Permitir um modelo remoto: ligado"
  ],
+ "Allow control": [
+  "Permitir o controle"
+ ],
  "Allow the assistant to read and search the files in %s for %s?": [
   "Permitir que o assistente leia e pesquise os arquivos em %s por %s?"
  ],
@@ -264,6 +274,21 @@
  ],
  "An administrator's password is needed for downloads on this computer.": [
   "Downloads neste computador precisam da senha de um administrador."
+ ],
+ "An app": [
+  "Um app"
+ ],
+ "An app wants to change your desktop": [
+  "Um app quer mudar sua área de trabalho"
+ ],
+ "An assistant wants to change your desktop": [
+  "Um assistente quer mudar sua área de trabalho"
+ ],
+ "An assistant wants to control your desktop": [
+  "Um assistente quer controlar sua área de trabalho"
+ ],
+ "An assistant wants to see your screen": [
+  "Um assistente quer ver sua tela"
  ],
  "Another source": [
   "Outra fonte"
@@ -298,6 +323,12 @@
  "Ask the system, %1 request waiting": [
   "Pergunte ao sistema, %1 pedido esperando",
   "Pergunte ao sistema, %1 pedidos esperando"
+ ],
+ "Asked by %1": [
+  "Pedido por %1"
+ ],
+ "Asked from %1. It only reads; any change waits for your approval.": [
+  "Pedido por %1. Só faz leituras; qualquer mudança espera a sua aprovação."
  ],
  "At most %1 layouts can be used at once. Remove one first.": [
   "No máximo %1 layouts podem ser usados ao mesmo tempo. Remova um antes."
@@ -377,6 +408,13 @@
  "Check this source": [
   "Conferir esta fonte"
  ],
+ "Checked: %d update is waiting (%d for security). Install it from Settings, Updates.": [
+  "Verificado: %d atualização esperando (%d de segurança). Instale em Configurações, Atualizações.",
+  "Verificado: %d atualizações esperando (%d de segurança). Instale em Configurações, Atualizações."
+ ],
+ "Checked: the system is up to date.": [
+  "Verificado: o sistema está atualizado."
+ ],
  "Checking": [
   "Verificando"
  ],
@@ -397,6 +435,9 @@
  ],
  "Compose key": [
   "Tecla de composição"
+ ],
+ "Confirm": [
+  "Confirmar"
  ],
  "Confirm and apply": [
   "Confirmar e aplicar"
@@ -425,6 +466,9 @@
  "Decided by: %1": [
   "Decidido por: %1"
  ],
+ "Decline": [
+  "Recusar"
+ ],
  "Default": [
   "Padrão"
  ],
@@ -449,8 +493,14 @@
  "Discard": [
   "Descartar"
  ],
+ "Dismiss": [
+  "Dispensar"
+ ],
  "Dismiss notification": [
   "Dispensar a notificação"
+ ],
+ "Dismiss this report": [
+  "Dispensar este relatório"
  ],
  "Done.": [
   "Pronto."
@@ -524,6 +574,9 @@
  ],
  "Escape": [
   "Esc"
+ ],
+ "Expires in %1.": [
+  "Expira em %1."
  ],
  "February": [
   "fevereiro"
@@ -721,6 +774,12 @@
  ],
  "It stops at %1 s at the latest.": [
   "Para no máximo em %1 s."
+ ],
+ "It will receive an image of what is on the screen now, including any private content shown there.": [
+  "Ele vai receber uma imagem do que está na tela agora, incluindo qualquer conteúdo privado que apareça nela."
+ ],
+ "It will see everything on your screens and can type and click in any window until the time runs out. A frame shows while it is in control; stop it any time with the Stop button or Super+Shift+Escape. It cannot answer this kind of request for itself.": [
+  "Ele vai ver tudo nas suas telas e poderá digitar e clicar em qualquer janela até o tempo acabar. Uma moldura aparece enquanto ele estiver no controle; pare a qualquer momento com o botão Parar ou Super+Shift+Escape. Ele não pode responder sozinho a este tipo de pedido."
  ],
  "It writes the summaries and understands requests in your own words. What you ask stays on this computer. The file is checked before it is used: a damaged or altered download is never installed.": [
   "Ele escreve os resumos e entende pedidos com as suas palavras. O que você pede fica neste computador. O arquivo é conferido antes de ser usado: um download danificado ou alterado nunca é instalado."
@@ -955,6 +1014,9 @@
  "Not checked yet on this computer.": [
   "Ainda não houve procura neste computador."
  ],
+ "Not dismissed.": [
+  "Não foi dispensado."
+ ],
  "Not in the list of this NVIDIA driver version": [
   "Fora da lista desta versão do driver NVIDIA"
  ],
@@ -969,6 +1031,9 @@
  ],
  "Nothing runs unless you confirm. Your decision goes to the approvals queue and is recorded.": [
   "Nada é executado sem a sua confirmação. Sua decisão vai para a fila de aprovações e fica registrada."
+ ],
+ "Nothing runs unless you confirm. Your decision is recorded in the activity log.": [
+  "Nada é executado sem a sua confirmação. Sua decisão fica registrada no registro de atividades."
  ],
  "Nothing was changed, or not everything worked. The assistant's report is under Details.": [
   "Nada foi alterado, ou nem tudo funcionou. O relatório do assistente está em Detalhes."
@@ -1126,6 +1191,9 @@
  "Quick settings": [
   "Ajustes rápidos"
  ],
+ "Read": [
+  "Ler"
+ ],
  "Read %s: %s. %s": [
   "Li %s: %s. %s"
  ],
@@ -1225,6 +1293,9 @@
  "Retry now": [
   "Tentar agora"
  ],
+ "Review": [
+  "Revisar"
+ ],
  "Right Alt": [
   "Alt da direita"
  ],
@@ -1296,6 +1367,9 @@
  ],
  "Show password": [
   "Mostrar senha"
+ ],
+ "Show screenshot": [
+  "Mostrar a captura de tela"
  ],
  "Show the assistant's report": [
   "Mostrar o relatório do assistente"
@@ -1480,6 +1554,9 @@
  "The basalt-nonfree repository is turned on. Its packages are signed with the OpenBasalt release key, like the other Basalt repositories.": [
   "O repositório basalt-nonfree é ligado. Os pacotes dele são assinados com a chave de release do OpenBasalt, como os outros repositórios do Basalt."
  ],
+ "The check for updates could not reach every repository: %s": [
+  "A verificação de atualizações não alcançou todos os repositórios: %s"
+ ],
  "The computer powers off in %1 s.": [
   "O computador desliga em %1 s."
  ],
@@ -1621,6 +1698,9 @@
  "The system assistant on this computer is older than this page. A coming update of Basalt OS brings it.": [
   "O assistente do sistema neste computador é mais antigo que esta página. Uma próxima atualização do Basalt OS traz o que falta."
  ],
+ "The system assistant proposes a change (%1).": [
+  "O assistente do sistema propõe uma mudança (%1)."
+ ],
  "The system goes back to the snapshot taken just before the last update, at the next start. Your files in your home folder stay as they are.": [
   "O sistema volta ao snapshot feito logo antes da última atualização, no próximo início. Seus arquivos na pasta pessoal ficam como estão."
  ],
@@ -1699,6 +1779,9 @@
  ],
  "This page contains %s. It tried to contact %s; the browser and the network filter blocked it. I ignored it and did nothing it asked.": [
   "Esta página contém %s. Ela tentou contatar %s; o navegador e o filtro de rede bloquearam. Ignorei e não fiz nada do que ela pede."
+ ],
+ "This question expired. Ask it again from the app.": [
+  "Esta pergunta expirou. Pergunte de novo pelo app."
  ],
  "This start uses nouveau instead of the NVIDIA driver": [
   "Esta inicialização usa o nouveau no lugar do driver NVIDIA"
@@ -1878,6 +1961,9 @@
  "Volume %1%": [
   "Volume %1%"
  ],
+ "Waiting for authentication.": [
+  "Esperando a autenticação."
+ ],
  "Waiting for authentication. Installing can take a few minutes.": [
   "Aguardando a autenticação. A instalação pode levar alguns minutos."
  ],
@@ -1964,6 +2050,9 @@
  ],
  "Your voice settings have a mistake (%s); the defaults are used.": [
   "Suas configurações de voz têm um erro (%s); os valores padrão estão em uso."
+ ],
+ "an AI agent": [
+  "um agente de IA"
  ],
  "automatic language detection": [
   "detecção automática do idioma"

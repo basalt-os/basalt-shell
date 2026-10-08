@@ -55,9 +55,14 @@ const (
 
 // Proposal is a set of actions waiting for the person's decision.
 type Proposal struct {
-	ID        string         `json:"id"`
-	Origin    string         `json:"origin"` // mcp, ipc, commandbar
-	Actor     string         `json:"actor"`
+	ID     string `json:"id"`
+	Origin string `json:"origin"` // mcp, ipc, commandbar
+	Actor  string `json:"actor"`
+	// From is who asks, in plain words for the confirmation sheet (an
+	// app's name, an agent's), and FromKind "app" or "agent"; the
+	// technical facts (pid, SELinux domain) stay in the activity log.
+	From      string         `json:"from,omitempty"`
+	FromKind  string         `json:"from_kind,omitempty"`
 	Request   string         `json:"request,omitempty"`
 	Calls     []Call         `json:"calls"`
 	Steps     []string       `json:"steps"`
@@ -179,6 +184,8 @@ type Core struct {
 	kbd kbdState
 	// im is the seat's input method (dictation); nil when not held.
 	im *wlime.IM
+	// appAsks are apps' questions waiting for the command bar (appask.go).
+	appAsks map[string]*appAsk
 	// placed remembers windows the shell maximized or snapped: their
 	// geometry before (to restore) and the placement given.
 	placed map[string]placement
@@ -607,6 +614,8 @@ type Meta struct {
 	// SELinux domain); 0 and "" for the command bar and the UI.
 	PID    int
 	Domain string
+	// Client is the name the client gave itself in hello (a label only).
+	Client string
 }
 
 // Propose stores a proposal for the person to confirm in the shell UI.
@@ -618,6 +627,7 @@ func (c *Core) Propose(ctx context.Context, m Meta, calls []Call) (*Proposal, er
 		return nil, err
 	}
 	pr.ID, pr.Origin, pr.Actor, pr.Request = newID(), origin, actor, request
+	pr.From, pr.FromKind = c.requester(m)
 	pr.Explain, pr.Backend, pr.meta = m.Explain, m.Backend, m
 	pr.Created = time.Now().UTC()
 	pr.Expires = pr.Created.Add(c.ProposalTTL)

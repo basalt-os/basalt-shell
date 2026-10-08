@@ -22,6 +22,10 @@ Singleton {
     property string powerStart: ""
     property string settingsPage: "appearance"
     property string commandText: ""
+    // An app's question for the command bar ({ id, text, from }): it opens
+    // with the text and runs it in the daemon's narrow mode for apps
+    // (internal/shell/appask.go) unless the person changes the text.
+    property var commandAsk: null
     // The window menu: { win: window id, x, y: global position } or null.
     property var windowMenu: null
 

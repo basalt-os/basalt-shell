@@ -71,6 +71,34 @@ Every request is in the activity log with how it was understood: the
 backend (rules or model), the model's answer, the time it took, the
 phrases and calls, and what grounding dropped.
 
+## Questions from apps
+
+A Basalt app (Security and Activity's "Ask the assistant", "Run audit",
+"Check now", "I accept this risk") asks with the IPC op `ask.open`
+(`{"text": "...", "system": ["security", "audit"]}`). Opening the command
+bar changes nothing, so the person is not asked to confirm it: the bar
+opens with the question, says which app asked, and runs it.
+
+An app's question runs in a narrow mode (internal/shell/appask.go), never
+as the person's own words:
+
+- `system` is one of a fixed list: the assistant's read commands (status,
+  snapshots, disk, pending, fix selinux, updates, security risks), storing
+  one of Security and Activity's proposals (`security audit`, `security
+  accept ITEM`, `security review ITEM`), or `updates check` (update.check,
+  as Settings does). Anything else is refused and recorded.
+- Without `system`, only the system assistant's own translator may answer
+  (its read commands). No desktop action, no read-only skill and no
+  person-only action (mail, typing, moving files) can come from it.
+- A proposal the assistant stored waits for the person's Apply, which goes
+  to the approval gate like any other.
+- Each question runs once, within two minutes; an app may ask at most once
+  a second. If the person edits the text, it is their own request again.
+
+The confirmation sheet for a desktop proposal says who asks in plain words
+(the app's name from its desktop entry, or the agent's name); the program,
+its SELinux domain and the connection stay in the activity log.
+
 ## Measured (lab VM, 4 vCPU, CPU only, 2026-10-04)
 
 32 requests (`lab/demo/desktop-requests.tsv`: English and Portuguese,

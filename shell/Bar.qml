@@ -348,13 +348,14 @@ PanelWindow {
                     icon: "spark"
                     text: "Ask"
                     e2e: "panel-ask"
-                    readonly property int waiting: Bus.pending.length + Bus.assistantPending.length
+                    // Reports with nothing to apply are read, not decided: not counted.
+                    readonly property int waiting: Bus.pending.length + Bus.assistantPending.filter(p => !p.report_only).length
                     accessibleName: waiting > 0 ? Tr.n("Ask the system, %1 request waiting", "Ask the system, %1 requests waiting", waiting) : Tr.t("Ask the system")
                     implicitHeight: Theme.panelHeight - Theme.s2
                     active: Ui.commandBar
                     onClicked: bar.openSurface("commandbar", e2e)
                     Rectangle {
-                        readonly property int n: Bus.pending.length + Bus.assistantPending.length
+                        readonly property int n: askBtn.waiting
                         visible: n > 0
                         anchors.right: parent.right
                         anchors.top: parent.top
