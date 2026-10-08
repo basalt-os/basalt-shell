@@ -71,3 +71,26 @@ func TestRequestPrompt(t *testing.T) {
 		t.Errorf("prompts: %q %q %q", s.requestPrompt("en"), s.requestPrompt("pt"), s.requestPrompt("auto"))
 	}
 }
+
+// Dictation keeps what was said, punctuation included; only whisper's
+// tags and sound annotations go.
+func TestCleanTranscript(t *testing.T) {
+	for in, want := range map[string]string{
+		" Two things for Monday: the report and the budget.\n": "Two things for Monday: the report and the budget.",
+		"[BLANK_AUDIO]":                         "",
+		"Hello (music) world [Music]":           "Hello world",
+		"Send it (see the list below), please.": "Send it (see the list below), please.",
+		"Obrigado (risos) , até logo.":          "Obrigado, até logo.",
+		" line one\n line two: done ":           "line one line two: done",
+		"♪ (applause) ♪":                        "",
+	} {
+		if got := cleanTranscript(in); got != want {
+			t.Errorf("cleanTranscript(%q) = %q, want %q", in, got, want)
+		}
+	}
+	for _, l := range []string{"en", "pt"} {
+		if p := dictationPrompts[l]; !strings.Contains(p, ":") || !strings.Contains(p, "?") || !strings.Contains(p, ",") {
+			t.Errorf("the %s dictation prompt lacks the punctuation it is there for: %q", l, p)
+		}
+	}
+}

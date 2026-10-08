@@ -526,7 +526,44 @@ func wav(pcm []byte, rate int) []byte {
 	return b.Bytes()
 }
 
-var reNoise = regexp.MustCompile(`\[[^\]]*\]|\([^)]*\)`)
+// reTag: whisper's bracketed tags ([BLANK_AUDIO], [Music]) are never
+// speech. reParen: a parenthesized aside, which is speech ("(see the
+// list)") unless it only names a sound (cleanTranscript).
+var (
+	reTag   = regexp.MustCompile(`\[[^\]]*\]`)
+	reParen = regexp.MustCompile(`\(([^)]*)\)`)
+)
+
+// nonSpeech are the sounds whisper writes in parentheses or asterisks
+// instead of words, in the desktop's languages.
+var nonSpeech = map[string]bool{
+	"music": true, "applause": true, "laughter": true, "laughs": true, "laughing": true, "silence": true,
+	"inaudible": true, "cough": true, "coughs": true, "coughing": true, "sigh": true, "sighs": true,
+	"noise": true, "static": true, "beep": true, "beeping": true, "breathing": true, "clears throat": true,
+	"música": true, "musica": true, "aplausos": true, "risos": true, "silêncio": true, "silencio": true,
+	"tosse": true, "ruído": true, "ruido": true, "inaudível": true, "suspiro": true,
+}
+
+// cleanTranscript removes whisper's tags and sound annotations and keeps
+// everything said, punctuation included (a dictated colon, a
+// parenthesized aside).
+func cleanTranscript(s string) string {
+	s = reTag.ReplaceAllString(s, " ")
+	s = reParen.ReplaceAllStringFunc(s, func(m string) string {
+		inner := strings.ToLower(strings.TrimSpace(strings.Trim(m, "()")))
+		if inner == "" || nonSpeech[strings.Trim(inner, "*.!")] {
+			return " "
+		}
+		return m
+	})
+	s = strings.ReplaceAll(s, "♪", " ")
+	s = strings.Join(strings.Fields(s), " ")
+	// The gaps the removals left before punctuation ("word , next").
+	for _, p := range []string{",", ".", ":", ";", "!", "?"} {
+		s = strings.ReplaceAll(s, " "+p, p)
+	}
+	return strings.TrimSpace(s)
+}
 
 // transcribe runs whisper.cpp with Silero VAD on one utterance (the
 // transcribe command for tests: language and model by name, checked
@@ -552,6 +589,14 @@ func (s *service) transcribe(ctx context.Context, pcm []byte, lang, model string
 var requestPrompts = map[string]string{
 	"en": "Find the PDF. Summarize my email, my inbox, the web page. Reply to the email. Open result 2. Documents, Downloads, Desktop.",
 	"pt": "Encontre o PDF. Resuma meus e-mails, a caixa de entrada, a página. Responda ao e-mail. Abra o resultado 2. Deixe mais escuro, use o tema. Documentos, Downloads, Área de trabalho.",
+}
+
+// dictationPrompts set the style of dictated text: full sentences with
+// commas, a colon, a question and periods, per language. Only the style
+// carries over (no words are expected from them).
+var dictationPrompts = map[string]string{
+	"en": "Hi Ana, thanks for the notes. Two things for Monday: the report and the budget. Can you send them today? Thanks, see you soon.",
+	"pt": "Oi Ana, obrigado pelas notas. Duas coisas para segunda-feira: o relatório e o orçamento. Você pode enviar hoje? Obrigado, até logo.",
 }
 
 // requestPrompt is the recognizer prompt for a whisper language (en,
@@ -613,10 +658,13 @@ func (s *service) transcribeWith(ctx context.Context, pcm []byte, extra string, 
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 	// A short prompt with the words of the desktop's requests, in the
-	// speech language; none for dictation (free text).
+	// speech language; for dictation (free text) a few punctuated
+	// sentences instead. Whisper writes in the style of its prompt: with
+	// only a list of names (the extra words) it dropped the punctuation
+	// of a long dictated line, the colon among it.
 	base := s.requestPrompt(lang)
 	if dictation {
-		base = ""
+		base = dictationPrompts[lang]
 	}
 	// The encoder normally works on a 30 s window whatever the length of
 	// the utterance; a window fitted to the recording (plus a margin)
@@ -628,8 +676,7 @@ func (s *service) transcribeWith(ctx context.Context, pcm []byte, extra string, 
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("speech to text: %v: %s", err, tailStr(errb.String(), 300))
 	}
-	text := strings.TrimSpace(reNoise.ReplaceAllString(out.String(), " "))
-	text = strings.Join(strings.Fields(text), " ")
+	text := cleanTranscript(out.String())
 	return &voice.Transcript{Text: text, Speech: text != "", STTMS: time.Since(start).Milliseconds(), Model: filepath.Base(model), Lang: lang}, nil
 }
 
