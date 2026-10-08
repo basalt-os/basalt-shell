@@ -166,6 +166,9 @@
  "A name for it": [
   "Um nome para ela"
  ],
+ "A package or a source failed its signature check, so it was not used.": [
+  "Um pacote ou uma fonte não passou na verificação de assinatura, então não foi usado."
+ ],
  "A remote model needs your own permission: turn on \"Allow a remote model\" first.": [
   "Um modelo remoto precisa da sua própria permissão: ative \"Permitir um modelo remoto\" primeiro."
  ],
@@ -943,6 +946,12 @@
  "Not applied. The assistant's output is below.": [
   "Não aplicado. A saída do assistente está abaixo."
  ],
+ "Not available yet: a package this needs is not published.": [
+  "Ainda não disponível: um pacote necessário não foi publicado."
+ ],
+ "Not available yet: its packages are not published.": [
+  "Ainda não disponível: os pacotes dele não foram publicados."
+ ],
  "Not checked yet on this computer.": [
   "Ainda não houve procura neste computador."
  ],
@@ -966,6 +975,9 @@
  ],
  "Nothing was changed, or not everything worked: %1": [
   "Nada foi alterado, ou nem tudo deu certo: %1"
+ ],
+ "Nothing was changed: the approval was not given.": [
+  "Nada foi alterado: a aprovação não foi dada."
  ],
  "Notifications": [
   "Notificações"
@@ -1570,6 +1582,9 @@
  "The screen is locked. Unlock it to talk.": [
   "A tela está bloqueada. Desbloqueie para falar."
  ],
+ "The software sources could not be reached. Check the internet connection and try again.": [
+  "Não foi possível acessar as fontes de software. Verifique a conexão com a internet e tente de novo."
+ ],
  "The software that makes Basalt OS: the desktop, the assistant, the security tools.": [
   "O software que forma o Basalt OS: a área de trabalho, o assistente, as ferramentas de segurança."
  ],
@@ -1645,6 +1660,9 @@
  ],
  "There is no result %d. Ask me to find the files first.": [
   "Não há resultado %d. Peça primeiro para eu encontrar os arquivos."
+ ],
+ "There is not enough free disk space for this change.": [
+  "Não há espaço livre suficiente no disco para esta mudança."
  ],
  "There is nothing to undo.": [
   "Não há nada para desfazer."

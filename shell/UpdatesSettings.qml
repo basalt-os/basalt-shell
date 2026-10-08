@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import "updates.js" as U
 
 // Settings, Updates and channels: check for updates and install them, see
 // what needs a restart, undo the last update, and choose where software
@@ -78,8 +79,26 @@ ColumnLayout {
         Bus.call(op, args, (ok, res) => {
             busy = false;
             if (ok) { proposal = res; pkind = kind; ptarget = target || ""; }
-            else { status = String(res); statusError = true; }
+            else {
+                // One line a person reads; the whole error stays under
+                // "Show the assistant's report".
+                result = String(res);
+                status = failureText(result, U.firstLine(result, 160));
+                statusError = true;
+            }
         });
+    }
+    // failureText: the one line for a change that did not work (see
+    // updates.js failureKind); fallback when nothing better is known.
+    function failureText(text, fallback) {
+        switch (U.failureKind(text)) {
+        case "unpublished": return Tr.t("Not available yet: a package this needs is not published.");
+        case "network": return Tr.t("The software sources could not be reached. Check the internet connection and try again.");
+        case "signature": return Tr.t("A package or a source failed its signature check, so it was not used.");
+        case "space": return Tr.t("There is not enough free disk space for this change.");
+        case "refused": return Tr.t("Nothing was changed: the approval was not given.");
+        }
+        return fallback;
     }
     function decide(apply) {
         if (!proposal) return;
@@ -96,9 +115,9 @@ ColumnLayout {
         Bus.assistantApply(proposal.id, proposal.code, (ok, res) => {
             busy = false; applying = false;
             const good = ok && res.ok;
-            result = ok && res.output ? res.output : "";
+            result = ok && res.output ? res.output : (ok ? "" : String(res));
             statusError = !good;
-            if (!good) status = Tr.t("Nothing was changed, or not everything worked. The assistant's report is under Details.");
+            if (!good) status = failureText(ok ? (res.output || "") : String(res), Tr.t("Nothing was changed, or not everything worked. The assistant's report is under Details."));
             else if ((kind === "install" && offline) || (kind === "security" && offlineSec)) {
                 // Downloaded and staged: the restart waits for the power
                 // menu's countdown (Cancel keeps it staged).
@@ -206,7 +225,11 @@ ColumnLayout {
         if (s.openbasalt) return Tr.t("Signed with the OpenBasalt key %1").arg(s.short);
         return Tr.t("Signed with a key that is not the OpenBasalt release key (%1)").arg(s.short || "?");
     }
+    // A channel whose package is not published yet cannot be turned on
+    // (updates.js channelAvailable); turning it off always works.
+    function chanAvailable(c) { return U.channelAvailable(c, up.chan, up.drv); }
     function chanToggle(c) {
+        if (!c.enabled && !chanAvailable(c)) return;
         if (c.enabled) up.propose("channels.propose", { op: "disable", repo: c.id }, "disable", c.id);
         else if (c.testing) up.propose("channels.propose", { op: "enable", repo: c.id, consent: "preview-builds-1" }, "enable", c.id);
         else up.propose("channels.propose", { op: "enable", repo: c.id }, "enable", c.id);
@@ -577,6 +600,8 @@ ColumnLayout {
         delegate: Card {
             id: cc
             required property var modelData
+            // Off and not available here yet: the toggle is disabled.
+            readonly property bool available: modelData.enabled || up.chanAvailable(modelData)
             visible: up.visibleChannel(modelData)
             accent: modelData.testing && modelData.enabled ? Theme.warning : Theme.border
             RowLayout {
@@ -593,6 +618,11 @@ ColumnLayout {
                         Icon { name: "key"; size: Theme.fontSize * 1.1; color: cc.modelData.signature && cc.modelData.signature.openbasalt ? Theme.success : Theme.textMuted }
                         Txt { role: "small"; color: Theme.textMuted; text: up.sigText(cc.modelData) }
                     }
+                    Txt {
+                        visible: !cc.available
+                        Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; role: "small"; color: Theme.textMuted
+                        text: Tr.t("Not available yet: its packages are not published.")
+                    }
                     Btn {
                         visible: cc.modelData.id === "basalt-nonfree"
                         text: Tr.t("Open Additional drivers"); icon: "chip"; variant: "ghost"; focusable: true; e2e: "channels-open-drivers"
@@ -608,7 +638,8 @@ ColumnLayout {
                     visible: cc.modelData.toggle
                     checked: cc.modelData.enabled
                     busy: up.busy && up.ptarget === cc.modelData.id
-                    enabled: !up.busy && up.proposal === null && !up.applying
+                    // Shown, but off and disabled until its packages are published.
+                    enabled: cc.available && !up.busy && up.proposal === null && !up.applying
                     label: up.chanTitle(cc.modelData.id)
                     e2e: "channel-" + cc.modelData.id
                     onToggled: up.chanToggle(cc.modelData)
