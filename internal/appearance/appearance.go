@@ -155,30 +155,30 @@ func Apply(ctx context.Context, t, lightT, darkT theme.Tokens, configDir string,
 	return r
 }
 
-// FootINI is foot's settings for its title bar. foot asks for the
-// compositor's title bar (preferred=server), like every plain window: on
-// sway the themed bar, the same floating and tiled, and none at all while
-// the shell keeps the window maximized; niri asks every app to draw its
-// own, so foot still draws its bar there. The [csd] colors and font stay
-// for the person who sets preferred=client in their own foot.ini: then
-// foot's bar matches the libadwaita headers next to it (flat buttons on
-// the title bar color, glyphs in the text color; only the buttons the
-// compositor supports). foot takes colors as AARRGGBB. resize-by-cells
-// is off so that a maximized or snapped foot fills the exact rectangle
-// the shell gives it, not the nearest whole number of character cells.
+// FootINI is foot's settings for its title bar. foot draws its own bar
+// (preferred=client), 26 px at the default spacing (unit * 6.5, the
+// height of sway's themed bar), with the window's title and a close
+// button: sway's own title bars cannot hold buttons, and a terminal
+// without a visible way to close it was a regression of 0.10.0, fixed
+// in 0.10.1. The bar matches the libadwaita headers next to it (flat buttons on
+// the title bar color, glyphs in the text color; minimize and maximize
+// take the bar's color, so only close shows, the one button sway
+// honors). foot takes colors as AARRGGBB. resize-by-cells is off so that
+// a maximized or snapped foot fills the exact rectangle the shell gives
+// it, not the nearest whole number of character cells.
 func FootINI(t theme.Tokens) string {
 	hex := func(k string) string { return "ff" + strings.TrimPrefix(t.Str(k), "#") }
 	// The title in the size GTK uses for its headers (font.size - 1
 	// points at 96 dpi) and its bold weight: foot's point sizes come out
 	// larger than GTK's, so the size is given in pixels.
 	px := int(math.Round((t.Num("font.size") - 1) * 96 / 72))
-	bar := int(t.Num("spacing.unit") * 8)
+	bar := int(math.Round(t.Num("spacing.unit") * 6.5))
 	return fmt.Sprintf(`# Managed by basalt-shell: rewritten on every theme change. Do not edit.
 [main]
 resize-by-cells=no
 
 [csd]
-preferred=server
+preferred=client
 size=%d
 font=%s:weight=bold:pixelsize=%d
 color=%s

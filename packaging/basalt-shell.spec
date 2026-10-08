@@ -365,6 +365,19 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Thu Oct 08 2026 Basalt OS developers - 0.10.1-1
+- foot draws its own title bar again, with a close button (26 px, the
+  height of sway's bar, in the theme's colors): 0.10.0 moved it to sway's
+  bar, which cannot hold buttons, and left the terminal without a
+  visible close.
+- Quick settings: the tiles share the card's width in two equal columns
+  and their text elides inside the tile's padding ("Spoken answers" ran
+  past the tile, the right column stuck out of the card).
+- Activity: Dismiss on an assistant report (nothing to apply) only
+  takes it off the person's list, remembered in their state directory;
+  no administrator password. Proposals with changes still need Apply or
+  Ignore with authentication.
+
 * Thu Oct 08 2026 Basalt OS developers - 0.10.0-1
 - Desktop space and polish: the panel is attached to the screen edge,
   full width and 40 px (the earlier pill stays as panel.style floating

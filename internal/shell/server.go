@@ -538,10 +538,22 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		_ = decode(req.Args, &a)
 		return nil, c.Chosen(a.ID, a.Choice)
 	case "assistant.pending":
-		if c.Assistant == nil || !c.Assistant.Available() {
-			return []any{}, nil
+		return c.AssistantPending(ctx)
+	case "assistant.dismiss":
+		// A report with nothing to apply leaves this person's Activity
+		// list; no authentication (dismissed.go).
+		if err := ss.requireUI(); err != nil {
+			return nil, err
 		}
-		return c.Assistant.Pending(ctx)
+		var a struct {
+			ID string `json:"id"`
+		}
+		_ = decode(req.Args, &a)
+		err := c.AssistantDismiss(ctx, a.ID)
+		if err != nil {
+			return map[string]any{"ok": false, "error": err.Error()}, nil
+		}
+		return map[string]any{"ok": true}, nil
 	case "assistant.show":
 		var a struct {
 			ID string `json:"id"`

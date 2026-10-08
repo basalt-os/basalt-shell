@@ -649,15 +649,13 @@ the theme's colors:
 - GTK 3 windows without a header bar (Mousepad, older apps): the session
   sets `GTK_CSD=1`, so GTK 3 draws its own title bar (adw-gtk3) instead
   of asking for the compositor's.
-- foot is the exception: its own bar would hold only a title and a close
-  button, so Basalt's foot settings (`~/.config/foot/basalt-theme.ini`,
-  included by a foot.ini the daemon creates only when there is none) say
-  `[csd] preferred=server` and foot gets sway's themed bar, the same
-  floating and tiled (close with a middle click, the right click menu,
-  the panel entry or Ctrl+Shift+Q). The `[csd]` colors and font stay in
-  the file, in the theme's colors, for the person who sets
-  `preferred=client` in their own foot.ini (rewritten on every theme
-  change). niri asks every app to draw its own bar, foot included.
+- foot draws its own bar (`~/.config/foot/basalt-theme.ini`, included
+  by a foot.ini the daemon creates only when there is none, says
+  `[csd] preferred=client`): 26 px at the default spacing, as tall as
+  sway's themed bar, in the theme's colors, with the title and a close
+  button. sway's own bars cannot hold buttons, and 0.10.0's switch of
+  foot to sway's bar left the terminal without a visible close (fixed in
+  0.10.1). niri asks every app to draw its own bar, foot included.
 - Qt asks for server-side decorations whenever the compositor offers
   them, so the daemon switches a new Qt window to client-side when the
   Adwaita decoration plugin of its Qt version is installed

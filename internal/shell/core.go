@@ -186,6 +186,8 @@ type Core struct {
 	im *wlime.IM
 	// appAsks are apps' questions waiting for the command bar (appask.go).
 	appAsks map[string]*appAsk
+	// dismissed are the assistant reports the person dismissed (dismissed.go).
+	dismissed dismissedStore
 	// placed remembers windows the shell maximized or snapped: their
 	// geometry before (to restore) and the placement given.
 	placed map[string]placement

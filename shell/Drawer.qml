@@ -166,11 +166,10 @@ PanelWindow {
                                 variant: "outline"
                                 e2e: "assistant-dismiss"
                                 accessibleName: Tr.t("Dismiss this report")
-                                // Closing it changes the assistant's own records
-                                // (as root): an administrator authenticates.
+                                // A report changes nothing: dismissing it only
+                                // takes it off this person's list (no password).
                                 onClicked: {
-                                    apCard.note = Tr.t("Waiting for authentication.");
-                                    Bus.call("assistant.ignore", { id: modelData.id }, (ok, res) => {
+                                    Bus.call("assistant.dismiss", { id: modelData.id }, (ok, res) => {
                                         apCard.note = ok && res.ok ? "" : Tr.t("Not dismissed.");
                                         Bus.refreshAssistant();
                                     });

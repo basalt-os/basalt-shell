@@ -225,7 +225,13 @@ PanelWindow {
         property string sub
         property bool on
         property bool toggle: true
+        // Two equal columns that always fit the card: the same preferred
+        // width for every tile (the grid shares the width evenly), and the
+        // text elides inside the tile's own padding.
         Layout.fillWidth: true
+        Layout.preferredWidth: 1
+        Layout.minimumWidth: 0
+        implicitWidth: 1
         implicitHeight: Theme.fontSize * 5
         radius: Theme.radiusMd
         accessibleName: tile.label
@@ -233,18 +239,25 @@ PanelWindow {
         checkable: toggle
         checked: toggle && on
         color: on ? Theme.accent : (hovered ? Theme.pressed : Theme.hover)
+        clip: true
         Behavior on color { ColorAnimation { duration: Theme.normal; easing.type: Theme.easing } }
-        Row {
+        Icon {
+            id: tileIcon
+            name: tile.icon
+            size: Theme.fontLarge * 1.5
+            color: tile.on ? Theme.accentText : Theme.text
             anchors.left: parent.left
             anchors.leftMargin: Theme.s3
             anchors.verticalCenter: parent.verticalCenter
-            spacing: Theme.s3
-            Icon { name: tile.icon; size: Theme.fontLarge * 1.5; color: tile.on ? Theme.accentText : Theme.text; anchors.verticalCenter: parent.verticalCenter }
-            Column {
-                anchors.verticalCenter: parent.verticalCenter
-                Txt { text: tile.label; font.weight: Font.DemiBold; color: tile.on ? Theme.accentText : Theme.text; width: 120 }
-                Txt { text: tile.sub; role: "small"; color: tile.on ? Theme.alpha(Theme.accentText, 0.8) : Theme.textMuted; width: 120 }
-            }
+        }
+        Column {
+            anchors.left: tileIcon.right
+            anchors.leftMargin: Theme.s3
+            anchors.right: parent.right
+            anchors.rightMargin: Theme.s3
+            anchors.verticalCenter: parent.verticalCenter
+            Txt { text: tile.label; font.weight: Font.DemiBold; color: tile.on ? Theme.accentText : Theme.text; width: parent.width }
+            Txt { text: tile.sub; role: "small"; color: tile.on ? Theme.alpha(Theme.accentText, 0.8) : Theme.textMuted; width: parent.width }
         }
     }
 }
