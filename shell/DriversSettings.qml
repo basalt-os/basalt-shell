@@ -39,11 +39,14 @@ ColumnLayout {
     readonly property bool geforce: gpus.some(g => g.geforce)
     readonly property bool caBlocked: sb !== null && sb.enabled && !sb.ca_enrolled && !sb.ca_pending
     // The assistant cannot do this yet (no `basalt drivers`), or the
-    // driver's repository is not published: an older report without
-    // nonfree_available counts as not published.
+    // driver's repository is not published: basalt-nonfree-release is not
+    // offered (nonfree_available), or the basalt-nonfree repository itself
+    // does not answer (nonfree_published, the daemon fetched its
+    // repomd.xml). A report without either field counts as not published.
     readonly property bool assistantTooOld: info !== null && info.coming_soon === true
     readonly property bool comingSoon: assistantTooOld
-        || (rec !== null && (rec.action === "unavailable" || (rec.action === "install" && (st === null || st.nonfree_available !== true))))
+        || (rec !== null && (rec.action === "unavailable" || (rec.action === "install"
+            && (st === null || st.nonfree_available !== true || st.nonfree_published !== true))))
 
     function load() {
         loading = true;
