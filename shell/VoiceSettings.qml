@@ -335,7 +335,11 @@ ColumnLayout {
     Txt {
         visible: vs.eff !== null && vs.answerVoices.length === 0
         Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.textMuted
-        text: vs.eff ? Tr.t("No voice for %1 is installed: answers in it are shown, not spoken.").arg(vs.langName(vs.eff.answer_language)) : ""
+        // The one place that says answers are not spoken (the voice card
+        // stays quiet on a desktop without any voice).
+        text: !vs.eff ? ""
+            : (vs.models && !vs.models.tts) ? Tr.t("No voice is installed on this computer yet, so answers are shown, not spoken.")
+            : Tr.t("No voice for %1 is installed: answers in it are shown, not spoken.").arg(vs.langName(vs.eff.answer_language))
     }
     NavFlow {
         visible: vs.answerVoices.length > 0

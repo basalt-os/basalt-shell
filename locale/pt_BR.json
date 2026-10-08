@@ -931,6 +931,9 @@
  "No voice for %1 is installed: answers in it are shown, not spoken.": [
   "Nenhuma voz para %1 está instalada: as respostas nesse idioma aparecem na tela, sem fala."
  ],
+ "No voice is installed on this computer yet, so answers are shown, not spoken.": [
+  "Nenhuma voz está instalada neste computador ainda, então as respostas são mostradas, não faladas."
+ ],
  "None": [
   "Nenhuma"
  ],
