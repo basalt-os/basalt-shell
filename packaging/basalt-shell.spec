@@ -365,6 +365,31 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Thu Oct 08 2026 Basalt OS developers - 0.10.0-1
+- Desktop space and polish: the panel is attached to the screen edge,
+  full width and 40 px (the earlier pill stays as panel.style floating
+  in Settings, Appearance); maximize and snap use the whole usable area
+  and a maximized window loses sway's title bar and frame until it is
+  restored, snapped or dragged out of place; foot uses sway's title bar
+  instead of drawing its own; gaps 6 between windows only (smart_gaps,
+  smart_borders), 1 px frames with a focused color at 3:1, corner radii
+  8, 12 and 16, lighter shadows in light mode; popovers sit 8 px under
+  the panel (drawer 400, quick settings 360, launcher 640, Ask bar 720,
+  power menu 360); Settings opens at 960x640. Themes saved before still
+  load (new tokens have defaults).
+- Apps ask through the command bar: a Basalt app (Security and Activity's
+  Ask the assistant, Run audit, Check now, I accept this risk) opens the
+  bar with its question, without a confirmation, and the bar runs it in
+  a narrow mode (read commands, storing the app's own proposals, which
+  still need Apply and the approval gate). The bar says which app asked.
+- The confirmation sheet says who asks in plain, translated words (the
+  app's or the agent's name); the program, SELinux domain and connection
+  stay in the activity log.
+- One count of requests waiting for a decision, on the bell instead of
+  Ask: with something waiting the bell opens the drawer on Activity,
+  where the requests are. Assistant reports with nothing to apply are
+  not counted; Activity shows them neutrally with Read and Dismiss.
+
 * Thu Oct 08 2026 Basalt OS developers - 0.9.4-1
 - The session starts on the wallpaper instead of a black screen: sway's own
   background (swaybg, now required) shows the person's light or dark
