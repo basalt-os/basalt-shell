@@ -118,7 +118,7 @@ PanelWindow {
     Surface {
         id: card
         anchors.horizontalCenter: parent.horizontalCenter
-        y: Theme.panelHeight + Theme.s4
+        y: Theme.panelZone + Theme.s4
         width: Math.min(660, hud.width - Theme.s6 * 2)
         height: row.implicitHeight + Theme.s3 * 2
         Accessible.role: hud.asking ? Accessible.Dialog : Accessible.AlertMessage

@@ -179,6 +179,28 @@ func (a *Adapter) Subscribe(ctx context.Context) (<-chan compositor.Event, error
 	return ch, nil
 }
 
+// SetFrame records a frame change and sets the window's decoration
+// ("server" with the frame, "none" without; client-side windows keep
+// theirs).
+func (a *Adapter) SetFrame(_ context.Context, id string, on bool) error {
+	a.rec(fmt.Sprintf("frame %s %v", id, on))
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	i, err := a.find(id)
+	if err != nil {
+		return err
+	}
+	if a.Wins[i].Decoration == "client" {
+		return nil
+	}
+	if on {
+		a.Wins[i].Decoration = "server"
+	} else {
+		a.Wins[i].Decoration = "none"
+	}
+	return nil
+}
+
 // PointerMove records a pointer move.
 func (a *Adapter) PointerMove(_ context.Context, x, y int) error {
 	a.rec(fmt.Sprintf("pointer move %d %d", x, y))

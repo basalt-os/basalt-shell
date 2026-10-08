@@ -19,7 +19,8 @@ FocusScope {
         radius: bg.radius
         blur: Theme.shadowBlur
         offset.y: Theme.s1
-        color: Qt.rgba(0, 0, 0, Theme.shadowStrength)
+        // Light mode needs about half the dark shadow (0.35 to 0.18).
+        color: Qt.rgba(0, 0, 0, Theme.shadowStrength * (Theme.dark ? 1 : 18 / 35))
     }
     Rectangle {
         id: bg

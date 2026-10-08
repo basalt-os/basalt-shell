@@ -5,8 +5,9 @@
 // draws a themed title bar only for the rest (X11 apps on sway, tiled
 // windows). GTK 4 / libadwaita, GTK 3 headerbar apps, Firefox, Chromium
 // and Electron ask for CSD by themselves; the session makes every other
-// GTK 3 window do so (GTK_CSD=1) and Basalt's foot settings make foot
-// ask for it (appearance.FootINI). Qt asks the
+// GTK 3 window do so (GTK_CSD=1). Basalt's terminal, foot, has only a
+// title and a close button on its own bar, so its settings ask for the
+// compositor's bar instead (appearance.FootINI). Qt asks the
 // compositor for server-side decorations whenever the compositor offers
 // them, so the shell switches a Qt window to CSD when the Adwaita
 // decoration plugin for its Qt version is installed (Fedora:

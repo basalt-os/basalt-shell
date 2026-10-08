@@ -135,13 +135,15 @@ PanelWindow {
     // A click outside closes the menu (and cancels a countdown).
     MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onClicked: win.close() }
 
+    // 8 px from the panel's edge and the side (the layer covers the whole
+    // screen, so the panel's zone is counted here).
     Surface {
         id: card
-        width: 300
+        width: Math.min(360, parent.width - Theme.popoverGap * 2)
         height: col.implicitHeight + Theme.s3 * 2
         anchors.right: parent.right
-        anchors.rightMargin: Theme.s2
-        y: Theme.panelPosition === "bottom" ? parent.height - height - Theme.panelHeight - Theme.s2 : Theme.panelHeight + Theme.s2
+        anchors.rightMargin: Theme.popoverGap
+        y: Theme.panelPosition === "bottom" ? parent.height - height - Theme.panelZone - Theme.popoverGap : Theme.panelZone + Theme.popoverGap
         opacity: win.visible ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.fast } }
         MouseArea { anchors.fill: parent }

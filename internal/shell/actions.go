@@ -563,21 +563,16 @@ func (p *planner) setToken(spec theme.Spec, mode string, v any) {
 	p.touched = true
 }
 
-// usable returns the area of an output minus the panel.
+// usable returns the area of an output minus the panel's exclusive zone
+// (theme.PanelZone). Gaps separate windows from each other, not from the
+// screen edges, so the area is not inset by them.
 func (p *planner) usable(o compositor.Output, t theme.Tokens) compositor.Rect {
 	r := o.Rect
-	gap := int(t.Num("window.gaps"))
-	ph := int(t.Num("panel.height")) + int(t.Num("spacing.unit"))*2
-	if t.Str("panel.position") == "bottom" {
-		r.H -= ph
-	} else {
+	ph := theme.PanelZone(t)
+	if t.Str("panel.position") != "bottom" {
 		r.Y += ph
-		r.H -= ph
 	}
-	r.X += gap
-	r.Y += gap
-	r.W -= 2 * gap
-	r.H -= 2 * gap
+	r.H -= ph
 	return r
 }
 
@@ -728,6 +723,13 @@ func planSetState(ctx context.Context, p *planner, a map[string]any) (step, erro
 			p.c.mu.Lock()
 			delete(p.c.placed, w.ID)
 			p.c.mu.Unlock()
+			// The title bar and frame come back before the window takes
+			// its old size, so the old frame fits exactly.
+			if f, ok := p.c.Comp.(compositor.Framer); ok && pl.Unframed {
+				if err := f.SetFrame(ctx, w.ID, true); err != nil {
+					return nil, err
+				}
+			}
 			if err := p.c.Comp.MoveResize(ctx, w.ID, pl.Before); err != nil {
 				return nil, err
 			}
@@ -754,20 +756,40 @@ func planSetState(ctx context.Context, p *planner, a map[string]any) (step, erro
 		r.W = (area.W - gap) / 2
 		r.X = area.X + area.W - r.W
 	}
+	// A maximized window with the compositor's title bar loses the bar and
+	// the frame while maximized: the panel entry carries its title and
+	// close. Windows that draw their own header keep it (their header is
+	// the app's content), and so do snapped halves.
+	framer, canFrame := p.c.Comp.(compositor.Framer)
+	unframe := canFrame && state == "maximized" && w.Decoration == "server"
 	verb := map[string]string{"maximized": "Maximize ", "left": "Snap to the left half: ", "right": "Snap to the right half: "}[state]
 	return step{Summary: verb + label(w), run: func(ctx context.Context) (any, error) {
 		p.c.mu.Lock()
 		before := w.Rect
-		if old, ok := p.c.placed[w.ID]; ok {
+		old, had := p.c.placed[w.ID]
+		if had {
 			before = old.Before // keep the size from before the first placement
 		}
-		p.c.placed[w.ID] = placement{State: state, Before: before, At: r, Since: time.Now()}
+		unframed := unframe || (had && old.Unframed && state == "maximized")
+		p.c.placed[w.ID] = placement{State: state, Before: before, At: r, Since: time.Now(), Unframed: unframed}
 		p.c.mu.Unlock()
 		if w.State == "minimized" {
 			if canMin {
 				if err := min.Unminimize(ctx, w.ID); err != nil {
 					return nil, err
 				}
+			}
+		}
+		// The frame changes first, so the placement covers the window
+		// as it will be drawn (with or without its title bar).
+		if canFrame && had && old.Unframed && !unframed {
+			if err := framer.SetFrame(ctx, w.ID, true); err != nil {
+				return nil, err
+			}
+		}
+		if unframe {
+			if err := framer.SetFrame(ctx, w.ID, false); err != nil {
+				return nil, err
 			}
 		}
 		if err := p.c.Comp.MoveResize(ctx, w.ID, r); err != nil {
@@ -777,15 +799,16 @@ func planSetState(ctx context.Context, p *planner, a map[string]any) (step, erro
 	}}, nil
 }
 
-// windowArea is the usable area (output minus panels, inset by the
-// gaps) where a window is: its workspace's area when the compositor
-// reports one, else its output minus the panel.
+// windowArea is the usable area (output minus panels) where a window is:
+// its workspace's area when the compositor reports one, else its output
+// minus the panel. It is not inset by the gaps: a maximized window
+// reaches the screen edges and the panel, and snapped halves keep the
+// gap only between them.
 func (p *planner) windowArea(w compositor.Window) (compositor.Rect, error) {
 	tok, err := p.c.Themes.Resolve(p.settings, p.c.HW.Weak)
 	if err != nil {
 		return compositor.Rect{}, err
 	}
-	gap := int(tok.Num("window.gaps"))
 	var ws compositor.Workspace
 	for _, s := range p.spaces {
 		if s.ID == w.Workspace || (w.Workspace == "" && s.Focused) {
@@ -793,8 +816,19 @@ func (p *planner) windowArea(w compositor.Window) (compositor.Rect, error) {
 		}
 	}
 	if ws.Rect.W > 0 && ws.Rect.H > 0 {
-		r := ws.Rect
-		return compositor.Rect{X: r.X + gap, Y: r.Y + gap, W: r.W - 2*gap, H: r.H - 2*gap}, nil
+		// sway reports the workspace inset by its gaps (none with smart
+		// gaps around a lone tiled window): grow it back by the gap and
+		// keep it inside the output minus the panel, so the placement
+		// reaches the screen edges either way. Other exclusive zones
+		// (another dock) stay out.
+		gap := int(tok.Num("window.gaps"))
+		r := compositor.Rect{X: ws.Rect.X - gap, Y: ws.Rect.Y - gap, W: ws.Rect.W + 2*gap, H: ws.Rect.H + 2*gap}
+		for _, o := range p.outputs {
+			if o.Name == ws.Output {
+				r = intersect(r, p.usable(o, tok))
+			}
+		}
+		return r, nil
 	}
 	cx, cy := w.Rect.X+w.Rect.W/2, w.Rect.Y+w.Rect.H/2
 	var out compositor.Output
@@ -814,4 +848,15 @@ func (p *planner) windowArea(w compositor.Window) (compositor.Rect, error) {
 		return compositor.Rect{}, errors.New("no output to place the window on")
 	}
 	return p.usable(out, tok), nil
+}
+
+// intersect is the overlap of two rectangles (empty when they do not
+// overlap).
+func intersect(a, b compositor.Rect) compositor.Rect {
+	x0, y0 := max(a.X, b.X), max(a.Y, b.Y)
+	x1, y1 := min(a.X+a.W, b.X+b.W), min(a.Y+a.H, b.Y+b.H)
+	if x1 <= x0 || y1 <= y0 {
+		return compositor.Rect{}
+	}
+	return compositor.Rect{X: x0, Y: y0, W: x1 - x0, H: y1 - y0}
 }

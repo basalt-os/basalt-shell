@@ -59,14 +59,16 @@ PanelWindow {
         return Qt.formatDateTime(new Date(ts), "d MMM");
     }
 
+    // 8 px from the panel's edge, the side and the bottom (the layer
+    // already starts after the panel's exclusive zone).
     Surface {
         id: card
-        width: Math.min(420, parent.width - Theme.s4)
+        width: Math.min(400, parent.width - Theme.popoverGap * 2)
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        anchors.topMargin: Theme.s2
-        anchors.bottomMargin: Theme.s2
-        x: parent.width - (Ui.drawer ? width + Theme.s2 : width * 0.25)
+        anchors.topMargin: Theme.popoverGap
+        anchors.bottomMargin: Theme.popoverGap
+        x: parent.width - (Ui.drawer ? width + Theme.popoverGap : width * 0.25)
         opacity: Ui.drawer ? 1 : 0
         Behavior on x { NumberAnimation { duration: Theme.slow; easing.type: Theme.easing } }
         Behavior on opacity { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }
@@ -86,13 +88,13 @@ PanelWindow {
                     spacing: Theme.s1
                     Accessible.role: Accessible.PageTabList
                     Btn {
-                        text: "Notifications"; e2e: "drawer-tab-notifications"; accessibleRole: Accessible.PageTab; checkable: true
+                        text: "Notifications"; variant: "tab"; e2e: "drawer-tab-notifications"; accessibleRole: Accessible.PageTab; checkable: true
                         active: Ui.drawerTab === "notifications"
                         onClicked: Ui.drawerTab = "notifications"
                         onActiveFocusChanged: if (activeFocus && Ui.focusVisible) Ui.drawerTab = "notifications"
                     }
                     Btn {
-                        text: "Activity"; e2e: "drawer-tab-activity"; accessibleRole: Accessible.PageTab; checkable: true
+                        text: "Activity"; variant: "tab"; e2e: "drawer-tab-activity"; accessibleRole: Accessible.PageTab; checkable: true
                         active: Ui.drawerTab === "activity"
                         onClicked: { Ui.drawerTab = "activity"; Bus.refreshAssistant(); }
                         onActiveFocusChanged: if (activeFocus && Ui.focusVisible && Ui.drawerTab !== "activity") { Ui.drawerTab = "activity"; Bus.refreshAssistant(); }

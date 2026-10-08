@@ -529,15 +529,32 @@ kind, range and group:
 |---|---|
 | color (per mode) | bg, surface, surfaceAlt, border, text, textMuted, accent, accentText, success, warning, danger, scrim |
 | typography | font.family, font.mono, font.size, font.scale (modular type scale) |
-| shape | radius.sm, radius.md, radius.lg, radius.window |
-| spacing | spacing.unit (4 px grid), panel.height, panel.position, panel.opacity |
+| shape | radius.sm (chips, panel buttons), radius.md (controls, cards), radius.lg (popovers), radius.xl (modal sheets), radius.window |
+| spacing | spacing.unit (4 px grid), panel.height, panel.position, panel.opacity, panel.style (attached, floating) |
 | elevation | elevation.shadow (strength), elevation.blur (softness) |
 | motion | motion.fast, motion.normal, motion.slow (ms), motion.easing |
 | windows | window.gaps, window.border, window.shadows, window.blur, window.dimInactive |
 | apps | apps.iconTheme, apps.cursorTheme, apps.cursorSize, apps.palette (full, accent, off) |
 
 A theme file (`themes/*.json`) has shared tokens and one color set for
-light and one for dark. The person's settings
+light and one for dark. Tokens added after themes were written
+(`radius.xl`, `panel.style`) have a default, so a theme the person saved
+earlier still loads.
+
+The panel is attached to the screen edge by default: full width, the
+`panel.height` tall (40), no corners, a 1 px `color.border` hairline on
+the side facing the windows, and an exclusive zone equal to its height;
+`panel.style: floating` keeps the earlier pill (2 units from the edges,
+`radius.lg`, a border all round, the zone grows by those 2 units).
+Popovers (drawer 400 px, quick settings 360, launcher 640 at 12 % of the
+height, Ask bar 720 under the panel, power menu 360) sit 8 px from the
+panel's edge and the screen edges with `radius.lg` corners, opaque `color.surfaceAlt` with a 1 px
+edge and their own shadow (none with reduced motion). The panel is
+translucent (`panel.opacity`) only where SwayFX blurs behind it,
+otherwise opaque. Panel targets are 32 px; workspace chips are
+neutral (the current one a text-colored fill), the focused window's
+entry carries a 2 px underline in the accent used as a foreground; the
+clock follows the session's locale. The person's settings
 (`~/.config/basalt-shell/settings.json`) pick a theme, a mode and a motion
 preference, and hold overrides (color overrides per mode). The resolved
 set is: theme tokens, then the mode's colors, then overrides, then motion
@@ -580,12 +597,25 @@ type Adapter interface {
 
 - sway (the default): the i3 binary IPC on `$SWAYSOCK` (GET_TREE,
   GET_WORKSPACES, GET_OUTPUTS, RUN_COMMAND, SUBSCRIBE). Style through
-  runtime commands: client colors, borders, gaps. sway 1.11 reports each
-  window's foreign-toplevel identifier. Pointer fallback through `seat
-  cursor` commands. On SwayFX the adapter also sets corners, shadows (also on client-decorated
-  windows), blur and dimming of inactive windows from the tokens; on weak
-  hardware (hw.Probe: software rendering, few CPUs, little memory, headless)
-  shadows, blur and dimming stay off.
+  runtime commands: client colors, borders, gaps (inner from
+  `window.gaps`, outer 0; the shipped config adds `smart_gaps` and
+  `smart_borders`, so a lone tiled window fills the work area with no
+  gap and no frame). sway 1.11 reports each window's foreign-toplevel
+  identifier. Pointer fallback through `seat cursor` commands. On SwayFX
+  the adapter also sets corners (`smart_corner_radius`: square on a lone
+  tiled window), shadows (also on client-decorated windows; a 4 px drop,
+  lighter on inactive windows, about half as strong in light mode), no
+  separator line under title bars, blur and dimming of inactive windows
+  from the tokens, and blur behind the shell's panel (`layer_effects
+  "basalt-panel"`, with `blur_ignore_transparent` for the floating
+  pill's margins). The popovers stay opaque with their own shadow: their
+  layers cover the whole screen, and SwayFX's layer blur also fills a
+  card's soft shadow, which then shows as a hard-edged dark block. SwayFX-only commands go
+  through the daemon, never the config file, so plain sway starts
+  without an error bar. On weak hardware (hw.Probe: software rendering,
+  few CPUs, little memory, headless) shadows, blur, layer blur and
+  dimming stay off, and the shell draws the panel opaque with its
+  hairline (the same geometry with and without a GPU).
 - niri: JSON requests on `$NIRI_SOCKET` (Windows, Workspaces, Outputs,
   Action, EventStream). niri has no runtime styling command, so the
   adapter writes `basalt-theme.kdl` next to the niri config (which
@@ -615,11 +645,15 @@ the theme's colors:
 - GTK 3 windows without a header bar (Mousepad, older apps): the session
   sets `GTK_CSD=1`, so GTK 3 draws its own title bar (adw-gtk3) instead
   of asking for the compositor's.
-- foot: Basalt's foot settings (`~/.config/foot/basalt-theme.ini`,
-  included by a foot.ini the daemon creates only when there is none)
-  say `[csd] preferred=client`, with the title bar and flat buttons in
-  the theme's colors and the title in GTK's header size and weight
-  (rewritten on every theme change).
+- foot is the exception: its own bar would hold only a title and a close
+  button, so Basalt's foot settings (`~/.config/foot/basalt-theme.ini`,
+  included by a foot.ini the daemon creates only when there is none) say
+  `[csd] preferred=server` and foot gets sway's themed bar, the same
+  floating and tiled (close with a middle click, the right click menu,
+  the panel entry or Ctrl+Shift+Q). The `[csd]` colors and font stay in
+  the file, in the theme's colors, for the person who sets
+  `preferred=client` in their own foot.ini (rewritten on every theme
+  change). niri asks every app to draw its own bar, foot included.
 - Qt asks for server-side decorations whenever the compositor offers
   them, so the daemon switches a new Qt window to client-side when the
   Adwaita decoration plugin of its Qt version is installed
@@ -628,7 +662,7 @@ the theme's colors:
   plugin directories under /proc/PID/root, so Flatpak runtimes count
   too). The session sets `QT_WAYLAND_DECORATION=adwaita`.
 
-So every app Basalt installs (foot, Files, Text Editor, Firefox) and
+So every app Basalt installs (Files, Text Editor, Firefox) and
 every GTK, libadwaita, Qt, Electron or Chromium app draws its own title
 bar with buttons. Apps show only the buttons the compositor honors
 (xdg_toplevel wm_capabilities, and GTK's button layout
@@ -648,8 +682,11 @@ back where it floated), so maximize and close (`appmenu:maximize,close`).
   tokens: font (`font.family` SemiBold, one point under `font.size`),
   centered title, padding from `spacing.unit`, the focused title on
   `color.surfaceAlt` with `color.text`, inactive ones on
-  `color.surface` with `color.textMuted`, a frame of `window.border`
-  pixels in `color.border` (a little stronger when focused). Re-applied
+  `color.surface` with `color.textMuted`, 12 x 5 padding, no outline
+  around the bar, a frame of `window.border` pixels (1 by default) in
+  `color.border`, and on the focused window a strong border color (the
+  muted text over the surface, at least 3:1 against the background and
+  the surface). Re-applied
   on every theme change, by the person or a model; a window that draws
   its own decorations never gets a `border` command (that would switch
   it back to server-side).
@@ -670,13 +707,21 @@ resized, so buttons would trail or float away from their window; a
 layer surface does not know the stacking of overlapping floating
 windows, so a button would cover the window above; and every click on
 it would have to be kept apart from the app below. With client-side
-decorations for every toolkit that has them, sway's bar is left to X11
-apps and tiled windows, where the right click menu and middle click
+decorations for every toolkit that has them, sway's bar is left to foot,
+X11 apps and tiled windows, where the right click menu and middle click
 cover the same actions without any of those risks.
 
 Window states (`window.set_state`), the same everywhere: maximize and
-snap to a half are floating placements on the usable area (the shell
-keeps the size before and reports `state` until the window is moved);
+snap to a half are floating placements on the usable area, the output
+minus the panel's exclusive zone and nothing else: a maximized window
+reaches the screen edges and the panel's hairline, and two halves keep
+the `window.gaps` gap only between them (the shell keeps the size before
+and reports `state` until the window is moved). A maximized window with
+sway's title bar loses the bar and its frame (`border none`, through the
+adapter's `Framer`) while it is maximized: the panel entry carries its
+title and close. Restore puts them back before the old size, and so does
+the daemon when the person drags or resizes the window out of its
+place. Windows that draw their own header keep it;
 minimize uses sway's scratchpad, and on niri (no minimized state) parks
 the window on a workspace named "minimized" at the end of the output,
 hidden from the workspace list. The panel's window list shows the
@@ -695,7 +740,7 @@ understands "minimize firefox", "maximize", "snap terminal to the left",
 
 Mouse: drag a title bar or headerbar to move, Super+drag anywhere,
 Super+right-drag to resize. sway: compositor title bars and frames
-resize from their 2 px edge; client-decorated windows cannot be resized
+resize from their frame edge; client-decorated windows cannot be resized
 from their edges (sway does not route the pointer outside a window's
 geometry) and a double click on a headerbar does nothing. niri: edges
 resize client-decorated windows and a double click maximizes.

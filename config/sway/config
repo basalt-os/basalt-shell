@@ -28,20 +28,33 @@ floating_minimum_size 240 x 160
 focus_follows_mouse no
 
 # Window decorations. Apps that draw their own title bar with buttons
-# (GTK 4 / libadwaita, GTK 3, Firefox, Chromium, Electron, foot with
-# Basalt's foot settings) keep it: sway honors their xdg-decoration
-# request while they float and draws nothing around them. The daemon
-# switches Qt apps to their own Adwaita title bar when the plugin is
-# installed. Every other window (X11 apps, tiled windows) gets sway's
-# title bar, themed by the daemon from the design tokens (font, colors,
-# padding, frame width) and re-applied live when the theme changes. Drag the title bar (or Super+drag) to move,
-# Super+right-drag or the window edge to resize.
-default_border normal 2
-default_floating_border normal 2
-titlebar_border_thickness 1
-titlebar_padding 12 6
+# (GTK 4 / libadwaita, GTK 3, Firefox, Chromium, Electron) keep it: sway
+# honors their xdg-decoration request while they float and draws nothing
+# around them. The daemon switches Qt apps to their own Adwaita title bar
+# when the plugin is installed. Every other window (foot, X11 apps, tiled
+# windows) gets sway's title bar, themed by the daemon from the design
+# tokens (font, colors, padding, frame width) and re-applied live when the
+# theme changes; a window the shell maximizes loses its bar and frame
+# until it is restored (the panel entry carries its title and close).
+# Drag the title bar (or Super+drag) to move, Super+right-drag or the
+# window edge to resize.
+#
+# The values below are the first frame before the daemon answers; the
+# daemon sets them again from the tokens. Gaps separate windows, not the
+# screen edges, and a lone tiled window fills the work area with no gaps
+# and no frame (smart_gaps, smart_borders). SwayFX-only commands (corner
+# radius, shadows, the title bar separator) are sent by the daemon only
+# when it runs on SwayFX: here they would make plain sway show an error
+# bar at start.
+default_border normal 1
+default_floating_border normal 1
+titlebar_border_thickness 0
+titlebar_padding 12 5
 title_align center
-gaps inner 8
+gaps inner 6
+gaps outer 0
+smart_gaps on
+smart_borders on
 
 # XWayland for X11 apps.
 xwayland enable

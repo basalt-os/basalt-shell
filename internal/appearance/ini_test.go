@@ -41,14 +41,14 @@ func TestFeatherPadFollowsMode(t *testing.T) {
 	}
 }
 
-// foot draws its own title bar with buttons (close on sway, maximize and
-// close on niri) in the theme's colors, instead of the compositor's bar
-// without buttons.
-func TestFootDrawsItsOwnTitleBar(t *testing.T) {
+// foot asks for the compositor's title bar (one kind of bar for every
+// plain window on sway); its own bar keeps the theme's colors for the
+// person who switches back to it.
+func TestFootUsesTheCompositorTitleBar(t *testing.T) {
 	tok := theme.Tokens{"font.family": "Inter", "font.size": 11.0, "spacing.unit": 4.0,
 		"color.surfaceAlt": "#2b2f36", "color.text": "#e8e6e3"}
 	ini := FootINI(tok)
-	for _, want := range []string{"[csd]\n", "preferred=client\n", "size=32\n", "button-width=32\n",
+	for _, want := range []string{"resize-by-cells=no\n", "[csd]\n", "preferred=server\n", "size=32\n", "button-width=32\n",
 		"color=ff2b2f36\n", "button-color=ffe8e6e3\n", "button-close-color=ff2b2f36\n", "font=Inter:weight=bold:pixelsize=13\n"} {
 		if !strings.Contains(ini, want) {
 			t.Errorf("foot ini lacks %q:\n%s", want, ini)

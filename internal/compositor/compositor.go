@@ -96,21 +96,29 @@ type Caps struct {
 // Style is the part of the theme the compositor draws (window borders,
 // corners, shadows, gaps, animations).
 type Style struct {
-	CornerRadius  int     `json:"corner_radius"`
-	BorderWidth   int     `json:"border_width"`
-	Gaps          int     `json:"gaps"`
-	FocusColor    string  `json:"focus_color"`    // #RRGGBB
-	Accent        string  `json:"accent"`         // #RRGGBB: niri's focus ring
-	InactiveColor string  `json:"inactive_color"` // #RRGGBB
-	UrgentColor   string  `json:"urgent_color"`
-	Shadows       bool    `json:"shadows"`
-	ShadowColor   string  `json:"shadow_color"` // #RRGGBBAA
-	ShadowBlur    int     `json:"shadow_blur"`
-	Blur          bool    `json:"blur"`
-	DimInactive   float64 `json:"dim_inactive"`
-	Animations    bool    `json:"animations"`
-	CursorTheme   string  `json:"cursor_theme"`
-	CursorSize    int     `json:"cursor_size"`
+	CornerRadius  int    `json:"corner_radius"`
+	BorderWidth   int    `json:"border_width"`
+	Gaps          int    `json:"gaps"`
+	FocusColor    string `json:"focus_color"`    // #RRGGBB
+	Accent        string `json:"accent"`         // #RRGGBB: niri's focus ring
+	InactiveColor string `json:"inactive_color"` // #RRGGBB
+	UrgentColor   string `json:"urgent_color"`
+	Shadows       bool   `json:"shadows"`
+	ShadowColor   string `json:"shadow_color"` // #RRGGBBAA
+	ShadowBlur    int    `json:"shadow_blur"`
+	// ShadowOffsetY drops the shadow below the window (px); the inactive
+	// windows' shadow is lighter (ShadowInactive, #RRGGBBAA).
+	ShadowOffsetY  int    `json:"shadow_offset_y"`
+	ShadowInactive string `json:"shadow_inactive_color,omitempty"`
+	Blur           bool   `json:"blur"`
+	// LayerBlur blurs what is behind the shell's translucent surfaces (the
+	// panel and the popovers), where the compositor can; never behind
+	// windows (Blur), and off without a GPU.
+	LayerBlur   bool    `json:"layer_blur"`
+	DimInactive float64 `json:"dim_inactive"`
+	Animations  bool    `json:"animations"`
+	CursorTheme string  `json:"cursor_theme"`
+	CursorSize  int     `json:"cursor_size"`
 	// Title bars (drawn by the compositor for windows without their own).
 	Title TitleStyle `json:"title"`
 }
@@ -171,6 +179,18 @@ type Pointer interface {
 	PointerButton(ctx context.Context, button, action string) error
 	// PointerScroll scrolls by steps (positive dy is down, dx is right).
 	PointerScroll(ctx context.Context, dx, dy int) error
+}
+
+// Framer is implemented by backends that draw title bars and frames
+// around windows and can take them away from one window and give them
+// back (sway: "border none" and "border normal"). The shell uses it for
+// maximized windows: the whole work area goes to the app, and the panel
+// entry carries the title and the close button.
+type Framer interface {
+	// SetFrame gives a window the compositor's title bar and frame (on)
+	// or takes them away (off). Windows that draw their own decorations
+	// are never changed.
+	SetFrame(ctx context.Context, id string, on bool) error
 }
 
 // Minimizer is implemented by backends that can hide a window and bring
