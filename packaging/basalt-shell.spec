@@ -370,9 +370,10 @@ fi
   height of sway's bar, in the theme's colors): 0.10.0 moved it to sway's
   bar, which cannot hold buttons, and left the terminal without a
   visible close.
-- Quick settings: the tiles share the card's width in two equal columns
-  and their text elides inside the tile's padding ("Spoken answers" ran
-  past the tile, the right column stuck out of the card).
+- Quick settings: 400 px wide like the drawer (was 360); the tiles share
+  the card's width in two equal columns and their text elides inside
+  the tile's padding ("Spoken answers" ran past the tile, the right
+  column stuck out of the card).
 - Activity: Dismiss on an assistant report (nothing to apply) only
   takes it off the person's list, remembered in their state directory;
   no administrator password. Proposals with changes still need Apply or

@@ -63,9 +63,11 @@ PanelWindow {
 
     // 8 px from the panel's edge and the side (the layer starts after the
     // panel's exclusive zone).
+    // 400 px like the drawer: two tiles of about 180 px hold "Spoken
+    // answers" or "Ask the system" without eliding.
     Surface {
         id: card
-        width: Math.min(360, parent.width - Theme.popoverGap * 2)
+        width: Math.min(400, parent.width - Theme.popoverGap * 2)
         height: col.implicitHeight + Theme.s4 * 2
         anchors.right: parent.right
         anchors.rightMargin: Theme.popoverGap
@@ -159,7 +161,8 @@ PanelWindow {
                     delegate: Pressable {
                         required property var modelData
                         readonly property var sw: Theme.dark ? modelData.dark : modelData.light
-                        width: 104; height: 58
+                        // Three swatches across the card's width.
+                        width: Math.floor((col.width - Theme.s2 * 2) / 3); height: 58
                         radius: Theme.radiusMd
                         color: sw[0]
                         border.width: Theme.themeId === modelData.id ? 2 : 1
@@ -252,7 +255,7 @@ PanelWindow {
         }
         Column {
             anchors.left: tileIcon.right
-            anchors.leftMargin: Theme.s3
+            anchors.leftMargin: Theme.s2
             anchors.right: parent.right
             anchors.rightMargin: Theme.s3
             anchors.verticalCenter: parent.verticalCenter

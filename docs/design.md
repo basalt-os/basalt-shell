@@ -546,7 +546,7 @@ The panel is attached to the screen edge by default: full width, the
 the side facing the windows, and an exclusive zone equal to its height;
 `panel.style: floating` keeps the earlier pill (2 units from the edges,
 `radius.lg`, a border all round, the zone grows by those 2 units).
-Popovers (drawer 400 px, quick settings 360, launcher 640 at 12 % of the
+Popovers (drawer 400 px, quick settings 400 (360 before 0.10.1), launcher 640 at 12 % of the
 height, Ask bar 720 under the panel, power menu 360) sit 8 px from the
 panel's edge and the screen edges with `radius.lg` corners, opaque `color.surfaceAlt` with a 1 px
 edge and their own shadow (none with reduced motion). The panel is
