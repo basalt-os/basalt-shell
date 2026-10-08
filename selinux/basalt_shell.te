@@ -1,4 +1,4 @@
-policy_module(basalt_shell, 0.6.0)
+policy_module(basalt_shell, 0.6.1)
 
 ########################################
 #
@@ -386,6 +386,24 @@ allow basalt_voice_t unconfined_t:unix_stream_socket connectto;
 dontaudit basalt_voice_t user_tmp_t:sock_file write;
 neverallow basalt_voice_t user_tmp_t:sock_file write;
 allow basalt_voice_t unconfined_t:fd use;
+
+# Logout: systemd-user-runtime-dir empties /run/user/UID before it unmounts
+# it, and the shell's runtime directories, their sockets and the PipeWire
+# sockets have types of their own (not user_tmp_type), so it was denied
+# reading, emptying and removing them (hidden by dontaudit rules; seen with
+# semodule -DB). Only what removing needs: list the two directories, unlink
+# what is in them, remove them and the PipeWire sockets. Nothing to read
+# or write in any file.
+optional_policy(`
+	gen_require(`
+		type systemd_user_runtimedir_t;
+	')
+	list_dirs_pattern(systemd_user_runtimedir_t, { basalt_shell_runtime_t basalt_voice_runtime_t }, { basalt_shell_runtime_t basalt_voice_runtime_t })
+	delete_dirs_pattern(systemd_user_runtimedir_t, { basalt_shell_runtime_t basalt_voice_runtime_t }, { basalt_shell_runtime_t basalt_voice_runtime_t })
+	delete_files_pattern(systemd_user_runtimedir_t, { basalt_shell_runtime_t basalt_voice_runtime_t }, { basalt_shell_runtime_t basalt_voice_runtime_t })
+	delete_sock_files_pattern(systemd_user_runtimedir_t, { basalt_shell_runtime_t basalt_voice_runtime_t }, { basalt_shell_runtime_t basalt_voice_runtime_t })
+	allow systemd_user_runtimedir_t basalt_pipewire_sock_t:sock_file { getattr unlink };
+')
 # PipeWire clients (pw-record, pw-play): shared buffers (memfd, tmpfs_t),
 # the client configuration (~/.config/pipewire, defaults in /usr/share),
 # the user name, real-time priority for the audio thread.
