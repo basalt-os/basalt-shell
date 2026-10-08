@@ -25,8 +25,23 @@ log() {
   return 0
 }
 
+# The graphical greeter may have died with a login conversation open in
+# greetd (it asked for the remembered person's password): greetd keeps it,
+# and tuigreet's first request (it asks for the remembered person at once)
+# was refused, so the text login opened with "An error was received from
+# greetd". End it first; nothing happens when none is open.
+cancel_pending() {
+  helper=${BASALT_GREETD_CANCEL:-/usr/libexec/basalt-shell/basalt-greetd-cancel}
+  if [ -x "$helper" ]; then
+    out=$("$helper" 2>&1) || true
+    [ -n "$out" ] && log "$out"
+  fi
+  return 0
+}
+
 text_login() {
   log "text login (tuigreet): $1"
+  [ "${ran_graphical:-0}" = 1 ] && cancel_pending
   exec tuigreet --time --remember --remember-session --asterisks \
     --sessions /usr/share/wayland-sessions --cmd 'basalt-session sway'
 }
@@ -48,7 +63,7 @@ case $failures in '' | *[!0-9]*) failures=0 ;; esac
 [ "$failures" -ge 2 ] && text_login "the graphical greeter failed $failures times since boot"
 
 status=127
-[ -x "$libexec/basalt-greeter" ] && { "$libexec/basalt-greeter"; status=$?; }
+[ -x "$libexec/basalt-greeter" ] && { ran_graphical=1; "$libexec/basalt-greeter"; status=$?; }
 if [ "$status" = 0 ]; then
   # A session was started (or the computer is going down).
   [ -w "$run" ] && echo 0 >"$run/failures"
