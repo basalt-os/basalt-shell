@@ -1,0 +1,9 @@
+# Basalt OS desktop defaults for applications (basalt-desktop). A person's
+# own choice (gsettings, the application's preferences) still wins; these
+# are only the defaults.
+
+# Mousepad: wrap long lines. Dictated text (Super+V into a text field)
+# arrives as one long line, and without wrapping it ran past the window's
+# edge. GNOME Text Editor, the default editor, already wraps.
+[org.xfce.mousepad.preferences.view]
+word-wrap=true

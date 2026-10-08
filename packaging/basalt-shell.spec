@@ -226,6 +226,10 @@ make install DESTDIR=%{buildroot} PREFIX=%{_prefix} SYSCONFDIR=%{_sysconfdir} LI
 install -Dpm 0644 config/desktop/greetd.toml %{buildroot}%{_sysconfdir}/basalt/greetd.toml
 install -Dpm 0644 config/desktop/greetd-basalt.conf %{buildroot}%{_unitdir}/greetd.service.d/50-basalt.conf
 install -Dpm 0644 config/desktop/80-basalt-desktop.preset %{buildroot}%{_presetdir}/80-basalt-desktop.preset
+# Application defaults (GSettings vendor override; glib2's file trigger
+# compiles the schemas). Keys of applications that are not installed are
+# skipped by glib-compile-schemas.
+install -Dpm 0644 config/desktop/50_basalt-desktop.gschema.override %{buildroot}%{_datadir}/glib-2.0/schemas/50_basalt-desktop.gschema.override
 # Flathub, unfiltered, added on first use of flatpak (remotes.d).
 install -Dpm 0644 config/flatpak/flathub.flatpakrepo %{buildroot}%{_datadir}/flatpak/remotes.d/flathub.flatpakrepo
 for m in basalt_shell basalt_greeter; do
@@ -336,6 +340,7 @@ fi
 %dir %{_unitdir}/greetd.service.d
 %{_unitdir}/greetd.service.d/50-basalt.conf
 %{_presetdir}/80-basalt-desktop.preset
+%{_datadir}/glib-2.0/schemas/50_basalt-desktop.gschema.override
 %dir %{_datadir}/flatpak/remotes.d
 %{_datadir}/flatpak/remotes.d/flathub.flatpakrepo
 
@@ -360,6 +365,26 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Thu Oct 08 2026 Basalt OS developers - 0.9.4-1
+- The session starts on the wallpaper instead of a black screen: sway's own
+  background (swaybg, now required) shows the person's light or dark
+  wallpaper from the compositor's first frames, under the shell's
+  wallpaper layer, which appears only once Quickshell has loaded. On the
+  lab VM the black screen after the login screen's fade went from 3.8 s
+  to 1.6 s (the rest is PAM, the user manager and sway's start).
+- Login screen: the card, the people and the top bar's controls follow the
+  pointer to the monitor the person moves it onto (the first monitor
+  until then; back to it when that monitor is unplugged), the keyboard
+  with them.
+- Text login fallback: a login conversation the graphical screen left
+  open in greetd when it failed is ended first (basalt-greetd-cancel), so
+  tuigreet no longer opens with "An error was received from greetd".
+- SELinux: systemd-user-runtime-dir may list, empty and remove the shell's
+  and the voice service's runtime directories and the PipeWire sockets at
+  logout (basalt_shell 0.6.1).
+- basalt-desktop: Mousepad wraps long lines by default (GSettings vendor
+  override), so dictated text stays inside the window.
+
 * Tue Oct 06 2026 Basalt OS developers - 0.9.3-1
 - Settings, Keyboard: the person's layouts (add with a search by name,
   remove, reorder; the first is the default; variants), applied to the

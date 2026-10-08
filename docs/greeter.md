@@ -97,6 +97,13 @@ The greeter keeps two places:
 Both are created by `basalt-greeter.conf` in tmpfiles.d, owned by greetd's
 user.
 
+### Several monitors
+
+The login card, the people and the top bar's controls are on one monitor:
+the one the person last moved the pointer onto, the first one until then
+(and again when that monitor is unplugged). The keyboard goes with the
+card. The other monitors show the wallpaper and the clock.
+
 ### When it cannot run
 
 `greeter-session` starts the text login (tuigreet, with the Basalt session
@@ -108,7 +115,10 @@ as default) instead of the graphical screen when:
 - the graphical greeter fails now: it crashed, sway could not start, or the
   screen never reported itself drawn within 30 seconds (the watchdog in
   `greeter-ui` waits for `/run/basalt-greeter/ready`). tuigreet starts at
-  once on the same terminal.
+  once on the same terminal. A login conversation the graphical screen
+  left open in greetd (it asks for the remembered person's password as it
+  starts) is ended first, by `/usr/libexec/basalt-shell/basalt-greetd-cancel`,
+  so the text login starts clean.
 
 Each fallback is written to the journal (`journalctl -t basalt-greeter`).
 
