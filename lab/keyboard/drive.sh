@@ -116,6 +116,20 @@ k a a
 expect settings-nav-drivers "type-ahead a again"
 sleep 1
 shot 07-settings-drivers
+# The pages added after the keyboard round: Keyboard here; Updates and
+# channels in settings.sh (it needs the stand-in assistant: without one
+# the page has no controls, only the reason).
+k Up
+expect settings-nav-updates "Up to Updates and channels"
+k Up Up Up
+expect settings-nav-keyboard "Up to Keyboard"
+sleep 1
+k Tab
+# shellcheck disable=SC2016
+check '[[ $(ui focused) != settings-nav-* && -n $(ui focused) ]]' "Tab into the Keyboard page reaches a control ($(ui focused))"
+shot 07c-settings-keyboard
+k Escape
+expect settings-nav-keyboard "Escape in the Keyboard page returns to the sidebar"
 k ctrl+w
 sleep 0.5
 surfaces ""
