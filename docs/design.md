@@ -402,6 +402,17 @@ be undone.
   hardware the NVIDIA driver supports, or after "Show all channels".
   Turning on a testing channel shows the consent sheet: "Preview builds can
   break things. A snapshot is taken before each update so you can go back."
+  A driver channel that is not defined here yet needs basalt-nonfree-release:
+  until the drivers report says it is installed or offered by the enabled
+  repositories (`state.release_package`, `state.nonfree_available`, from
+  dnf's cached metadata), its toggle is disabled and the card says "Not
+  available yet: its packages are not published."
+- A change that did not work ends with one line in plain words (not
+  published yet, the sources could not be reached, a failed signature
+  check, a full disk, the approval not given, else "Nothing was changed, or
+  not everything worked"); the assistant's report, with the raw dnf
+  output, stays behind "Show the assistant's report" (`shell/updates.js`,
+  with its tests). The assistant stops at the first failed command.
 - Other software sources: the catalog of well-known sources (Flathub, RPM
   Fusion, Google Chrome, Visual Studio Code, Docker CE) with the address
   and key Basalt OS pins, a COPR project by name, or a custom source by the

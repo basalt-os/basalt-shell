@@ -359,3 +359,24 @@ func TestMultilingualPick(t *testing.T) {
 		t.Errorf("not allowed base: %q", got)
 	}
 }
+
+// The voice card says "Answers are shown, not spoken" only where speaking
+// is possible at all: never on a desktop without a synthesizer or without
+// any voice (the default while Piper is not packaged).
+func TestSpeaksSomething(t *testing.T) {
+	en := voice.ModelInfo{Name: "en_US-lessac-medium", Kind: "tts", Lang: "en_US", Allowed: true}
+	for _, c := range []struct {
+		m    voice.Models
+		want bool
+	}{
+		{voice.Models{}, false},
+		{voice.Models{TTS: true}, false},
+		{voice.Models{Voices: []voice.ModelInfo{en}}, false},
+		{voice.Models{TTS: true, Voices: []voice.ModelInfo{{Name: "x", Kind: "tts", Lang: "en_US"}}}, false},
+		{voice.Models{TTS: true, Voices: []voice.ModelInfo{en}}, true},
+	} {
+		if got := speaksSomething(c.m); got != c.want {
+			t.Errorf("speaksSomething(%+v) = %v, want %v", c.m, got, c.want)
+		}
+	}
+}

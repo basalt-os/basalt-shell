@@ -321,15 +321,8 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		if a.Query == "" {
 			return list, nil
 		}
-		var out []apps.App
-		q := strings.ToLower(a.Query)
-		for _, x := range list {
-			if strings.Contains(strings.ToLower(x.Name), q) || strings.Contains(strings.ToLower(x.ID), q) ||
-				strings.Contains(strings.ToLower(x.Generic), q) || strings.Contains(strings.ToLower(strings.Join(x.Keywords, " ")), q) {
-				out = append(out, x)
-			}
-		}
-		return out, nil
+		// Best first: the same ranking app.launch uses.
+		return apps.Search(list, a.Query), nil
 	case "activity":
 		var a struct {
 			N int `json:"n"`

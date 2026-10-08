@@ -513,8 +513,11 @@ func (c *Core) voiceTurnFor(release time.Time, turn uint64) {
 	eff = c.refreshPrefs()
 	// The answer is spoken in the answer language with a voice for it
 	// (the person's, else an installed one), never by a voice of another
-	// language. Without one the answer is shown only, and the card says
-	// so once per language and session.
+	// language. Without one the answer is shown only. The card says so
+	// once per language and session only when speaking is possible on
+	// this computer at all (a synthesizer and a voice of another language
+	// are installed); on a desktop without any voice (Piper is not
+	// packaged yet) the card stays quiet and Settings, Voice explains.
 	note := ""
 	voiceName := ""
 	if speech != "" && eff.Spoken {
@@ -524,15 +527,17 @@ func (c *Core) voiceTurnFor(release time.Time, turn uint64) {
 		c.prefs.mu.Unlock()
 		v, ok := voiceFor(eff, chosen, models)
 		if !ok {
-			c.mu.Lock()
-			if c.voiceLangNoticed == nil {
-				c.voiceLangNoticed = map[string]bool{}
-			}
-			first := !c.voiceLangNoticed[eff.AnswerLang]
-			c.voiceLangNoticed[eff.AnswerLang] = true
-			c.mu.Unlock()
-			if first {
-				note = i18n.G("Answers are shown, not spoken: no voice for %s is installed.", nativeName(eff.AnswerLang))
+			if speaksSomething(models) {
+				c.mu.Lock()
+				if c.voiceLangNoticed == nil {
+					c.voiceLangNoticed = map[string]bool{}
+				}
+				first := !c.voiceLangNoticed[eff.AnswerLang]
+				c.voiceLangNoticed[eff.AnswerLang] = true
+				c.mu.Unlock()
+				if first {
+					note = i18n.G("Answers are shown, not spoken: no voice for %s is installed.", nativeName(eff.AnswerLang))
+				}
 			}
 			speech = ""
 		}
@@ -556,6 +561,22 @@ func (c *Core) voiceTurnFor(release time.Time, turn uint64) {
 	_, _ = c.Audit.Append("voice", "voice", tr.Text, map[string]any{"timing": timing, "stt_model": tr.Model, "stt_language": tr.Lang,
 		"answer_language": eff.AnswerLang, "kind": res.Kind, "spoken": speech, "level": tr.Level, "tts": sp})
 	c.setVoiceTurn(turn, VoiceState{State: "idle", Text: tr.Text, Timing: timing, Note: note})
+}
+
+// speaksSomething reports whether this computer can speak at all: a
+// speech synthesizer and at least one allowed voice are installed. Only
+// then is a missing voice for the answer language news worth a line on
+// the voice card.
+func speaksSomething(m voice.Models) bool {
+	if !m.TTS {
+		return false
+	}
+	for _, v := range m.Voices {
+		if v.Allowed {
+			return true
+		}
+	}
+	return false
 }
 
 // nativeName is a language's own name for the person ("Português

@@ -384,6 +384,23 @@ fi
   logout (basalt_shell 0.6.1).
 - basalt-desktop: Mousepad wraps long lines by default (GSettings vendor
   override), so dictated text stays inside the window.
+- The power-off countdown names open apps as people know them (Mousepad,
+  in their language), not by app id (org.xfce.mousepad).
+- Launcher and "open text editor": ranking by name, generic name and the
+  kind of app (desktop entry categories) before letters in order, so a
+  text editor comes first and never a terminal. Desktop entries are read
+  in the session's language. An empty search starts nothing on Return.
+- The voice card no longer says "Answers are shown, not spoken" on a
+  desktop without any voice; Settings, Voice explains it.
+- Model downloads show progress as soon as the request is approved,
+  instead of waiting about 12 s on "Waiting for the approval".
+- Dictation keeps punctuation: a punctuated prompt for the recognizer and
+  only whisper's own tags and sound notes are removed.
+- Updates and channels: a driver channel whose package is not published
+  yet is shown with its toggle disabled ("Not available yet"); a change
+  that did not work ends with one plain line, the raw output under
+  "Show the assistant's report".
+- Keyboard lab: the Keyboard and Updates and channels pages.
 
 * Tue Oct 06 2026 Basalt OS developers - 0.9.3-1
 - Settings, Keyboard: the person's layouts (add with a search by name,

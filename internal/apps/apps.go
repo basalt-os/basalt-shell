@@ -10,16 +10,26 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/basalt-os/basalt-shell/internal/i18n"
 )
 
-// App is one launchable application.
+// App is one launchable application. Name, Generic, Comment and
+// Keywords are in the session's language when the entry has them
+// (Name[pt_BR], Name[pt]); Aliases keeps the untranslated name, generic
+// name and keywords, so "text editor" finds Mousepad in any language.
 type App struct {
-	ID       string   `json:"id"` // desktop file id, e.g. org.gnome.TextEditor
-	Name     string   `json:"name"`
-	Generic  string   `json:"generic,omitempty"`
-	Comment  string   `json:"comment,omitempty"`
-	Icon     string   `json:"icon,omitempty"`
-	Keywords []string `json:"keywords,omitempty"`
+	ID         string   `json:"id"` // desktop file id, e.g. org.gnome.TextEditor
+	Name       string   `json:"name"`
+	Generic    string   `json:"generic,omitempty"`
+	Comment    string   `json:"comment,omitempty"`
+	Icon       string   `json:"icon,omitempty"`
+	Keywords   []string `json:"keywords,omitempty"`
+	Aliases    []string `json:"aliases,omitempty"`
+	Categories []string `json:"categories,omitempty"`
+	// Kinds are the plain words of its categories ("text editor",
+	// "editor de texto" for TextEditor), for searches by kind of app.
+	Kinds    []string `json:"kinds,omitempty"`
 	Exec     string   `json:"exec"`
 	Terminal bool     `json:"terminal,omitempty"`
 	Path     string   `json:"path"`
@@ -148,19 +158,81 @@ func parse(path string) (App, bool, error) {
 			}
 		}
 	}
-	a.Name = kv["Name"]
-	a.Generic = kv["GenericName"]
-	a.Comment = kv["Comment"]
+	locs := localeKeys(i18n.Locale())
+	a.Name = localized(kv, "Name", locs)
+	a.Generic = localized(kv, "GenericName", locs)
+	a.Comment = localized(kv, "Comment", locs)
 	a.Icon = kv["Icon"]
 	a.Exec = kv["Exec"]
 	a.Terminal = kv["Terminal"] == "true"
 	a.Flatpak = kv["X-Flatpak"] != ""
-	for _, k := range strings.Split(kv["Keywords"], ";") {
-		if k = strings.TrimSpace(k); k != "" {
-			a.Keywords = append(a.Keywords, k)
+	a.Keywords = list(localized(kv, "Keywords", locs))
+	// The untranslated words still find the app.
+	seen := map[string]bool{fold(a.Name): true, fold(a.Generic): true}
+	for _, k := range a.Keywords {
+		seen[fold(k)] = true
+	}
+	for _, w := range append([]string{kv["Name"], kv["GenericName"]}, list(kv["Keywords"])...) {
+		if w != "" && !seen[fold(w)] {
+			seen[fold(w)] = true
+			a.Aliases = append(a.Aliases, w)
 		}
 	}
+	if a.Name == "" {
+		a.Name = kv["Name"]
+	}
+	a.Categories = list(kv["Categories"])
+	a.Kinds = kindsOf(a.Categories)
 	return a, a.Name != "", nil
+}
+
+// list splits a desktop entry list value ("a;b;c;").
+func list(v string) []string {
+	var out []string
+	for _, k := range strings.Split(v, ";") {
+		if k = strings.TrimSpace(k); k != "" {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+// localeKeys are the locale suffixes a localized key is looked up with,
+// best first, per the desktop entry spec: lang_COUNTRY@MODIFIER,
+// lang_COUNTRY, lang@MODIFIER, lang. Empty for English or C.
+func localeKeys(locale string) []string {
+	l := strings.SplitN(locale, ".", 2)[0]
+	mod := ""
+	if i := strings.Index(locale, "@"); i >= 0 {
+		mod = locale[i:]
+		l = strings.SplitN(l, "@", 2)[0]
+	}
+	if l == "" || l == "C" || l == "POSIX" {
+		return nil
+	}
+	lang, country, _ := strings.Cut(l, "_")
+	var out []string
+	if country != "" && mod != "" {
+		out = append(out, lang+"_"+country+mod)
+	}
+	if country != "" {
+		out = append(out, lang+"_"+country)
+	}
+	if mod != "" {
+		out = append(out, lang+mod)
+	}
+	return append(out, lang)
+}
+
+// localized is key's value in the first of locs the entry has, else the
+// untranslated one.
+func localized(kv map[string]string, key string, locs []string) string {
+	for _, l := range locs {
+		if v := kv[key+"["+l+"]"]; v != "" {
+			return v
+		}
+	}
+	return kv[key]
 }
 
 // Argv turns the Exec key into an argument vector: quoting per the
@@ -226,40 +298,4 @@ func splitExec(s string) ([]string, error) {
 		args = append(args, cur.String())
 	}
 	return args, nil
-}
-
-// Find resolves a reference (desktop id, or a name, case-insensitive,
-// exact first, then prefix, then substring) to an app.
-func Find(list []App, ref string) (App, bool) {
-	r := strings.ToLower(strings.TrimSpace(ref))
-	if r == "" {
-		return App{}, false
-	}
-	for _, a := range list {
-		if strings.ToLower(a.ID) == r || strings.ToLower(a.ID) == strings.TrimSuffix(r, ".desktop") {
-			return a, true
-		}
-	}
-	for _, a := range list {
-		if strings.ToLower(a.Name) == r {
-			return a, true
-		}
-	}
-	for _, a := range list {
-		if strings.HasPrefix(strings.ToLower(a.Name), r) {
-			return a, true
-		}
-	}
-	for _, a := range list {
-		if strings.Contains(strings.ToLower(a.Name), r) || strings.Contains(strings.ToLower(a.ID), r) ||
-			strings.Contains(strings.ToLower(a.Generic), r) {
-			return a, true
-		}
-		for _, k := range a.Keywords {
-			if strings.ToLower(k) == r {
-				return a, true
-			}
-		}
-	}
-	return App{}, false
 }

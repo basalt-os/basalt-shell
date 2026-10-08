@@ -492,6 +492,13 @@ not catch that. Try again." in the person's language, in the neutral
 style of a note; red is kept for errors. A new press clears whatever
 the last utterance left on the card.
 
+Dictated text keeps what was said, punctuation included: speech
+recognition gets a few punctuated sentences in the speech language as its
+prompt (it writes in the style of its prompt), and only its own tags
+("[BLANK_AUDIO]") and sound notes ("(music)", "(risos)") are removed; a
+parenthesized aside the person said stays. How a long line wraps after
+Insert is the app's own setting (Mousepad's word wrap, for example).
+
 Only one input method can be bound on a seat; with another one running
 (IBus, Fcitx) dictation is off and every utterance goes to the assistant.
 

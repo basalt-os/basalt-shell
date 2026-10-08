@@ -181,6 +181,14 @@ case "$1" in
       echo "  (without a prompt: sudo basalt apply p-0c0d0e --yes --confirm 0a0b0c0d)"
     fi ;;
   pending) echo '[]' ;;
+  updates) echo '{"updates":[],"counts":{},"restart":{"needed":false},"history":[]}' ;;
+  channels)
+    # basalt-nonfree-testing is not defined here and nothing offers
+    # basalt-nonfree-release (no drivers report in the container).
+    echo '{"channels":[{"id":"basalt","defined":true,"enabled":true,"toggle":false,"signature":{"gpgcheck":true,"openbasalt":true,"short":"0A0B0C0D"}},'\
+'{"id":"basalt-testing","defined":true,"enabled":false,"toggle":true,"testing":true,"signature":{"gpgcheck":true,"openbasalt":true,"short":"0A0B0C0D"}},'\
+'{"id":"basalt-nonfree-testing","defined":false,"enabled":false,"toggle":true,"testing":true,"nonfree":true,"signature":{}}],'\
+'"sources":[],"other":[],"catalog":[],"nonfree_defined":false,"nonfree_testing_defined":false,"docs":"https://example.org"}' ;;
   *) echo '{}' ;;
 esac
 EOF
@@ -230,6 +238,33 @@ k Escape; sleep 0.6
 expect keyboard-system "Escape is Not now: back on the button"
 check '! grep -q "apply" /tmp/fake-basalt.log' "nothing was applied"
 check '! grep -rq localectl /tmp/session2.log' "the shell ran no localectl"
+
+echo "== Updates and channels with the keyboard"
+k Escape
+expect settings-nav-keyboard "Escape from the page: the sidebar"
+k u; sleep 2
+expect settings-nav-updates "type-ahead u: Updates and channels"
+k Tab
+# shellcheck disable=SC2016 # check evaluates it
+check '[[ $(ui focused) != settings-nav-* && -n $(ui focused) ]]' "Tab goes into the Updates page"
+for _ in $(seq 1 30); do
+  [[ $(ui focused) == channels-show-all ]] && break
+  k Tab
+done
+expect channels-show-all "Tab reaches Show all channels"
+k Return; sleep 1
+seen=" "
+for _ in $(seq 1 30); do
+  k Tab
+  seen="$seen$(ui focused) "
+done
+shot 12-updates-channels
+check '[[ $seen == *" channel-basalt-testing "* ]]' "Tab reaches the basalt-testing toggle"
+check '[[ $seen != *" channel-basalt-nonfree-testing "* ]]' "the unpublished basalt-nonfree-testing toggle is disabled (no Tab stop)"
+check '[ "$(tr " " "\n" <<<"$seen" | sort -u | grep -c .)" -ge 4 ]' "Tab moves through the page's controls"
+k Escape
+expect settings-nav-updates "Escape returns to the sidebar"
+check '! grep -q "channels enable basalt-nonfree-testing" /tmp/fake-basalt.log' "nothing asked to turn on basalt-nonfree-testing"
 k ctrl+w; sleep 0.5
 
 echo

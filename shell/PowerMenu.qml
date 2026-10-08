@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import "apps.js" as A
 
 // The power menu: Lock screen, Log out, Suspend, Restart, Power off.
 // Opened by the power button at the right end of the panel, the one in
@@ -45,14 +46,18 @@ PanelWindow {
         { op: "restart", label: Tr.t("Restart"), icon: "restart", key: "" },
         { op: "poweroff", label: Tr.t("Power off"), icon: "power", key: "" }
     ]
-    // Open app windows: their work may be lost.
+    // Open app windows: their work may be lost. Named as the person
+    // knows them: the desktop entry's name in their language (Mousepad,
+    // not org.xfce.mousepad), else a readable form of the app id, else
+    // the window title.
     readonly property var openApps: {
         const seen = {};
         const out = [];
         for (const w of (Bus.desktop.windows || [])) {
-            const n = w.app_id || w.title || "";
             // The shell's own windows (Settings) hold no unsaved work.
             if (w.app_id === "org.quickshell") continue;
+            const entry = w.app_id ? DesktopEntries.heuristicLookup(w.app_id) : null;
+            const n = A.appLabel(w.app_id || "", entry ? entry.name : "", w.title || "");
             if (n && !seen[n]) { seen[n] = true; out.push(n); }
         }
         return out;
