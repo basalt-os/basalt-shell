@@ -14,6 +14,8 @@
 # second person gets their own remembered session (niri); the top bar and
 # a menu work with the keyboard alone; the greeter reports itself drawn
 # (ready file) and ends with status 0; no answer ever reaches a log.
+# E2E_RENDERER picks another wlroots renderer than pixman (gles2 for SwayFX
+# on a GPU).
 set -eu
 src=$(cd "$(dirname "$0")/../.." && pwd)
 out=${1:-/tmp/greeter-e2e}
@@ -56,7 +58,7 @@ trap 'kill $fake 2>/dev/null; rm -rf "$t"' EXIT
 export BASALT_GREETER_ROOT=$root BASALT_GREETER_DATA=$data BASALT_GREETER_SHELL_DATA=$shell
 export BASALT_GREETER_STATE=$t/state BASALT_GREETER_RUN=$t/run GREETD_SOCK=$t/greetd.sock
 mkdir -p "$BASALT_GREETER_STATE" "$BASALT_GREETER_RUN"
-export WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1 WLR_HEADLESS_OUTPUTS=1
+export WLR_BACKENDS=headless WLR_RENDERER=${E2E_RENDERER:-pixman} WLR_LIBINPUT_NO_DEVICES=1 WLR_HEADLESS_OUTPUTS=1
 export QT_QUICK_BACKEND=software QT_QPA_PLATFORM=wayland QT_WAYLAND_DISABLE_WINDOWDECORATION=1 QV4_FORCE_INTERPRETER=1
 
 # run_greeter NAME STATE_JSON SCRIPT: one greeter run (sway exits when the

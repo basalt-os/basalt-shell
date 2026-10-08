@@ -6,11 +6,14 @@ import "logic.js" as L
 
 // One output of the login screen: the wallpaper, softly blurred, the
 // clock, and on the main output the login card, the people and the
-// status and power buttons.
+// status and power buttons. The main output is the one the person moves
+// the pointer onto (the first output until then), so with several monitors
+// the card is where the person looks, not always on the first one.
 PanelWindow {
     id: win
     required property var modelData
-    readonly property bool main: Quickshell.screens.length === 0 || modelData === Quickshell.screens[0]
+    readonly property bool main: Quickshell.screens.length === 0 ||
+        modelData.name === L.mainScreen(Array.prototype.map.call(Quickshell.screens, s => s.name), G.activeScreen)
     screen: modelData
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
@@ -177,13 +180,21 @@ PanelWindow {
         anchors.fill: parent
         focus: win.main
         Keys.onEscapePressed: win.backToField()
+        // The pointer on this output makes it the main one: the card (and
+        // the keyboard) move here.
+        HoverHandler {
+            onHoveredChanged: if (hovered && win.modelData.name !== G.activeScreen) G.activeScreen = win.modelData.name
+        }
     }
+    // The card arrived on this output: the cursor goes into its field.
+    onMainChanged: if (main && G.started) Qt.callLater(card.focusField)
 
     // Start: pick the remembered person and put the cursor in the field.
     Timer {
         interval: 50
-        running: win.main
+        running: win.main && !G.started
         onTriggered: {
+            G.started = true;
             if (Sys.users.length === 0) Login.chooseOther();
             else {
                 const u = L.pickUser(Sys.users, Sys.state.lastUser);

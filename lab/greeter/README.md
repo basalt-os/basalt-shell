@@ -39,3 +39,20 @@ tree and from the Basalt OS repository's `greeter` branch:
 
 A selection of the run's screenshots
 is in `media/greeter/` and [docs/greeter.md](../../docs/greeter.md).
+
+## Several monitors (2026-10-08, basalt-shell 0.9.4)
+
+The login card, the people and the top bar's controls follow the pointer:
+they are on the output the person last moved the pointer onto (the first
+output until then), and the keyboard goes with them. The headless e2e
+cannot check it (a headless sway has no pointer device, so nothing hovers);
+on a lab VM with the real greeter:
+
+1. Add a second output to the greeter's sway, as root:
+   `S=$(ls /run/basalt-greeter/xdg/sway-ipc.*.sock); runuser -u greetd -- env SWAYSOCK=$S swaymsg create_output`.
+2. Move the pointer with the HID tablet through QMP (`mouse_set` to the
+   tablet in the monitor, then `input-send-event` with absolute x and y
+   from 0 to 32767 over the whole layout) onto each output.
+3. Capture each output: `runuser -u greetd -- env XDG_RUNTIME_DIR=/run/basalt-greeter/xdg WAYLAND_DISPLAY=wayland-1 grim -o NAME FILE`.
+4. Type the password (`vm-type.py --enter`): the session starts from the
+   card on either output.

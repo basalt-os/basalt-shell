@@ -155,3 +155,11 @@ test("network and keyboard status", () => {
   assert.equal(L.layoutCode(twice), "US2");
   same(L.layoutLabels(["br", "us", "us"]), ["BR", "US1", "US2"]);
 });
+
+test("mainScreen: the card follows the pointer, falls back to the first output", () => {
+  assert.equal(L.mainScreen([], "DP-1"), "");
+  assert.equal(L.mainScreen(["eDP-1", "DP-1"], ""), "eDP-1");
+  assert.equal(L.mainScreen(["eDP-1", "DP-1"], "DP-1"), "DP-1");
+  // The active output was unplugged.
+  assert.equal(L.mainScreen(["eDP-1"], "DP-1"), "eDP-1");
+});

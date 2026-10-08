@@ -14,6 +14,13 @@ Singleton {
 
     readonly property string shellData: Quickshell.env("BASALT_GREETER_SHELL_DATA") || "/usr/share/basalt-shell"
     property string themeId: "basalt"
+    // The output the person last moved the pointer onto: the login card,
+    // the people and the top bar's controls follow it (GreeterScreen.main).
+    // Empty: the first output.
+    property string activeScreen: ""
+    // The start (remembered person, cursor in the field, ready file) runs
+    // once, not again each time the card moves to another output.
+    property bool started: false
     property string mode: "dark"
     property bool highContrast: false
     property bool largeText: false

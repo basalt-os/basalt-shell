@@ -341,3 +341,14 @@ function layoutCode(inputs) {
     const name = inputs.names[inputs.active] || "";
     return name.slice(0, 2).toUpperCase();
 }
+
+// mainScreen returns the name of the output that shows the login card:
+// the one the person last moved the pointer onto (active), or the first
+// output while there is none or that output is gone (unplugged). names are
+// the outputs' names in Quickshell's order.
+function mainScreen(names, active) {
+    const list = names || [];
+    if (list.length === 0) return "";
+    if (active && list.indexOf(active) >= 0) return active;
+    return list[0];
+}
