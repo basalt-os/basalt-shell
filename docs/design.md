@@ -554,7 +554,11 @@ translucent (`panel.opacity`) only where SwayFX blurs behind it,
 otherwise opaque. Panel targets are 32 px; workspace chips are
 neutral (the current one a text-colored fill), the focused window's
 entry carries a 2 px underline in the accent used as a foreground; the
-clock follows the session's locale. The person's settings
+clock follows the session's locale. The bell carries the one count of
+requests waiting for the person's decision (shell and assistant
+proposals; a report with nothing to apply is not counted) and, with
+something waiting, opens the drawer on Activity, where they are; with
+nothing waiting a dot marks unread notifications. The person's settings
 (`~/.config/basalt-shell/settings.json`) pick a theme, a mode and a motion
 preference, and hold overrides (color overrides per mode). The resolved
 set is: theme tokens, then the mode's colors, then overrides, then motion

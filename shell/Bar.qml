@@ -379,25 +379,10 @@ PanelWindow {
                     icon: "spark"
                     text: "Ask"
                     e2e: "panel-ask"
-                    // Reports with nothing to apply are read, not decided: not counted.
-                    readonly property int waiting: Bus.pending.length + Bus.assistantPending.filter(p => !p.report_only).length
-                    accessibleName: waiting > 0 ? Tr.n("Ask the system, %1 request waiting", "Ask the system, %1 requests waiting", waiting) : Tr.t("Ask the system")
+                    accessibleName: Tr.t("Ask the system")
                     implicitHeight: Theme.panelHeight - Theme.s2
                     active: Ui.commandBar
                     onClicked: bar.openSurface("commandbar", e2e)
-                    Rectangle {
-                        readonly property int n: askBtn.waiting
-                        visible: n > 0
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.rightMargin: -2
-                        anchors.topMargin: -2
-                        width: Math.max(height, badge.implicitWidth + 6)
-                        height: Theme.fontSmall * 1.6
-                        radius: height / 2
-                        color: Theme.warning
-                        Txt { id: badge; anchors.centerIn: parent; text: parent.n; role: "small"; color: "#1b1b1b"; font.weight: Font.Bold }
-                    }
                 }
 
                 // Push to talk: hold the button (or Super+V) and speak; release
@@ -538,16 +523,42 @@ PanelWindow {
 
                 StatusIcons { height: Theme.panelHeight - Theme.s2; onOpen: bar.openSurface("quicksettings", "panel-status") }
 
+                // Notifications and activity. The count is what waits for the
+                // person's decision (shell and assistant proposals); a report
+                // with nothing to apply is read, not decided, so it does not
+                // count. With something waiting the bell opens the activity,
+                // where those requests are.
                 Btn {
+                    id: bellBtn
                     icon: "bell"
                     e2e: "panel-notifications"
-                    accessibleName: Notifs.unread > 0 ? Tr.n("Notifications, %1 new", "Notifications, %1 new", Notifs.unread) : Tr.t("Notifications")
+                    readonly property int waiting: Bus.pending.length + Bus.assistantPending.filter(p => !p.report_only).length
+                    accessibleName: waiting > 0 ? Tr.n("Notifications, %1 request waiting", "Notifications, %1 requests waiting", waiting)
+                        : (Notifs.unread > 0 ? Tr.n("Notifications, %1 new", "Notifications, %1 new", Notifs.unread) : Tr.t("Notifications"))
                     implicitHeight: Theme.panelHeight - Theme.s2
                     implicitWidth: implicitHeight
                     active: Ui.drawer
-                    onClicked: bar.openSurface("notifications", e2e)
+                    // A second press closes the drawer on whichever tab it shows.
+                    onClicked: {
+                        const surface = Ui.drawer ? Ui.drawerTab : (waiting > 0 ? "activity" : "notifications");
+                        if (surface === "activity" && !Ui.drawer) Bus.refreshAssistant();
+                        bar.openSurface(surface, e2e);
+                    }
                     Rectangle {
-                        visible: Notifs.unread > 0
+                        readonly property int n: bellBtn.waiting
+                        visible: n > 0
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.rightMargin: -2
+                        anchors.topMargin: -2
+                        width: Math.max(height, waitBadge.implicitWidth + 6)
+                        height: Theme.fontSmall * 1.6
+                        radius: height / 2
+                        color: Theme.warning
+                        Txt { id: waitBadge; anchors.centerIn: parent; text: parent.n; role: "small"; color: "#1b1b1b"; font.weight: Font.Bold }
+                    }
+                    Rectangle {
+                        visible: Notifs.unread > 0 && bellBtn.waiting === 0
                         width: 8; height: 8; radius: 4
                         color: Theme.accent
                         anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 5

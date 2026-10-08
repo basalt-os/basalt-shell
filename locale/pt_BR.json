@@ -320,10 +320,6 @@
  "Ask the system": [
   "Pergunte ao sistema"
  ],
- "Ask the system, %1 request waiting": [
-  "Pergunte ao sistema, %1 pedido esperando",
-  "Pergunte ao sistema, %1 pedidos esperando"
- ],
  "Asked by %1": [
   "Pedido por %1"
  ],
@@ -1056,6 +1052,10 @@
  "Notifications, %1 new": [
   "Notificações, %1 nova",
   "Notificações, %1 novas"
+ ],
+ "Notifications, %1 request waiting": [
+  "Notificações, %1 pedido esperando decisão",
+  "Notificações, %1 pedidos esperando decisão"
  ],
  "November": [
   "novembro"
