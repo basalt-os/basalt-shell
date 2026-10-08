@@ -196,6 +196,14 @@ func (f *fakeService) exec(ctx context.Context, argv []string) ([]byte, int, err
 			return []byte("basalt-models: the administrator turned model downloads off on this computer"), 10, nil
 		}
 		f.progress[id] = Progress{State: StateQueued, Total: 4000, Time: time.Now()}
+		if sc == "slow" {
+			// The request records the consent before it starts the
+			// service (basalt-models request: the ledger call), slowly.
+			f.mu.Unlock()
+			time.Sleep(300 * time.Millisecond)
+			f.mu.Lock()
+			sc = "ok"
+		}
 		f.running[id] = true
 		go f.service(id, sc)
 		return []byte("started " + id), 0, nil
@@ -475,4 +483,54 @@ func TestManagerStalledService(t *testing.T) {
 
 func TestHasRouteRuns(t *testing.T) {
 	_ = HasRoute() // reads /proc; the value depends on the machine
+}
+
+// The demo waited about 12 s on "Waiting for the approval to download":
+// the request returns only after it recorded the consent, although it was
+// approved at once. The job leaves "authorizing" as soon as the request
+// wrote the attempt's progress file, before the request returns.
+func TestManagerProgressDuringRequest(t *testing.T) {
+	m, _, done, _ := newTestManager(t, "everyone", "slow")
+	if _, err := m.Start(Voice, "english", "push-to-talk", "en", 4000); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(250 * time.Millisecond)
+	queued := false
+	for time.Now().Before(deadline) {
+		if j, _ := m.Job("voice-english"); j.State == StateQueued {
+			queued = true
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if !queued {
+		j, _ := m.Job("voice-english")
+		t.Fatalf("still %q while the approved request records the consent", j.State)
+	}
+	if j := wait(t, done); j.State != StateDone || j.Attempts != 1 {
+		t.Errorf("job %+v", j)
+	}
+}
+
+// A previous attempt's progress file (failed, or from before this
+// attempt) never moves a new attempt out of "authorizing".
+func TestWatchRequestIgnoresOldProgress(t *testing.T) {
+	m, f, _, _ := newTestManager(t, "everyone")
+	m.init()
+	start := time.Now()
+	m.jobs["voice-english"] = &Job{ID: "voice-english", State: StateAuthorizing}
+	f.progress["voice-english"] = Progress{State: StateDownloading, Bytes: 10, Total: 4000, Time: start.Add(-2 * time.Second)}
+	stop := make(chan struct{})
+	go func() { time.Sleep(60 * time.Millisecond); close(stop) }()
+	m.watchRequest("voice-english", start, stop)
+	if j, _ := m.Job("voice-english"); j.State != StateAuthorizing {
+		t.Errorf("an old progress file moved the job: %+v", j)
+	}
+	f.progress["voice-english"] = Progress{State: StateFailed, Error: ErrNetwork, Time: start}
+	stop = make(chan struct{})
+	go func() { time.Sleep(60 * time.Millisecond); close(stop) }()
+	m.watchRequest("voice-english", start, stop)
+	if j, _ := m.Job("voice-english"); j.State != StateAuthorizing {
+		t.Errorf("a failed progress file moved the job: %+v", j)
+	}
 }

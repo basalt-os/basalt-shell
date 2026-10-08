@@ -141,7 +141,11 @@ func AfterRequest(j Job, code int, out string) Job {
 	j.Error, j.Message = "", ""
 	switch code {
 	case 0:
-		j.State = StateQueued
+		// The progress may already be further along (read while the
+		// request was still finishing).
+		if !j.Active() {
+			j.State = StateQueued
+		}
 		return j
 	case 126, 127:
 		j.Error = ErrRefused
@@ -523,11 +527,20 @@ func (m *Manager) run(id, ask string, wake chan struct{}) {
 			finish()
 			return
 		}
-		m.update(id, func(j *Job) { j.State, j.Attempts, j.Updated = StateAuthorizing, j.Attempts+1, m.now() })
+		attempt := m.now()
+		m.update(id, func(j *Job) { j.State, j.Attempts, j.Updated = StateAuthorizing, j.Attempts+1, attempt })
 		// The password dialog (an administrator's approval) may take a
-		// while; the request itself returns at once.
+		// while. Once the request is approved it writes a fresh progress
+		// file before it records the consent and starts the service, so
+		// the card follows that file meanwhile instead of waiting for the
+		// request to return (the lab saw about 12 s there).
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		stop := make(chan struct{})
+		watched := make(chan struct{})
+		go func() { defer close(watched); m.watchRequest(id, attempt, stop) }()
 		out, code, err := m.Exec(ctx, []string{m.Pkexec, m.helper(ask), "download", j.Kind, j.Target})
+		close(stop)
+		<-watched
 		cancel()
 		if err != nil && code == 0 {
 			code = -1
@@ -549,6 +562,40 @@ func (m *Manager) run(id, ask string, wake chan struct{}) {
 			finish()
 			return
 		}
+	}
+}
+
+// watchRequest moves a job out of "authorizing" as soon as the approved
+// request wrote this attempt's progress file (queued, then the service's
+// own states), until stop. Older files (a previous attempt's, a failed
+// one) are ignored; failures are read by follow, after the request.
+func (m *Manager) watchRequest(id string, attempt time.Time, stop chan struct{}) {
+	since := attempt.Truncate(time.Second)
+	for {
+		select {
+		case <-stop:
+			return
+		case <-time.After(m.Poll):
+		}
+		p, ok := m.ReadProgress(id)
+		if !ok || p.Time.Before(since) {
+			continue
+		}
+		switch p.State {
+		case StateQueued, StateDownloading, StateVerifying:
+		default:
+			continue
+		}
+		now := m.now()
+		m.update(id, func(j *Job) {
+			if j.State != StateAuthorizing && !j.Active() {
+				return
+			}
+			if j.State == StateAuthorizing {
+				j.State = StateQueued
+			}
+			*j = Advance(*j, p, now)
+		})
 	}
 }
 

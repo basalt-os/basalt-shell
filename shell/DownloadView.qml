@@ -34,7 +34,9 @@ Column {
         }
         if (!job) return "";
         switch (st) {
-        case "authorizing": return Tr.t("Waiting for the approval to download");
+        // Only an administrator's approval is a real wait (a password
+        // dialog); a person's own download is approved at once.
+        case "authorizing": return Bus.models && Bus.models.ask === "admin" ? Tr.t("Waiting for the approval to download") : Tr.t("The download is starting");
         case "queued": return Tr.t("The download is starting");
         case "downloading":
             return kind === "voice"
