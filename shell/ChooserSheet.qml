@@ -37,6 +37,7 @@ PanelWindow {
     onCurrentChanged: if (current !== null) { Ui.focusVisible = true; Qt.callLater(() => Nav.initial(col, "chooser-cancel")); }
 
     Surface {
+        radius: Theme.radiusXl
         width: Math.min(560, parent.width - Theme.s6 * 2)
         height: col.implicitHeight + Theme.s6 * 2
         anchors.centerIn: parent

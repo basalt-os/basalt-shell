@@ -48,7 +48,9 @@ Singleton {
     // moved toward white in dark mode or black in light mode until it has
     // at least 3:1 against every surface a control sits on (WCAG 2.2,
     // 1.4.11 and 2.4.13), whatever accent the person picks.
-    readonly property color focusRing: {
+    readonly property color focusRing: accentFg
+    // The accent as a foreground (indicators, underlines): the same rule.
+    readonly property color accentFg: {
         const base = t.tk["color.accentFg"] ? col("color.accentFg", "#e2865f") : accent;
         return t.ensureContrast(base, [bg, surface, surfaceAlt], 3.0);
     }
@@ -91,20 +93,41 @@ Singleton {
     // Shape and space.
     readonly property real radiusSm: num("radius.sm", 6)
     readonly property real radiusMd: num("radius.md", 10)
-    readonly property real radiusLg: num("radius.lg", 16)
+    readonly property real radiusLg: num("radius.lg", 12)
+    // Modal sheets (confirmation, chooser, polkit): one step rounder than
+    // the popovers.
+    readonly property real radiusXl: num("radius.xl", 16)
     readonly property real unit: num("spacing.unit", 4)
     readonly property real s1: unit
     readonly property real s2: unit * 2
     readonly property real s3: unit * 3
     readonly property real s4: unit * 4
     readonly property real s6: unit * 6
-    readonly property real panelHeight: num("panel.height", 36)
+    readonly property real panelHeight: num("panel.height", 40)
     readonly property string panelPosition: str("panel.position", "top")
     readonly property real panelOpacity: num("panel.opacity", 0.92)
+    // attached: a full-width bar on the edge with a hairline toward the
+    // windows; floating: the pill, 2 units from the edges.
+    readonly property bool panelFloating: str("panel.style", "attached") === "floating"
+    // The strip the panel takes from the screen (its exclusive zone); the
+    // daemon's theme.PanelZone follows the same rule for window placement.
+    readonly property real panelZone: panelHeight + (panelFloating ? s2 : 0)
+    // Popovers sit this far from the panel's edge and the screen edges.
+    readonly property real popoverGap: s2
+
+    // Glass: the panel is translucent only where the compositor blurs what
+    // is behind it (SwayFX with a GPU; the daemon turns its layer effects
+    // off on weak hardware, where motion is reduced too). Elsewhere it is
+    // opaque, with its hairline. The popovers stay opaque with their own
+    // shadow: their layers cover the whole screen, and SwayFX's layer blur
+    // would also fill the soft shadow around the card with a hard-edged
+    // blurred block.
+    readonly property bool glass: animate && ((Bus.desktop && Bus.desktop.compositor) === "swayfx")
+    readonly property real panelFill: glass ? panelOpacity : 1
 
     // Elevation.
     readonly property real shadowStrength: num("elevation.shadow", 0.35)
-    readonly property real shadowBlur: num("elevation.blur", 24)
+    readonly property real shadowBlur: num("elevation.blur", 20)
 
     // Motion: durations are 0 when motion is reduced (by the person, or
     // automatically on weak hardware), which turns every Behavior off.

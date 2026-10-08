@@ -114,6 +114,21 @@ func TestSwayAdapter(t *testing.T) {
 	if err := a.ApplyStyle(ctx, style); err != nil {
 		t.Fatal(err)
 	}
+	// Maximized: no frame; a new width does not bring it back; restored,
+	// the frame comes back at the current width. A CSD window is skipped.
+	if err := a.SetFrame(ctx, "10", false); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.SetFrame(ctx, "13", false); err != nil {
+		t.Fatal(err)
+	}
+	style.BorderWidth = 1
+	if err := a.ApplyStyle(ctx, style); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.SetFrame(ctx, "10", true); err != nil {
+		t.Fatal(err)
+	}
 	if err := a.Minimize(ctx, "10"); err != nil {
 		t.Fatal(err)
 	}
@@ -140,6 +155,24 @@ func TestSwayAdapter(t *testing.T) {
 			t.Errorf("missing %q in:\n%s", want, joined)
 		}
 	}
+	for _, want := range []string{"titlebar_border_thickness 0", "gaps inner all set 8", "gaps outer all set 0",
+		"[con_id=10] border none", "[con_id=11] border normal 1", "[con_id=10] border normal 1"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("missing %q in:\n%s", want, joined)
+		}
+	}
+	if i, j := strings.Index(joined, "[con_id=10] border none"), strings.LastIndex(joined, "[con_id=10] border normal 1"); j < i {
+		t.Errorf("frame order: %s", joined)
+	}
+	if strings.Count(joined, "[con_id=10] border normal 1") != 1 {
+		t.Errorf("the style change reframed a maximized window:\n%s", joined)
+	}
+	// SwayFX-only commands never reach plain sway (they would fail).
+	for _, bad := range []string{"layer_effects", "smart_corner_radius", "titlebar_separator", "shadow_offset"} {
+		if strings.Contains(joined, bad) {
+			t.Errorf("%q sent to plain sway", bad)
+		}
+	}
 	// Windows that draw their own decorations are never given a border.
 	for _, bad := range []string{"[con_id=12] border", "[con_id=13] border", "[all] border"} {
 		if strings.Contains(joined, bad) {
@@ -147,4 +180,24 @@ func TestSwayAdapter(t *testing.T) {
 		}
 	}
 	_ = json.Valid
+}
+
+// The panel's layer gets blur (only where it draws) with a GPU and
+// nothing without; one effect per command, after a reset. The popovers'
+// full-screen layers never get blur, shadows or corners.
+func TestLayerEffects(t *testing.T) {
+	on := strings.Join(layerEffects(true), "\n")
+	for _, want := range []string{`layer_effects "basalt-panel" reset`, `layer_effects "basalt-panel" "blur enable"`,
+		`layer_effects "basalt-panel" "blur_ignore_transparent enable"`} {
+		if !strings.Contains(on, want) {
+			t.Errorf("missing %q in:\n%s", want, on)
+		}
+	}
+	if strings.Contains(on, "shadows") || strings.Contains(on, "corner_radius") || strings.Contains(on, "basalt-drawer") {
+		t.Errorf("layer effects beyond the panel's blur:\n%s", on)
+	}
+	off := strings.Join(layerEffects(false), "\n")
+	if strings.Contains(off, "enable") || !strings.Contains(off, `layer_effects "basalt-panel" reset`) {
+		t.Errorf("without a GPU: %s", off)
+	}
 }

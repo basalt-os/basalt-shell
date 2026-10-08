@@ -49,12 +49,14 @@ PanelWindow {
 
     MouseArea { anchors.fill: parent; onClicked: Ui.launcher = false }
 
+    // Rows of 48 px (about 4.4 times the body size at 11 pt).
+    readonly property real rowHeight: Math.max(48, Theme.fontSize * 4.4)
     Surface {
         id: card
-        width: Math.min(640, parent.width - Theme.s6 * 2)
-        height: Math.min(560, parent.height * 0.7, search.height + Theme.s4 * 2 + Theme.s3 + Math.max(1, win.results.length) * (Theme.fontSize * 4.2 + 2))
+        width: Math.min(640, parent.width - Theme.popoverGap * 2)
+        height: Math.min(560, parent.height * 0.7, search.height + Theme.s4 * 2 + Theme.s3 + Math.max(1, win.results.length) * (win.rowHeight + 2))
         anchors.horizontalCenter: parent.horizontalCenter
-        y: parent.height * 0.14 + (Ui.launcher ? 0 : Theme.s6)
+        y: parent.height * 0.12 + (Ui.launcher ? 0 : Theme.s6)
         opacity: Ui.launcher ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }
         Behavior on y { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }
@@ -79,7 +81,7 @@ PanelWindow {
                 onAccepted: if (win.sel >= 0) win.launch(win.results[win.sel])
                 // Long lists: a page at a time, or to the ends.
                 onKeyPressed: e => {
-                    const page = Math.max(1, Math.floor(list.height / (Theme.fontSize * 4.2 + 2)) - 1);
+                    const page = Math.max(1, Math.floor(list.height / (win.rowHeight + 2)) - 1);
                     const ctrl = (e.modifiers & Qt.ControlModifier) !== 0;
                     if (e.key === Qt.Key_PageDown) win.sel = Math.min(win.results.length - 1, win.sel + page);
                     else if (e.key === Qt.Key_PageUp) win.sel = Math.max(0, win.sel - page);
@@ -108,7 +110,7 @@ PanelWindow {
                     required property var modelData
                     required property int index
                     width: list.width
-                    height: Theme.fontSize * 4.2
+                    height: win.rowHeight
                     Accessible.role: Accessible.ListItem
                     Accessible.name: modelData.name
                     Accessible.selected: index === win.sel

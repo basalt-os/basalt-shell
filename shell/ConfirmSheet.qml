@@ -68,6 +68,7 @@ PanelWindow {
 
     Surface {
         id: sheet
+        radius: Theme.radiusXl
         width: Math.min(640, parent.width - Theme.s6 * 2)
         height: Math.min(col.implicitHeight + Theme.s6 * 2, parent.height * 0.85)
         anchors.horizontalCenter: parent.horizontalCenter

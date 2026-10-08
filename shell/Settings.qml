@@ -8,9 +8,12 @@ import Quickshell
 FloatingWindow {
     id: win
     visible: Ui.settings
-    title: "Basalt Settings"
-    implicitWidth: 980
-    implicitHeight: 700
+    // One title: the window's (the sidebar shows the mark and the pages).
+    title: Tr.t("Settings")
+    // Fits a 1280x800 screen with the panel; never smaller than 720x480.
+    implicitWidth: 960
+    implicitHeight: 640
+    minimumSize: Qt.size(720, 480)
     color: Theme.surface
     onVisibleChanged: {
         if (!visible) { Ui.settings = false; return; }
@@ -71,18 +74,17 @@ FloatingWindow {
         // Sidebar.
         Rectangle {
             Layout.fillHeight: true
-            Layout.preferredWidth: 230
+            Layout.preferredWidth: 240
             color: Theme.bg
             Behavior on color { ColorAnimation { duration: Theme.normal } }
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: Theme.s4
                 spacing: Theme.s1
-                Row {
-                    spacing: Theme.s2
-                    bottomPadding: Theme.s4
-                    Icon { name: "logo"; size: Theme.fontTitle * 1.6; anchors.verticalCenter: parent.verticalCenter }
-                    Txt { text: "Settings"; role: "title"; anchors.verticalCenter: parent.verticalCenter }
+                Item {
+                    implicitWidth: mark.width
+                    implicitHeight: mark.height + Theme.s4
+                    Icon { id: mark; name: "logo"; size: Theme.fontTitle * 1.6 }
                 }
                 NavColumn {
                     id: side
@@ -199,7 +201,11 @@ FloatingWindow {
                     LabeledSlider {
                         e2e: "settings-radius"
                         label: "Corner roundness"; from: 0; to: 24; stepSize: 1; value: Theme.radiusMd; suffix: " px"
-                        onCommitted: v => win.setTokens({ "radius.sm": Math.round(v * 0.6), "radius.md": v, "radius.lg": Math.min(40, Math.round(v * 1.6)), "radius.window": v })
+                        // One scale from one slider: chips, controls, popovers, sheets
+                        // and windows keep their proportions (6, 10, 12, 16, 8
+                        // at the default 10).
+                        onCommitted: v => win.setTokens({ "radius.sm": Math.round(v * 0.6), "radius.md": v, "radius.lg": Math.min(40, Math.round(v * 1.2)),
+                                                          "radius.xl": Math.min(48, Math.round(v * 1.6)), "radius.window": Math.min(32, Math.round(v * 0.8)) })
                     }
                     LabeledSlider {
                         label: "Text size"; from: 8; to: 16; stepSize: 0.5; value: Theme.fontSize; suffix: " pt"
@@ -219,6 +225,15 @@ FloatingWindow {
                         Txt { text: "Panel"; width: 160; anchors.verticalCenter: parent.verticalCenter }
                         Btn { text: "Top"; variant: "outline"; checkable: true; active: Theme.panelPosition === "top"; onClicked: win.setTokens({ "panel.position": "top" }) }
                         Btn { text: "Bottom"; variant: "outline"; checkable: true; active: Theme.panelPosition === "bottom"; onClicked: win.setTokens({ "panel.position": "bottom" }) }
+                    }
+                    // Attached to the screen edge (the default) or the
+                    // floating pill.
+                    NavRow {
+                        spacing: Theme.s2
+                        Accessible.name: Tr.t("Panel style")
+                        Txt { text: Tr.t("Panel style"); width: 160; anchors.verticalCenter: parent.verticalCenter }
+                        Btn { text: Tr.t("Attached"); e2e: "settings-panel-attached"; variant: "outline"; checkable: true; active: !Theme.panelFloating; onClicked: win.setTokens({ "panel.style": "attached" }) }
+                        Btn { text: Tr.t("Floating"); e2e: "settings-panel-floating"; variant: "outline"; checkable: true; active: Theme.panelFloating; onClicked: win.setTokens({ "panel.style": "floating" }) }
                     }
 
                     Section { title: "Keep this look" }

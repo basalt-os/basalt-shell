@@ -195,12 +195,16 @@ PanelWindow {
 
     MouseArea { anchors.fill: parent; onClicked: Ui.commandBar = false }
 
+    // Under the panel: 8 px from its edge (the layer covers the whole
+    // screen, so the panel's zone is counted here), 720 px at most.
     Surface {
         id: card
-        width: Math.min(760, parent.width - Theme.s6 * 2)
-        height: Math.min(content.implicitHeight + Theme.s4 * 2, parent.height * 0.8)
+        width: Math.min(720, parent.width - Theme.popoverGap * 2)
+        height: Math.min(content.implicitHeight + Theme.s4 * 2, parent.height - Theme.panelZone - Theme.popoverGap * 2)
         anchors.horizontalCenter: parent.horizontalCenter
-        y: parent.height * 0.12 + (Ui.commandBar ? 0 : Theme.s6)
+        readonly property real slide: Ui.commandBar ? 0 : Theme.s6
+        y: Theme.panelPosition === "bottom" ? parent.height - height - Theme.panelZone - Theme.popoverGap + slide
+                                            : Theme.panelZone + Theme.popoverGap - slide
         opacity: Ui.commandBar ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }
         Behavior on y { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }

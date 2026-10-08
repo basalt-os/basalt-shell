@@ -120,7 +120,13 @@ func (f *File) Validate() error {
 				return fmt.Errorf("theme %s: dark is missing %s", f.ID, s.Key)
 			}
 		} else if _, ok := f.Tokens[s.Key]; !ok {
-			return fmt.Errorf("theme %s: missing %s", f.ID, s.Key)
+			if s.Default == nil {
+				return fmt.Errorf("theme %s: missing %s", f.ID, s.Key)
+			}
+			if f.Tokens == nil {
+				f.Tokens = map[string]any{}
+			}
+			f.Tokens[s.Key] = s.Default
 		}
 	}
 	return nil

@@ -25,6 +25,7 @@ Scope {
         onVisibleChanged: if (visible) pw.focusInput()
 
         Surface {
+            radius: Theme.radiusXl
             width: Math.min(520, parent.width - 48)
             height: col.implicitHeight + Theme.s6 * 2
             anchors.centerIn: parent

@@ -38,6 +38,10 @@ type Spec struct {
 	Options []string `json:"options,omitempty"`
 	// PerMode tokens (colors) have one value for light and one for dark.
 	PerMode bool `json:"per_mode,omitempty"`
+	// Default is the value of a token added after themes were already
+	// written: a theme file without it (a theme the person saved before)
+	// gets this value instead of being rejected. nil means required.
+	Default any `json:"default,omitempty"`
 }
 
 // Specs is the closed set of tokens. A theme file or an override with an
@@ -67,6 +71,7 @@ var Specs = []Spec{
 	{Key: "radius.sm", Kind: Number, Group: "shape", Label: "Small radius", Min: 0, Max: 24, Step: 1},
 	{Key: "radius.md", Kind: Number, Group: "shape", Label: "Medium radius", Min: 0, Max: 32, Step: 1},
 	{Key: "radius.lg", Kind: Number, Group: "shape", Label: "Large radius", Min: 0, Max: 40, Step: 1},
+	{Key: "radius.xl", Kind: Number, Group: "shape", Label: "Sheet radius", Min: 0, Max: 48, Step: 1, Default: 16.0},
 	{Key: "radius.window", Kind: Number, Group: "shape", Label: "Window corners", Min: 0, Max: 32, Step: 1},
 
 	// Spacing.
@@ -74,6 +79,10 @@ var Specs = []Spec{
 	{Key: "panel.height", Kind: Number, Group: "spacing", Label: "Panel height", Min: 24, Max: 56, Step: 1},
 	{Key: "panel.position", Kind: Enum, Group: "spacing", Label: "Panel position", Options: []string{"top", "bottom"}},
 	{Key: "panel.opacity", Kind: Number, Group: "spacing", Label: "Panel opacity", Min: 0.5, Max: 1, Step: 0.05},
+	// attached: a full-width bar on the screen edge with a hairline toward
+	// the windows; floating: the earlier pill, 2 spacing units from the
+	// edges with the large radius.
+	{Key: "panel.style", Kind: Enum, Group: "spacing", Label: "Panel style", Options: []string{"attached", "floating"}, Default: "attached"},
 
 	// Elevation.
 	{Key: "elevation.shadow", Kind: Number, Group: "elevation", Label: "Shadow strength", Min: 0, Max: 1, Step: 0.05},
@@ -223,6 +232,18 @@ func (t Tokens) Str(k string) string {
 func (t Tokens) Bool(k string) bool {
 	b, _ := t[k].(bool)
 	return b
+}
+
+// PanelZone is the strip the panel takes from the screen edge (its
+// exclusive zone, in logical pixels): the panel's height when it is
+// attached to the edge, plus the two spacing units around the floating
+// pill. The shell UI (Bar.qml) uses the same rule.
+func PanelZone(t Tokens) int {
+	h := int(t.Num("panel.height"))
+	if t.Str("panel.style") == "floating" {
+		h += int(t.Num("spacing.unit")) * 2
+	}
+	return h
 }
 
 // Change is one entry of a token diff.

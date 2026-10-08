@@ -333,6 +333,9 @@
  "At most %1 layouts can be used at once. Remove one first.": [
   "No máximo %1 layouts podem ser usados ao mesmo tempo. Remova um antes."
  ],
+ "Attached": [
+  "Na borda"
+ ],
  "Audio stays on this computer and is not kept.": [
   "O áudio fica neste computador e não é guardado."
  ],
@@ -588,6 +591,9 @@
   "Corrigem problemas de segurança. Instale logo."
  ],
  "Float": [
+  "Flutuante"
+ ],
+ "Floating": [
   "Flutuante"
  ],
  "For computers with that hardware.": [
@@ -1123,6 +1129,9 @@
  "Panel position": [
   "Posição do painel"
  ],
+ "Panel style": [
+  "Estilo do painel"
+ ],
  "Pink": [
   "Rosa"
  ],
@@ -1358,6 +1367,9 @@
  ],
  "September": [
   "setembro"
+ ],
+ "Settings": [
+  "Configurações"
  ],
  "Settings pages": [
   "Páginas dos Ajustes"

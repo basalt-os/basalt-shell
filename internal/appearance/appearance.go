@@ -155,16 +155,17 @@ func Apply(ctx context.Context, t, lightT, darkT theme.Tokens, configDir string,
 	return r
 }
 
-// FootINI is foot's own title bar in the theme's colors and font. foot
-// asks for client-side decorations (preferred=client), so it draws a
-// title bar with buttons, like GTK and libadwaita apps, instead of the
-// compositor's bar without buttons: sway grants it while the window
-// floats (the default) and draws its own bar when the window is tiled;
-// niri always lets apps draw their own. foot shows only the buttons the
-// compositor supports (xdg_toplevel wm_capabilities): close on sway,
-// maximize and close on niri. The buttons are flat on the title bar
-// color, with the glyphs in the text color, like the libadwaita headers
-// next to them. foot takes colors as AARRGGBB.
+// FootINI is foot's settings for its title bar. foot asks for the
+// compositor's title bar (preferred=server), like every plain window: on
+// sway the themed bar, the same floating and tiled, and none at all while
+// the shell keeps the window maximized; niri asks every app to draw its
+// own, so foot still draws its bar there. The [csd] colors and font stay
+// for the person who sets preferred=client in their own foot.ini: then
+// foot's bar matches the libadwaita headers next to it (flat buttons on
+// the title bar color, glyphs in the text color; only the buttons the
+// compositor supports). foot takes colors as AARRGGBB. resize-by-cells
+// is off so that a maximized or snapped foot fills the exact rectangle
+// the shell gives it, not the nearest whole number of character cells.
 func FootINI(t theme.Tokens) string {
 	hex := func(k string) string { return "ff" + strings.TrimPrefix(t.Str(k), "#") }
 	// The title in the size GTK uses for its headers (font.size - 1
@@ -173,8 +174,11 @@ func FootINI(t theme.Tokens) string {
 	px := int(math.Round((t.Num("font.size") - 1) * 96 / 72))
 	bar := int(t.Num("spacing.unit") * 8)
 	return fmt.Sprintf(`# Managed by basalt-shell: rewritten on every theme change. Do not edit.
+[main]
+resize-by-cells=no
+
 [csd]
-preferred=client
+preferred=server
 size=%d
 font=%s:weight=bold:pixelsize=%d
 color=%s

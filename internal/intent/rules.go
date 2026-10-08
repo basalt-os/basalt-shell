@@ -308,7 +308,7 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 	// Corners.
 	corner := func(f float64, add float64, label string) ([]Call, []string, bool) {
 		var parts []string
-		for _, k := range []string{"radius.sm", "radius.md", "radius.lg", "radius.window"} {
+		for _, k := range []string{"radius.sm", "radius.md", "radius.lg", "radius.xl", "radius.window"} {
 			old := work.Num(k)
 			nv := math.Round(clampSpec(k, old*f+add))
 			setTok("current", k, nv)

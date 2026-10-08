@@ -61,13 +61,15 @@ PanelWindow {
 
     MouseArea { anchors.fill: parent; onClicked: Ui.quickSettings = false }
 
+    // 8 px from the panel's edge and the side (the layer starts after the
+    // panel's exclusive zone).
     Surface {
         id: card
-        width: 380
+        width: Math.min(360, parent.width - Theme.popoverGap * 2)
         height: col.implicitHeight + Theme.s4 * 2
         anchors.right: parent.right
-        anchors.rightMargin: Theme.s2
-        y: (Theme.panelPosition === "bottom" ? parent.height - height - Theme.s2 : Theme.s2) + (Ui.quickSettings ? 0 : (Theme.panelPosition === "bottom" ? Theme.s4 : -Theme.s4))
+        anchors.rightMargin: Theme.popoverGap
+        y: (Theme.panelPosition === "bottom" ? parent.height - height - Theme.popoverGap : Theme.popoverGap) + (Ui.quickSettings ? 0 : (Theme.panelPosition === "bottom" ? Theme.s4 : -Theme.s4))
         opacity: Ui.quickSettings ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }
         Behavior on y { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }

@@ -8,7 +8,10 @@ import Quickshell.Services.SystemTray
 import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
 
-// The panel: one per screen, top or bottom (token panel.position).
+// The panel: one per screen, top or bottom (token panel.position),
+// attached to the screen edge across its whole width with a hairline
+// toward the windows (panel.style "attached", the default), or the
+// floating pill 2 units from the edges (panel.style "floating").
 // Keyboard: Ctrl+Alt+Tab or Super+B give the keyboard to the panel of the
 // screen with the focused workspace; Left and Right (Tab, Shift+Tab, Home,
 // End) move along it, Return or Space press, Menu or Shift+F10 open a
@@ -24,8 +27,8 @@ PanelWindow {
     anchors.bottom: !top
     anchors.left: true
     anchors.right: true
-    implicitHeight: Theme.panelHeight + Theme.s2
-    exclusiveZone: Theme.panelHeight + Theme.s2
+    implicitHeight: Theme.panelZone
+    exclusiveZone: Theme.panelZone
     color: "transparent"
     WlrLayershell.namespace: "basalt-panel"
     WlrLayershell.layer: WlrLayer.Top
@@ -74,14 +77,27 @@ PanelWindow {
         Rectangle {
             id: pill
             anchors.fill: parent
-            anchors.leftMargin: Theme.s2
-            anchors.rightMargin: Theme.s2
-            anchors.topMargin: bar.top ? Theme.s2 : 0
-            anchors.bottomMargin: bar.top ? 0 : Theme.s2
-            radius: Theme.radiusLg
-            color: Theme.alpha(Theme.surface, Theme.panelOpacity)
-            border.width: 1
+            readonly property real margin: Theme.panelFloating ? Theme.s2 : 0
+            anchors.leftMargin: margin
+            anchors.rightMargin: margin
+            anchors.topMargin: bar.top ? margin : 0
+            anchors.bottomMargin: bar.top ? 0 : margin
+            radius: Theme.panelFloating ? Theme.radiusLg : 0
+            // Translucent only where the compositor blurs behind it.
+            color: Theme.alpha(Theme.surface, Theme.panelFill)
+            border.width: Theme.panelFloating ? 1 : 0
             border.color: Theme.border
+            // Attached: one hairline on the side facing the windows (it
+            // carries no meaning; the edge alone separates).
+            Rectangle {
+                visible: !Theme.panelFloating
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: bar.top ? parent.bottom : undefined
+                anchors.top: bar.top ? undefined : parent.top
+                height: 1
+                color: Theme.border
+            }
             Behavior on color { ColorAnimation { duration: Theme.normal; easing.type: Theme.easing } }
             Behavior on radius { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }
             Accessible.role: Accessible.ToolBar
@@ -90,15 +106,15 @@ PanelWindow {
             // Left: launcher, workspaces, focused window.
             RowLayout {
                 anchors.left: parent.left
-                anchors.leftMargin: Theme.s1
+                anchors.leftMargin: Theme.s2
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: Theme.s2
+                spacing: Theme.s1
 
                 Btn {
                     icon: "logo"
                     e2e: "panel-launcher"
                     accessibleName: Tr.t("Applications")
-                    iconSize: Theme.panelHeight * 0.58
+                    iconSize: Theme.panelHeight * 0.55
                     implicitHeight: Theme.panelHeight - Theme.s2
                     implicitWidth: implicitHeight
                     active: Ui.launcher
@@ -117,20 +133,22 @@ PanelWindow {
                             checkable: true
                             checked: on
                             onClicked: Bus.act("workspace.switch", { workspace: modelData.id })
+                            // Neutral chips: the current workspace is a
+                            // quiet fact, not an alert; the accent stays for
+                            // what needs the person.
                             height: Theme.panelHeight - Theme.s3
-                            width: on ? height * 1.9 : height
+                            width: height
                             radius: Math.min(Theme.radiusSm, height / 2)
-                            color: on ? Theme.accent : (hovered ? Theme.hover : "transparent")
+                            color: on ? Theme.alpha(Theme.text, 0.12) : (hovered ? Theme.hover : "transparent")
                             border.width: modelData.windows > 0 && !on ? 1 : 0
                             border.color: Theme.border
-                            Behavior on width { NumberAnimation { duration: Theme.normal; easing.type: Theme.easing } }
                             Behavior on color { ColorAnimation { duration: Theme.fast } }
                             Txt {
                                 anchors.centerIn: parent
                                 text: modelData.index > 0 ? modelData.index : modelData.name
                                 role: "small"
                                 font.weight: Font.DemiBold
-                                color: parent.on ? Theme.accentText : (modelData.windows > 0 ? Theme.text : Theme.textMuted)
+                                color: parent.on ? Theme.text : Theme.textMuted
                             }
                         }
                     }
@@ -166,16 +184,19 @@ PanelWindow {
                     readonly property int count0: bar.tasks.length
                     readonly property real spacing: Theme.s1
                     // Room up to the clock (x: where the list starts in the
-                    // left group, which starts Theme.s1 into the pill).
-                    readonly property real maxWidth: Math.max(0, pill.width / 2 - clockBox.width / 2 - Theme.s3 - Theme.s1 - x - Theme.s1)
-                    // An icon-only entry.
-                    readonly property real minItem: Theme.panelHeight - Theme.s3
+                    // left group, which starts Theme.s2 into the panel),
+                    // keeping 12 px between the groups.
+                    readonly property real maxWidth: Math.max(0, pill.width / 2 - clockBox.width / 2 - Theme.s3 - Theme.s2 - x)
+                    // Entries: 32 px tall, at most 200 px wide; an
+                    // icon-only entry is square.
+                    readonly property real itemHeight: Theme.panelHeight - Theme.s2
+                    readonly property real minItem: itemHeight
                     readonly property real itemWidth: count0 > 0
-                        ? Math.max(minItem, Math.min(Theme.fontSize * 15, (maxWidth - 2 * pad - spacing * (count0 - 1)) / count0))
+                        ? Math.max(minItem, Math.min(200, (maxWidth - 2 * pad - spacing * (count0 - 1)) / count0))
                         : 0
                     readonly property real wanted: count0 > 0 ? count0 * itemWidth + spacing * (count0 - 1) + 2 * pad : 0
                     Layout.preferredWidth: Math.min(maxWidth, wanted)
-                    Layout.preferredHeight: Theme.panelHeight - Theme.s3 + 2 * pad
+                    Layout.preferredHeight: itemHeight + 2 * pad
                     contentWidth: taskRow.width + 2 * pad
                     contentHeight: height
                     // Scroll so item (an entry) is in view.
@@ -225,10 +246,10 @@ PanelWindow {
                                 checked: modelData.focused
                                 contextMenu: true
                                 acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
-                                height: Theme.panelHeight - Theme.s3
+                                height: taskbar.itemHeight
                                 width: taskbar.itemWidth
                                 radius: Theme.radiusSm
-                                color: modelData.focused ? Theme.accentSoft : (task.hot ? Theme.hover : "transparent")
+                                color: modelData.focused ? Theme.alpha(Theme.text, 0.08) : (task.hot ? Theme.hover : "transparent")
                                 onMiddleClicked: Bus.act("window.close", { window: modelData.id })
                                 onMenuRequested: {
                                     const w = task.modelData;
@@ -244,15 +265,16 @@ PanelWindow {
                                     else Bus.act("window.focus", { window: w.id });
                                 }
                                 Behavior on color { ColorAnimation { duration: Theme.fast } }
-                                // Focus underline.
+                                // The focused window: an underline across the
+                                // entry in the accent as a foreground (3:1).
                                 Rectangle {
                                     visible: task.modelData.focused
                                     anchors.bottom: parent.bottom
                                     anchors.horizontalCenter: parent.horizontalCenter
-                                    width: parent.width * 0.4
+                                    width: Math.max(0, parent.width - 10)
                                     height: 2
                                     radius: 1
-                                    color: Theme.accent
+                                    color: Theme.accentFg
                                 }
                                 readonly property bool hot: task.hovered || closeMa.containsMouse
                                 // Room for the close button, shown on hover when the
@@ -260,12 +282,12 @@ PanelWindow {
                                 readonly property bool showClose: hot && width > Theme.fontSize * 6
                                 // Too narrow for a title: the icon alone,
                                 // centered, no larger than the entry.
-                                readonly property real iconSize: Math.min(Theme.fontSize * 1.5, height - Theme.s1)
-                                readonly property bool iconOnly: width < Theme.s2 * 3 + iconSize + Theme.fontSize * 2
+                                readonly property real iconSize: Math.min(16, height - Theme.s1)
+                                readonly property bool iconOnly: width < 10 * 2 + Theme.s2 + iconSize + Theme.fontSize * 2
                                 Row {
                                     anchors.fill: parent
-                                    anchors.leftMargin: task.iconOnly ? Math.max(0, (task.width - task.iconSize) / 2) : Theme.s2
-                                    anchors.rightMargin: task.showClose ? closeBtn.width + Theme.s1 : (task.iconOnly ? 0 : Theme.s2)
+                                    anchors.leftMargin: task.iconOnly ? Math.max(0, (task.width - task.iconSize) / 2) : 10
+                                    anchors.rightMargin: task.showClose ? closeBtn.width + Theme.s1 : (task.iconOnly ? 0 : 10)
                                     spacing: Theme.s2
                                     IconImage {
                                         anchors.verticalCenter: parent.verticalCenter
@@ -279,7 +301,8 @@ PanelWindow {
                                         visible: !task.iconOnly
                                         text: task.modelData.title || (task.entry ? task.entry.name : task.modelData.app_id)
                                         role: "small"
-                                        color: task.min ? Theme.textMuted : Theme.text
+                                        font.weight: Font.Medium
+                                        color: task.min || !task.modelData.focused ? Theme.textMuted : Theme.text
                                         font.italic: task.min
                                     }
                                 }
@@ -324,14 +347,22 @@ PanelWindow {
                 height: Theme.panelHeight - Theme.s2
                 radius: Theme.radiusSm
                 e2e: "panel-clock"
-                accessibleName: Tr.t("%1, notifications").arg(Qt.formatDateTime(clock.date, "dddd d MMMM HH:mm"))
+                accessibleName: Tr.t("%1, notifications").arg(loc.toString(clock.date, Locale.LongFormat))
                 color: hovered ? Theme.hover : "transparent"
                 onClicked: bar.openSurface("notifications", e2e)
                 SystemClock { id: clock; precision: SystemClock.Minutes }
+                // The session's locale: day and month names in its language,
+                // the day before or after the month as its short date has
+                // it, and its clock (24 h or AM/PM).
+                readonly property var loc: Qt.locale()
+                readonly property string dayFirst: {
+                    const f = loc.dateFormat(Locale.ShortFormat);
+                    return f.indexOf("d") < f.indexOf("M") ? "ddd d MMM" : "ddd MMM d";
+                }
                 Txt {
                     id: clockText
                     anchors.centerIn: parent
-                    text: Qt.formatDateTime(clock.date, "ddd d MMM  HH:mm")
+                    text: clockBox.loc.toString(clock.date, clockBox.dayFirst) + "  " + clockBox.loc.toString(clock.date, clockBox.loc.timeFormat(Locale.ShortFormat))
                     font.weight: Font.Medium
                 }
             }
@@ -339,7 +370,7 @@ PanelWindow {
             // Right: assistant, tray, status, notifications, quick settings.
             RowLayout {
                 anchors.right: parent.right
-                anchors.rightMargin: Theme.s1
+                anchors.rightMargin: Theme.s2
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: Theme.s1
 
@@ -435,7 +466,7 @@ PanelWindow {
                         delegate: Pressable {
                             id: trayItem
                             required property var modelData
-                            width: Theme.panelHeight - Theme.s3
+                            width: Theme.panelHeight - Theme.s2
                             height: width
                             radius: Theme.radiusSm
                             navKey: "tray-" + modelData.id
@@ -469,7 +500,7 @@ PanelWindow {
                             readonly property bool symbolic: !missing && themeName.endsWith("-symbolic")
                             IconImage {
                                 anchors.centerIn: parent
-                                implicitSize: parent.width * 0.75
+                                implicitSize: 18
                                 source: trayItem.missing
                                     ? Quickshell.iconPath(trayItem.entry ? trayItem.entry.icon : "", "application-x-executable")
                                     : trayItem.modelData.icon

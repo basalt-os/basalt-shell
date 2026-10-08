@@ -197,6 +197,10 @@ type placement struct {
 	Before compositor.Rect // geometry to restore
 	At     compositor.Rect // geometry given
 	Since  time.Time       // when; a window is given a moment to get there
+	// Unframed: the shell took the compositor's title bar and frame away
+	// while the window is maximized; they come back on restore, or when
+	// the window leaves the placement (dragged or resized by the person).
+	Unframed bool
 }
 
 // Event goes to UI subscribers.
@@ -279,10 +283,19 @@ func (c *Core) Refresh(ctx context.Context) Desktop {
 	d.Workspaces, _ = c.Comp.Workspaces(ctx)
 	d.Outputs, _ = c.Comp.Outputs(ctx)
 	c.mu.Lock()
-	c.markPlaced(d.Windows)
+	reframe := c.markPlaced(d.Windows)
 	changed := !reflect.DeepEqual(c.desktop, d)
 	c.desktop = d
 	c.mu.Unlock()
+	// A maximized window the person dragged or resized out of its place
+	// gets its title bar and frame back.
+	if f, ok := c.Comp.(compositor.Framer); ok {
+		for _, id := range reframe {
+			if err := f.SetFrame(ctx, id, true); err != nil {
+				log.Printf("window frame: %v", err)
+			}
+		}
+	}
 	if changed {
 		c.Broadcast("desktop", d)
 	}
@@ -290,8 +303,10 @@ func (c *Core) Refresh(ctx context.Context) Desktop {
 }
 
 // markPlaced sets the state of windows the shell maximized or snapped,
-// and forgets those that were closed or moved since (c.mu held).
-func (c *Core) markPlaced(wins []compositor.Window) {
+// and forgets those that were closed or moved since (c.mu held). It
+// returns the windows that left a placement without their frame, which
+// get it back.
+func (c *Core) markPlaced(wins []compositor.Window) (reframe []string) {
 	seen := map[string]bool{}
 	for i := range wins {
 		w := &wins[i]
@@ -306,6 +321,9 @@ func (c *Core) markPlaced(wins []compositor.Window) {
 		case time.Since(p.Since) > 2*time.Second:
 			// Moved or resized since (by the person or the app).
 			delete(c.placed, w.ID)
+			if p.Unframed {
+				reframe = append(reframe, w.ID)
+			}
 		}
 	}
 	for id := range c.placed {
@@ -313,6 +331,7 @@ func (c *Core) markPlaced(wins []compositor.Window) {
 			delete(c.placed, id)
 		}
 	}
+	return reframe
 }
 
 // near: two rectangles equal within a few pixels (compositors round
@@ -407,33 +426,43 @@ func (c *Core) ApplyTheme(ctx context.Context) {
 	st := c.Theme()
 	c.Broadcast("theme", st)
 	t := st.Tokens
+	// elevation.shadow is the dark-mode strength; light surfaces need about
+	// half of it (0.35 dark, 0.18 light with the Basalt theme). Inactive
+	// windows cast a lighter shadow than the focused one.
 	shadowAlpha := t.Num("elevation.shadow")
+	if t.Str("mode") == "light" {
+		shadowAlpha *= 18.0 / 35.0
+	}
 	style := compositor.Style{
-		CornerRadius:  int(t.Num("radius.window")),
-		BorderWidth:   int(t.Num("window.border")),
-		Gaps:          int(t.Num("window.gaps")),
-		FocusColor:    t.Str("color.accent"),
-		InactiveColor: t.Str("color.border"),
-		UrgentColor:   t.Str("color.danger"),
-		Shadows:       t.Bool("window.shadows"),
-		ShadowColor:   theme.WithAlpha("#000000", shadowAlpha),
-		ShadowBlur:    int(t.Num("elevation.blur")),
-		Blur:          t.Bool("window.blur"),
-		DimInactive:   t.Num("window.dimInactive"),
-		Animations:    t.Str("motion") == "full",
-		CursorTheme:   t.Str("apps.cursorTheme"),
-		CursorSize:    int(t.Num("apps.cursorSize")),
-		Title:         TitleStyle(t),
+		CornerRadius:   int(t.Num("radius.window")),
+		BorderWidth:    int(t.Num("window.border")),
+		Gaps:           int(t.Num("window.gaps")),
+		FocusColor:     t.Str("color.accent"),
+		InactiveColor:  t.Str("color.border"),
+		UrgentColor:    t.Str("color.danger"),
+		Shadows:        t.Bool("window.shadows"),
+		ShadowColor:    theme.WithAlpha("#000000", shadowAlpha),
+		ShadowBlur:     int(t.Num("elevation.blur")),
+		ShadowOffsetY:  int(t.Num("spacing.unit")),
+		ShadowInactive: theme.WithAlpha("#000000", shadowAlpha*4/7),
+		Blur:           t.Bool("window.blur"),
+		LayerBlur:      true,
+		DimInactive:    t.Num("window.dimInactive"),
+		Animations:     t.Str("motion") == "full",
+		CursorTheme:    t.Str("apps.cursorTheme"),
+		CursorSize:     int(t.Num("apps.cursorSize")),
+		Title:          TitleStyle(t),
 	}
 	// Compositor effects (SwayFX shadows, blur, dimming) cost GPU time
 	// every frame; with software rendering, few CPUs, little memory or
 	// headless (hw.Probe's "weak") they are off whatever the theme says.
 	if c.HW.Weak {
-		style.Shadows, style.Blur, style.DimInactive = false, false, 0
+		style.Shadows, style.Blur, style.LayerBlur, style.DimInactive = false, false, false, 0
 	}
-	// The frame: the theme's border color (a little stronger on the
-	// focused window); the accent stays for focus inside apps.
-	style.FocusColor = theme.Mix(t.Str("color.border"), t.Str("color.textMuted"), 0.35)
+	// The frame: the theme's border color on inactive windows, a strong
+	// border on the focused one (at least 3:1 against the background and
+	// the surfaces); the accent stays for focus inside apps.
+	style.FocusColor = FocusFrame(t)
 	style.InactiveColor = t.Str("color.border")
 	style.Accent = t.Str("color.accent")
 	if err := c.Comp.ApplyStyle(ctx, style); err != nil && !errors.Is(err, compositor.ErrNoCompositor) {
@@ -461,17 +490,40 @@ func (c *Core) ApplyTheme(ctx context.Context) {
 	}
 }
 
+// FocusFrame is the focused window's frame color: the design system's
+// borderStrong, derived until it is a token from the muted text over the
+// surface (70 %), moved toward the muted text, then the text, until it
+// reaches 3:1 against color.bg and color.surface (WCAG 1.4.11).
+func FocusFrame(t theme.Tokens) string {
+	surface, muted, text := t.Str("color.surface"), t.Str("color.textMuted"), t.Str("color.text")
+	ok := func(c string) bool {
+		return theme.Contrast(c, t.Str("color.bg")) >= 3 && theme.Contrast(c, surface) >= 3
+	}
+	for k := 0.7; k <= 1.0001; k += 0.05 {
+		if c := theme.Mix(surface, muted, k); ok(c) {
+			return c
+		}
+	}
+	for k := 0.1; k <= 1.0001; k += 0.1 {
+		if c := theme.Mix(muted, text, k); ok(c) {
+			return c
+		}
+	}
+	return text
+}
+
 // TitleStyle is the compositor title bar of a token set: the focused
 // title on the raised surface, inactive ones on the plain surface with
 // muted text, the interface font a little smaller than body text.
 func TitleStyle(t theme.Tokens) compositor.TitleStyle {
 	unit := int(t.Num("spacing.unit"))
 	return compositor.TitleStyle{
-		Font:        t.Str("font.family") + " SemiBold",
-		Size:        math.Max(8, t.Num("font.size")-1),
-		Align:       "center",
-		PadX:        unit * 3,
-		PadY:        unit + unit/2,
+		Font:  t.Str("font.family") + " SemiBold",
+		Size:  math.Max(8, t.Num("font.size")-1),
+		Align: "center",
+		PadX:  unit * 3,
+		// 12 x 5 with the 4 px unit: a bar of about 27 px at 10 pt.
+		PadY:        unit + unit/4,
 		FocusedBg:   t.Str("color.surfaceAlt"),
 		FocusedText: t.Str("color.text"),
 		InactiveBg:  t.Str("color.surface"),

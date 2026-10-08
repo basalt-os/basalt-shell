@@ -44,6 +44,9 @@ type Adapter struct {
 	csd map[int64]bool
 	// border is the frame width of the last applied style.
 	border int
+	// unframed are windows the shell took the frame from (maximized):
+	// a style change must not give it back.
+	unframed map[int64]bool
 	// WantCSD decides whether a new window should be asked to draw its
 	// own decorations (default: decor.WantClientSide).
 	WantCSD func(pid int) (bool, string)
@@ -51,7 +54,7 @@ type Adapter struct {
 
 // New returns an adapter for the socket at path.
 func New(path string) *Adapter {
-	return &Adapter{path: path, csd: map[int64]bool{}, border: -1,
+	return &Adapter{path: path, csd: map[int64]bool{}, unframed: map[int64]bool{}, border: -1,
 		WantCSD: func(pid int) (bool, string) { return decor.WantClientSide("/", pid) }}
 }
 
@@ -503,10 +506,16 @@ func (a *Adapter) ApplyStyle(ctx context.Context, s compositor.Style) error {
 	}
 	bw := s.BorderWidth
 	cmds = append(cmds,
-		fmt.Sprintf("titlebar_border_thickness %d", min(bw, 1)),
+		// No outline around the title bar: the frame is the window's
+		// only edge.
+		"titlebar_border_thickness 0",
 		fmt.Sprintf("default_border normal %d", bw),
 		fmt.Sprintf("default_floating_border normal %d", bw),
+		// Gaps separate windows; the screen edges and the panel's
+		// hairline frame the work area (smart_gaps in the sway config
+		// removes them around a lone tiled window).
 		fmt.Sprintf("gaps inner all set %d", s.Gaps),
+		"gaps outer all set 0",
 	)
 	if s.CursorTheme != "" {
 		size := s.CursorSize
@@ -524,6 +533,10 @@ func (a *Adapter) ApplyStyle(ctx context.Context, s compositor.Style) error {
 		}
 		cmds = append(cmds,
 			fmt.Sprintf("corner_radius %d", s.CornerRadius),
+			// A lone tiled window fills the area: square corners.
+			"smart_corner_radius enable",
+			// One line under a title bar (the frame), not two.
+			"titlebar_separator disable",
 			"shadows "+onoff(s.Shadows),
 			// Most apps draw their own title bar (CSD); without this
 			// SwayFX gives only server-decorated windows a shadow.
@@ -540,6 +553,11 @@ func (a *Adapter) ApplyStyle(ctx context.Context, s compositor.Style) error {
 		if s.ShadowBlur > 0 {
 			cmds = append(cmds, fmt.Sprintf("shadow_blur_radius %d", s.ShadowBlur))
 		}
+		cmds = append(cmds, fmt.Sprintf("shadow_offset 0 %d", s.ShadowOffsetY))
+		if s.ShadowInactive != "" {
+			cmds = append(cmds, "shadow_inactive_color "+s.ShadowInactive)
+		}
+		cmds = append(cmds, layerEffects(s.LayerBlur)...)
 	}
 	var first error
 	for _, c := range cmds {
@@ -558,12 +576,79 @@ func (a *Adapter) ApplyStyle(ctx context.Context, s compositor.Style) error {
 			if w.Decoration != "server" && w.Decoration != "none" {
 				continue
 			}
+			if id, err := strconv.ParseInt(w.ID, 10, 64); err == nil && a.isUnframed(id) {
+				continue // maximized: no frame until it is restored
+			}
 			if err := a.run(fmt.Sprintf("[con_id=%s] border normal %d", w.ID, bw)); err != nil && first == nil {
 				first = err
 			}
 		}
 	}
 	return first
+}
+
+// LayerNamespaces are the shell's translucent layer surfaces
+// (shell/*.qml WlrLayershell.namespace): the panel. The popovers are not
+// here: their layers cover the whole screen with a card inside, and
+// SwayFX's blur, even with blur_ignore_transparent, also fills the
+// card's soft shadow, which then shows as a hard-edged dark block; they
+// stay opaque with their own shadow.
+var LayerNamespaces = []string{"basalt-panel"}
+
+// layerEffects are the SwayFX commands for the shell's layers: blur
+// behind what they draw with a GPU, nothing without one. SwayFX takes one
+// effect per IPC command and keeps the earlier ones of the namespace;
+// "reset" clears them.
+func layerEffects(blur bool) []string {
+	var cmds []string
+	for _, ns := range LayerNamespaces {
+		q := quote(ns)
+		cmds = append(cmds, "layer_effects "+q+" reset")
+		if blur {
+			cmds = append(cmds,
+				"layer_effects "+q+" \"blur enable\"",
+				"layer_effects "+q+" \"blur_ignore_transparent enable\"")
+		}
+	}
+	return cmds
+}
+
+// SetFrame takes the title bar and frame away from a window (maximized)
+// or gives them back with the current width. Windows that draw their
+// own decorations are left alone: a border command would switch them
+// to the compositor's title bar.
+func (a *Adapter) SetFrame(_ context.Context, id string, on bool) error {
+	c, err := conID(id)
+	if err != nil {
+		return err
+	}
+	n, _ := strconv.ParseInt(id, 10, 64)
+	a.mu.Lock()
+	csd, bw := a.csd[n], a.border
+	if !csd {
+		if on {
+			delete(a.unframed, n)
+		} else {
+			a.unframed[n] = true
+		}
+	}
+	a.mu.Unlock()
+	if csd {
+		return nil
+	}
+	if !on {
+		return a.run(c + "border none")
+	}
+	if bw < 0 {
+		bw = 1
+	}
+	return a.run(fmt.Sprintf("%sborder normal %d", c, bw))
+}
+
+func (a *Adapter) isUnframed(id int64) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.unframed[id]
 }
 
 // fontWord keeps a font family usable in a Pango description inside a
@@ -769,6 +854,7 @@ func (a *Adapter) windowEvent(body []byte) {
 	case "close":
 		a.mu.Lock()
 		delete(a.csd, ev.Container.ID)
+		delete(a.unframed, ev.Container.ID)
 		a.mu.Unlock()
 	}
 }
