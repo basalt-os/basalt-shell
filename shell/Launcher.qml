@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Widgets
+import "apps.js" as A
 
 // Application launcher: desktop entries from the daemon (same list the
 // app.launch action and the MCP apps_list tool use), fuzzy search,
@@ -21,37 +22,17 @@ PanelWindow {
     property var results: []
     property int sel: 0
 
-    // Fuzzy score: consecutive and word-start matches score higher; null
-    // when not every character of the query appears in order.
-    function score(q, s) {
-        if (!q) return 1;
-        s = s.toLowerCase();
-        let qi = 0, sc = 0, prev = -2;
-        for (let i = 0; i < s.length && qi < q.length; i++) {
-            if (s[i] === q[qi]) {
-                sc += 1;
-                if (i === prev + 1) sc += 3;
-                if (i === 0 || " -._".indexOf(s[i - 1]) >= 0) sc += 5;
-                prev = i; qi++;
-            }
-        }
-        return qi === q.length ? sc - s.length * 0.01 : null;
-    }
+    // The ranking is shell/apps.js (the same tiers as the daemon's
+    // app.launch): the name, the generic name and the kind of app before
+    // letters in order, so "text editor" finds a text editor, never a
+    // terminal. Text the input method still composes counts too.
+    function query() { return (search.text + (search.input.preeditText || "")).trim(); }
     function update() {
-        const q = search.text.trim().toLowerCase();
-        let r = [];
-        for (const a of win.apps) {
-            const fields = [a.name, a.generic || "", (a.keywords || []).join(" "), a.id];
-            let best = null;
-            for (let i = 0; i < fields.length; i++) {
-                const s = score(q, fields[i]);
-                if (s !== null) { const w = s * (i === 0 ? 1.5 : 1); if (best === null || w > best) best = w; }
-            }
-            if (best !== null) r.push({ app: a, s: best });
-        }
-        r.sort((x, y) => y.s - x.s || x.app.name.localeCompare(y.app.name));
-        win.results = r.slice(0, 40).map(x => x.app);
-        win.sel = 0;
+        const q = query();
+        win.results = A.rank(win.apps, q).slice(0, 40);
+        // With an empty query nothing is chosen yet: Return does not start
+        // the first app of the alphabet; Down picks it.
+        win.sel = q === "" ? -1 : 0;
     }
     function launch(a) {
         if (!a) return;
@@ -61,6 +42,7 @@ PanelWindow {
 
     onVisibleChanged: if (Ui.launcher) {
         search.text = "";
+        win.update();
         Bus.call("apps", {}, (ok, list) => { if (ok) { win.apps = list || []; win.update(); } });
         search.focusInput();
     }
@@ -90,10 +72,11 @@ PanelWindow {
                 placeholder: "Search applications"
                 accessibleName: Tr.t("Search applications")
                 onEdited: win.update()
+                Connections { target: search.input; function onPreeditTextChanged() { win.update(); } }
                 onEscapePressed: Ui.dismiss()
                 onDownPressed: win.sel = Math.min(win.results.length - 1, win.sel + 1)
                 onUpPressed: win.sel = Math.max(0, win.sel - 1)
-                onAccepted: win.launch(win.results[win.sel])
+                onAccepted: if (win.sel >= 0) win.launch(win.results[win.sel])
                 // Long lists: a page at a time, or to the ends.
                 onKeyPressed: e => {
                     const page = Math.max(1, Math.floor(list.height / (Theme.fontSize * 4.2 + 2)) - 1);
