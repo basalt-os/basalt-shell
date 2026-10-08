@@ -69,9 +69,20 @@ func dnfVar(name string) string {
 	return strings.TrimSpace(string(b))
 }
 
-// releaseVer is $releasever: VERSION_ID of os-release.
+// releaseVer is $releasever as dnf expands it: /etc/dnf/vars/releasever
+// when set, else the major version of os-release's VERSION_ID. Basalt OS
+// writes VERSION_ID=44.0 while dnf's $releasever is 44 (from
+// system-release(releasever)); the full "44.0" made every probe ask for
+// .../44.0/x86_64/ and find nothing (round 11 lab).
 func releaseVer() string {
-	return strings.Trim(strings.TrimSpace(readKV(osReleaseFile)["VERSION_ID"]), `"'`)
+	if v := dnfVar("releasever"); v != "" {
+		return v
+	}
+	v := strings.Trim(strings.TrimSpace(readKV(osReleaseFile)["VERSION_ID"]), `"'`)
+	if i := strings.IndexByte(v, '.'); i > 0 {
+		v = v[:i]
+	}
+	return v
 }
 
 // baseArch is $basearch for this machine.

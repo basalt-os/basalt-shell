@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -137,5 +138,26 @@ func TestRepoPublishedUnreachable(t *testing.T) {
 	}
 	if repoPublished(context.Background(), "") {
 		t.Error("an unknown URL counts as published")
+	}
+}
+
+// Basalt OS's os-release says VERSION_ID=44.0; dnf's $releasever is 44.
+func TestReleaseVerMajor(t *testing.T) {
+	withProbeEnv(t, nil)
+	if err := os.WriteFile(osReleaseFile, []byte("NAME=\"Basalt OS\"\nVERSION_ID=44.0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if v := releaseVer(); v != "44" {
+		t.Fatalf("releasever %q, want 44", v)
+	}
+	u := channelRepomdURL("basalt-nonfree-testing", "")
+	if !strings.Contains(u, "/44/"+baseArch()+"/repodata/repomd.xml") {
+		t.Fatalf("url %q", u)
+	}
+	if err := os.WriteFile(filepath.Join(dnfVarsDir, "releasever"), []byte("45\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if v := releaseVer(); v != "45" {
+		t.Fatalf("dnf var releasever ignored: %q", v)
 	}
 }
