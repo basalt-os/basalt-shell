@@ -1,9 +1,14 @@
 # Dependency update pull requests. The daemon uses the Go standard library
 # only today; this keeps the Go toolchain directive and any future module
 # current. Add a github-actions entry when workflows are added.
+# One grouped pull request per ecosystem per week: every update of an
+# ecosystem lands in a single pull request instead of one per dependency.
 version: 2
 updates:
   - package-ecosystem: gomod
     directory: /
     schedule:
       interval: weekly
+    groups:
+      go-modules:
+        patterns: ["*"]
