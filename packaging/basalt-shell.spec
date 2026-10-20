@@ -365,6 +365,20 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Tue Oct 20 2026 Basalt OS developers - 0.10.2-1
+- Settings in the session's language: the sidebar (Appearance, Design
+  tokens, Motion, Windows, Assistant and AI, About) and every page's
+  titles, sections, sliders and buttons were English in pt-BR; sentences
+  built from pieces are whole messages now. A test keeps the sidebar
+  labels translated.
+- The password dialog says what it is for in plain words: applying a
+  proposal the person confirmed is named by its title ("Apply ..., the
+  change you confirmed"), not by systemd's "Authentication is required
+  to start 'basalt-apply@p-..._....service'", and the polkit action id is
+  only shown for other requests. The approval gate's own requests
+  (approve a request, a system change, unlock a protected action) are
+  said in the session's language too. The dialog itself is translated.
+
 * Thu Oct 08 2026 Basalt OS developers - 0.10.1-1
 - foot draws its own title bar again, with a close button (26 px, the
   height of sway's bar, in the theme's colors): 0.10.0 moved it to sway's

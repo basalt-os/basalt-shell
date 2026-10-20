@@ -2,6 +2,9 @@
  " (%s)": [
   " (%s)"
  ],
+ " px unit": [
+  " px/unid."
+ ],
  "%1 (%2), on this computer": [
   "%1 (%2), neste computador"
  ],
@@ -194,6 +197,9 @@
  "A snapshot of the system is taken first, so you can undo the update from this page. Some updates need a restart to take effect.": [
   "Antes, é feito um snapshot do sistema, então você pode desfazer a atualização por esta página. Algumas atualizações só valem depois de reiniciar."
  ],
+ "About": [
+  "Sobre"
+ ],
  "Accent color": [
   "Cor de destaque"
  ],
@@ -299,11 +305,32 @@
  "Answers are shown, not spoken: no voice for %s is installed.": [
   "As respostas aparecem na tela, sem fala: nenhuma voz para %s está instalada."
  ],
+ "Appearance": [
+  "Aparência"
+ ],
  "Applications": [
   "Aplicativos"
  ],
+ "Applied to apps: %1": [
+  "Aplicado aos apps: %1"
+ ],
+ "Apply \"%1\", the change you confirmed. Changing the system needs an administrator's password.": [
+  "Aplicar \"%1\", a mudança que você confirmou. Mudar o sistema pede a senha de um administrador."
+ ],
+ "Apply the change you confirmed (%1). Changing the system needs an administrator's password.": [
+  "Aplicar a mudança que você confirmou (%1). Mudar o sistema pede a senha de um administrador."
+ ],
+ "Apply the request you approved (%1). Changing the system needs an administrator's password.": [
+  "Aplicar o pedido que você aprovou (%1). Mudar o sistema pede a senha de um administrador."
+ ],
  "Approve and remember (%1)": [
   "Aprovar e lembrar (%1)"
+ ],
+ "Approve this change to the system. It needs an administrator's password.": [
+  "Aprovar esta mudança no sistema. Ela pede a senha de um administrador."
+ ],
+ "Approve this request. Your password confirms it is you.": [
+  "Aprovar este pedido. A sua senha confirma que é você."
  ],
  "Apps": [
   "Apps"
@@ -317,6 +344,9 @@
  "Arrange windows": [
   "Organizar as janelas"
  ],
+ "As %1": [
+  "Como %1"
+ ],
  "Ask the system": [
   "Pergunte ao sistema"
  ],
@@ -325,6 +355,9 @@
  ],
  "Asked from %1. It only reads; any change waits for your approval.": [
   "Pedido por %1. Só faz leituras; qualquer mudança espera a sua aprovação."
+ ],
+ "Assistant and AI": [
+  "Assistente e IA"
  ],
  "At most %1 layouts can be used at once. Remove one first.": [
   "No máximo %1 layouts podem ser usados ao mesmo tempo. Remova um antes."
@@ -338,11 +371,23 @@
  "August": [
   "agosto"
  ],
+ "Authenticate": [
+  "Autenticar"
+ ],
+ "Authentication required": [
+  "Autenticação necessária"
+ ],
+ "Auto": [
+  "Automático"
+ ],
  "Automatic": [
   "Automático"
  ],
  "Automatic for my language (%1)": [
   "Automático para o meu idioma (%1)"
+ ],
+ "Available actions": [
+  "Ações disponíveis"
  ],
  "Basalt OS": [
   "Basalt OS"
@@ -358,6 +403,9 @@
  ],
  "Basalt OS is up to date": [
   "O Basalt OS está atualizado"
+ ],
+ "Basalt shell %1 (prototype)": [
+  "Basalt shell %1 (protótipo)"
  ],
  "Basalt testing": [
   "Basalt em teste"
@@ -377,6 +425,9 @@
  "Both Alt keys": [
   "As duas teclas Alt"
  ],
+ "Bottom": [
+  "Embaixo"
+ ],
  "COPR project": [
   "Projeto do COPR"
  ],
@@ -391,6 +442,12 @@
  ],
  "Caps Lock is on": [
   "Caps Lock está ativado"
+ ],
+ "Cascade": [
+  "Cascata"
+ ],
+ "Center": [
+  "Centralizar"
  ],
  "Change %1": [
   "Alterar %1"
@@ -429,11 +486,32 @@
  "Close": [
   "Fechar"
  ],
+ "Color": [
+  "Cor"
+ ],
  "Coming with the approval gate's schedules. Until then, security updates are shown here first.": [
   "Chega com os agendamentos do portão de aprovações. Até lá, as atualizações de segurança aparecem aqui primeiro."
  ],
+ "Command bar: fixed phrases (no local model configured)": [
+  "Barra de comandos: frases fixas (nenhum modelo local configurado)"
+ ],
+ "Command bar: local language model (fixed phrases as fallback)": [
+  "Barra de comandos: modelo de linguagem local (frases fixas como reserva)"
+ ],
  "Compose key": [
   "Tecla de composição"
+ ],
+ "Compositor: %1": [
+  "Compositor: %1"
+ ],
+ "Compositor: %1 (%2). New windows float by default; tiling is one click away.": [
+  "Compositor: %1 (%2). Janelas novas flutuam por padrão; o lado a lado está a um clique."
+ ],
+ "Compositor: %1. New windows float by default; tiling is one click away.": [
+  "Compositor: %1. Janelas novas flutuam por padrão; o lado a lado está a um clique."
+ ],
+ "Compositor: none. New windows float by default; tiling is one click away.": [
+  "Compositor: nenhum. Janelas novas flutuam por padrão; o lado a lado está a um clique."
  ],
  "Confirm": [
   "Confirmar"
@@ -444,8 +522,26 @@
  "Confirm: the system assistant's proposal": [
   "Confirme: a proposta do assistente do sistema"
  ],
+ "Confirmations: checked by program name only (%1)": [
+  "Confirmações: verificadas só pelo nome do programa (%1)"
+ ],
+ "Confirmations: checked by program name only (reason unknown)": [
+  "Confirmações: verificadas só pelo nome do programa (motivo desconhecido)"
+ ],
+ "Confirmations: only this shell's SELinux domain can confirm; agents run confined and can only ask": [
+  "Confirmações: só o domínio SELinux deste shell pode confirmar; os agentes rodam confinados e só podem pedir"
+ ],
+ "Connect an MCP client": [
+  "Conectar um cliente MCP"
+ ],
+ "Connected to basalt-shell %1": [
+  "Conectado ao basalt-shell %1"
+ ],
  "Contains %s. Treated as data; nothing in it was followed.": [
   "Contém %s. Tratado como dado; nada do que diz foi seguido."
+ ],
+ "Corner roundness": [
+  "Arredondamento"
  ],
  "Could not check for updates: %1": [
   "Não foi possível procurar atualizações: %1"
@@ -458,6 +554,12 @@
  ],
  "Ctrl+Shift": [
   "Ctrl+Shift"
+ ],
+ "Daemon not running": [
+  "O serviço não está rodando"
+ ],
+ "Dark": [
+  "Escuro"
  ],
  "December": [
   "dezembro"
@@ -476,6 +578,9 @@
  ],
  "Deleting is not available to the assistant. I can move or rename files, and you can undo that.": [
   "Apagar não está disponível para o assistente. Posso mover ou renomear arquivos, e você pode desfazer isso."
+ ],
+ "Design tokens": [
+  "Tokens de design"
  ],
  "Details": [
   "Detalhes"
@@ -549,6 +654,9 @@
  "Drivers that are not free software, such as NVIDIA's graphics driver.": [
   "Drivers que não são software livre, como o driver gráfico da NVIDIA."
  ],
+ "Elevation": [
+  "Elevação"
+ ],
  "End permission: %1": [
   "Encerrar a permissão: %1"
  ],
@@ -574,6 +682,12 @@
  "Escape": [
   "Esc"
  ],
+ "Every value the shell is drawn with. Colors apply to the current mode (dark). A dot marks your overrides.": [
+  "Todos os valores com que o shell é desenhado. As cores valem para o modo atual (escuro). Um ponto marca o que você mudou."
+ ],
+ "Every value the shell is drawn with. Colors apply to the current mode (light). A dot marks your overrides.": [
+  "Todos os valores com que o shell é desenhado. As cores valem para o modo atual (claro). Um ponto marca o que você mudou."
+ ],
  "Expires in %1.": [
   "Expira em %1."
  ],
@@ -588,6 +702,9 @@
  ],
  "Float": [
   "Flutuante"
+ ],
+ "Float all": [
+  "Todas flutuantes"
  ],
  "Floating": [
   "Flutuante"
@@ -610,6 +727,12 @@
  "From %1, key %2": [
   "De %1, chave %2"
  ],
+ "Full": [
+  "Completo"
+ ],
+ "GPU: %1, CPUs: %2, memory: %3 MiB": [
+  "GPU: %1, CPUs: %2, memória: %3 MiB"
+ ],
  "GeForce and Titan software is not licensed for datacenter deployment (NVIDIA Driver License Agreement, section 2.8).": [
   "O software para GeForce e Titan não é licenciado para uso em datacenter (NVIDIA Driver License Agreement, seção 2.8)."
  ],
@@ -618,6 +741,12 @@
  ],
  "Green": [
   "Verde"
+ ],
+ "Grid": [
+  "Grade"
+ ],
+ "Hardware can animate smoothly": [
+  "O hardware dá conta de animar com fluidez"
  ],
  "Hello,": [
   "Olá,"
@@ -798,6 +927,9 @@
  "Keep Basalt OS up to date and choose where its software comes from. Every update starts with a snapshot, so you can go back.": [
   "Mantenha o Basalt OS atualizado e escolha de onde vem o software. Toda atualização começa com um snapshot, então dá para voltar."
  ],
+ "Keep this look": [
+  "Guardar este visual"
+ ],
  "Kernel %1 waits for its signed NVIDIA module; the computer keeps starting the previous kernel until it is published.": [
   "O kernel %1 aguarda o seu módulo NVIDIA assinado; o computador continua iniciando o kernel anterior até ele ser publicado."
  ],
@@ -848,6 +980,9 @@
  ],
  "Libraries, drivers and services that everything else runs on.": [
   "Bibliotecas, drivers e serviços sobre os quais todo o resto roda."
+ ],
+ "Light": [
+  "Claro"
  ],
  "Listening for the assistant. Release to send (%1 s)": [
   "Ouvindo para o assistente. Solte para enviar (%1 s)"
@@ -912,6 +1047,10 @@
  "Model downloads are turned off on this computer. Your administrator decides which models are installed.": [
   "Downloads de modelos estão desligados neste computador. O seu administrador decide quais modelos ficam instalados."
  ],
+ "Models never act directly. They ask for typed actions (%1 kind); every change waits for you on a confirmation sheet and is written to the activity log.": [
+  "Os modelos nunca agem por conta própria. Eles pedem ações tipadas (%1 tipo); toda mudança espera por você numa tela de confirmação e fica gravada no registro de atividades.",
+  "Os modelos nunca agem por conta própria. Eles pedem ações tipadas (%1 tipos); toda mudança espera por você numa tela de confirmação e fica gravada no registro de atividades."
+ ],
  "Motion": [
   "Movimento"
  ],
@@ -940,6 +1079,9 @@
  ],
  "NVIDIA Driver License Agreement": [
   "NVIDIA Driver License Agreement"
+ ],
+ "Name for a new theme": [
+  "Nome do novo tema"
  ],
  "Needs Flatpak": [
   "Precisa do Flatpak"
@@ -1063,6 +1205,12 @@
  "Now typing with: %1": [
   "Digitando agora com: %1"
  ],
+ "Now: animations off": [
+  "Agora: animações desligadas"
+ ],
+ "Now: animations on": [
+  "Agora: animações ligadas"
+ ],
  "October": [
   "outubro"
  ],
@@ -1126,11 +1274,20 @@
  "Panel": [
   "Painel"
  ],
+ "Panel opacity": [
+  "Opacidade do painel"
+ ],
  "Panel position": [
   "Posição do painel"
  ],
  "Panel style": [
   "Estilo do painel"
+ ],
+ "Password": [
+  "Senha"
+ ],
+ "Pick a theme, then make it yours. Everything below also changes your apps (GTK, libadwaita, Qt) and window borders.": [
+  "Escolha um tema e deixe do seu jeito. Tudo aqui embaixo também muda os seus apps (GTK, libadwaita, Qt) e as bordas das janelas."
  ],
  "Pink": [
   "Rosa"
@@ -1167,6 +1324,9 @@
  ],
  "Press to switch to the next layout": [
   "Pressione para trocar para o próximo layout"
+ ],
+ "Preview": [
+  "Prévia"
  ],
  "Preview builds can break things, the display included.": [
   "Versões de teste podem quebrar coisas, inclusive a tela."
@@ -1233,8 +1393,14 @@
  "Red": [
   "Vermelho"
  ],
+ "Reduced": [
+  "Reduzido"
+ ],
  "Refused: %1": [
   "Recusado: %1"
+ ],
+ "Reload themes": [
+  "Recarregar os temas"
  ],
  "Remote: %1": [
   "Remoto: %1"
@@ -1266,8 +1432,14 @@
  "Replies need the account's address and sending server in skills.conf (address, smtp_host).": [
   "Para responder, a conta precisa do endereço e do servidor de envio em skills.conf (address, smtp_host)."
  ],
+ "Reset": [
+  "Restaurar"
+ ],
  "Reset %1": [
   "Restaurar %1"
+ ],
+ "Reset to theme": [
+  "Voltar ao tema"
  ],
  "Restart": [
   "Reiniciar"
@@ -1316,6 +1488,9 @@
  ],
  "Same as speech": [
   "O mesmo da fala"
+ ],
+ "Save as theme": [
+  "Salvar como tema"
  ],
  "Saved in %1.": [
   "Salvo em %1."
@@ -1374,6 +1549,12 @@
  "Settings pages": [
   "Páginas dos Ajustes"
  ],
+ "Shape": [
+  "Forma"
+ ],
+ "Shape and size": [
+  "Forma e tamanho"
+ ],
  "Show all channels": [
   "Mostrar todos os canais"
  ],
@@ -1391,6 +1572,9 @@
  ],
  "Shown underlined in the field. Nothing is typed until you choose Insert (Super+Shift+Return).": [
   "Aparece sublinhado no campo. Nada é digitado até você escolher Inserir (Super+Shift+Return)."
+ ],
+ "Side by side": [
+  "Em colunas"
  ],
  "Signed with a key that is not the OpenBasalt release key (%1)": [
   "Assinado com uma chave que não é a chave de lançamento da OpenBasalt (%1)"
@@ -1430,6 +1614,9 @@
  ],
  "Source removed.": [
   "Fonte removida."
+ ],
+ "Spacing": [
+  "Espaçamento"
  ],
  "Speak the answers aloud": [
   "Falar as respostas em voz alta"
@@ -1476,6 +1663,9 @@
  "Stop the agent": [
   "Parar o agente"
  ],
+ "Subtle animations by default. Auto turns them off on weak hardware (software rendering, very few CPUs or little memory).": [
+  "Animações discretas por padrão. O modo automático desliga as animações em hardware fraco (renderização por software, poucas CPUs ou pouca memória)."
+ ],
  "Suggestions": [
   "Sugestões"
  ],
@@ -1503,6 +1693,12 @@
  "System": [
   "Sistema"
  ],
+ "System assistant (basalt) installed: system questions and its proposals work here": [
+  "Assistente do sistema (basalt) instalado: perguntas sobre o sistema e as propostas dele funcionam aqui"
+ ],
+ "System assistant (basalt) not installed": [
+  "Assistente do sistema (basalt) não instalado"
+ ],
  "System default": [
   "Padrão do sistema"
  ],
@@ -1514,6 +1710,9 @@
  ],
  "Tested before release. Always on.": [
   "Testado antes do lançamento. Sempre ligado."
+ ],
+ "Text size": [
+  "Tamanho do texto"
  ],
  "That is not something the desktop does. Try: \"dark mode\", \"open text editor\", \"arrange windows side by side\", \"why nginx\".": [
   "Isso não é algo que a área de trabalho faz. Experimente: \"modo escuro\", \"abra o editor de texto\", \"organize as janelas lado a lado\", \"por que o nginx\"."
@@ -1740,6 +1939,9 @@
  "Theme": [
   "Tema"
  ],
+ "Theme files: /usr/share/basalt-shell/themes and ~/.config/basalt-shell/themes (JSON). Settings: ~/.config/basalt-shell/settings.json.": [
+  "Arquivos de tema: /usr/share/basalt-shell/themes e ~/.config/basalt-shell/themes (JSON). Configurações: ~/.config/basalt-shell/settings.json."
+ ],
  "There are no results yet. Ask me to find the files first.": [
   "Ainda não há resultados. Peça primeiro para eu encontrar os arquivos."
  ],
@@ -1834,6 +2036,9 @@
  "Too many attempts. Wait a few minutes, then try again.": [
   "Muitas tentativas. Espere alguns minutos e tente de novo."
  ],
+ "Top": [
+  "Em cima"
+ ],
  "Trust and add": [
   "Confiar e adicionar"
  ],
@@ -1892,6 +2097,9 @@
  "Type your password to unlock": [
   "Digite sua senha para desbloquear"
  ],
+ "Typography": [
+  "Tipografia"
+ ],
  "Undo the last update": [
   "Desfazer a última atualização"
  ],
@@ -1906,6 +2114,9 @@
  ],
  "Unlock": [
   "Desbloquear"
+ ],
+ "Unlock this protected action once. It needs an administrator's password.": [
+  "Liberar esta ação protegida uma vez. Ela pede a senha de um administrador."
  ],
  "Unlocking": [
   "Desbloqueando"
@@ -1982,6 +2193,9 @@
  "Waiting for your password.": [
   "Esperando sua senha."
  ],
+ "Weak hardware: %1": [
+  "Hardware fraco: %1"
+ ],
  "Well-known sources, with the address and signing key Basalt OS checked for you.": [
   "Fontes conhecidas, com o endereço e a chave de assinatura que o Basalt OS conferiu para você."
  ],
@@ -1993,6 +2207,9 @@
  ],
  "What should the reply say? For example: reply to Ana: Thursday works for me.": [
   "O que a resposta deve dizer? Por exemplo: responda à Ana: quinta-feira está bom para mim."
+ ],
+ "What this compositor supports": [
+  "O que este compositor suporta"
  ],
  "Where Basalt OS gets its software. Everything that is not final goes to a testing channel first.": [
   "De onde o Basalt OS recebe o software. Tudo o que não é final passa antes por um canal de teste."
@@ -2008,6 +2225,9 @@
  ],
  "Window menu": [
   "Menu da janela"
+ ],
+ "Windows": [
+  "Janelas"
  ],
  "Wired network": [
   "Rede cabeada"

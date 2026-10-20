@@ -49,16 +49,16 @@ FloatingWindow {
     }
 
     readonly property var pages: [
-        { id: "appearance", label: "Appearance", icon: "palette" },
-        { id: "tokens", label: "Design tokens", icon: "sliders" },
-        { id: "motion", label: "Motion", icon: "motion" },
-        { id: "windows", label: "Windows", icon: "window" },
+        { id: "appearance", label: Tr.t("Appearance"), icon: "palette" },
+        { id: "tokens", label: Tr.t("Design tokens"), icon: "sliders" },
+        { id: "motion", label: Tr.t("Motion"), icon: "motion" },
+        { id: "windows", label: Tr.t("Windows"), icon: "window" },
         { id: "keyboard", label: Tr.t("Keyboard"), icon: "keyboard" },
-        { id: "ai", label: "Assistant and AI", icon: "spark" },
+        { id: "ai", label: Tr.t("Assistant and AI"), icon: "spark" },
         { id: "voice", label: Tr.t("Voice and assistant"), icon: "mic" },
         { id: "updates", label: Tr.t("Updates and channels"), icon: "download" },
         { id: "drivers", label: Tr.t("Additional drivers"), icon: "chip" },
-        { id: "about", label: "About", icon: "info" }
+        { id: "about", label: Tr.t("About"), icon: "info" }
     ]
 
     Behavior on color { ColorAnimation { duration: Theme.normal; easing.type: Theme.easing } }
@@ -118,7 +118,7 @@ FloatingWindow {
                     }
                 }
                 Item { Layout.fillHeight: true }
-                Txt { text: Bus.connected ? "Connected to basalt-shell " + Bus.version : "Daemon not running"; role: "small"; color: Bus.connected ? Theme.textMuted : Theme.danger; Layout.fillWidth: true }
+                Txt { text: Bus.connected ? Tr.t("Connected to basalt-shell %1").arg(Bus.version) : Tr.t("Daemon not running"); role: "small"; color: Bus.connected ? Theme.textMuted : Theme.danger; Layout.fillWidth: true }
             }
         }
 
@@ -152,8 +152,8 @@ FloatingWindow {
                     visible: Ui.settingsPage === "appearance"
                     Layout.fillWidth: true
                     spacing: Theme.s4
-                    Txt { text: "Appearance"; role: "display" }
-                    Txt { text: "Pick a theme, then make it yours. Everything below also changes your apps (GTK, libadwaita, Qt) and window borders."; color: Theme.textMuted; wrapMode: Text.Wrap; Layout.fillWidth: true; elide: Text.ElideNone }
+                    Txt { text: Tr.t("Appearance"); role: "display" }
+                    Txt { text: Tr.t("Pick a theme, then make it yours. Everything below also changes your apps (GTK, libadwaita, Qt) and window borders."); color: Theme.textMuted; wrapMode: Text.Wrap; Layout.fillWidth: true; elide: Text.ElideNone }
 
                     NavFlow {
                         Layout.fillWidth: true
@@ -165,15 +165,15 @@ FloatingWindow {
                         }
                     }
 
-                    Section { title: "Mode" }
+                    Section { title: Tr.t("Mode") }
                     NavRow {
                         spacing: Theme.s2
                         Accessible.name: Tr.t("Mode")
-                        Btn { text: "Light"; icon: "sun"; variant: "outline"; checkable: true; e2e: "settings-mode-light"; active: !Theme.dark; onClicked: Bus.act("theme.switch", { mode: "light" }) }
-                        Btn { text: "Dark"; icon: "moon"; variant: "outline"; checkable: true; e2e: "settings-mode-dark"; active: Theme.dark; onClicked: Bus.act("theme.switch", { mode: "dark" }) }
+                        Btn { text: Tr.t("Light"); icon: "sun"; variant: "outline"; checkable: true; e2e: "settings-mode-light"; active: !Theme.dark; onClicked: Bus.act("theme.switch", { mode: "light" }) }
+                        Btn { text: Tr.t("Dark"); icon: "moon"; variant: "outline"; checkable: true; e2e: "settings-mode-dark"; active: Theme.dark; onClicked: Bus.act("theme.switch", { mode: "dark" }) }
                     }
 
-                    Section { title: "Accent color" }
+                    Section { title: Tr.t("Accent color") }
                     NavRow {
                         spacing: Theme.s2
                         Accessible.name: Tr.t("Accent color")
@@ -197,10 +197,10 @@ FloatingWindow {
                         }
                     }
 
-                    Section { title: "Shape and size" }
+                    Section { title: Tr.t("Shape and size") }
                     LabeledSlider {
                         e2e: "settings-radius"
-                        label: "Corner roundness"; from: 0; to: 24; stepSize: 1; value: Theme.radiusMd; suffix: " px"
+                        label: Tr.t("Corner roundness"); from: 0; to: 24; stepSize: 1; value: Theme.radiusMd; suffix: " px"
                         // One scale from one slider: chips, controls, popovers, sheets
                         // and windows keep their proportions (6, 10, 12, 16, 8
                         // at the default 10).
@@ -208,23 +208,23 @@ FloatingWindow {
                                                           "radius.xl": Math.min(48, Math.round(v * 1.6)), "radius.window": Math.min(32, Math.round(v * 0.8)) })
                     }
                     LabeledSlider {
-                        label: "Text size"; from: 8; to: 16; stepSize: 0.5; value: Theme.fontSize; suffix: " pt"
+                        label: Tr.t("Text size"); from: 8; to: 16; stepSize: 0.5; value: Theme.fontSize; suffix: " pt"
                         onCommitted: v => win.setTokens({ "font.size": v })
                     }
                     LabeledSlider {
-                        label: "Spacing"; from: 2; to: 8; stepSize: 1; value: Theme.unit; suffix: " px unit"
+                        label: Tr.t("Spacing"); from: 2; to: 8; stepSize: 1; value: Theme.unit; suffix: Tr.t(" px unit")
                         onCommitted: v => win.setTokens({ "spacing.unit": v })
                     }
                     LabeledSlider {
-                        label: "Panel opacity"; from: 0.5; to: 1; stepSize: 0.05; value: Theme.panelOpacity
+                        label: Tr.t("Panel opacity"); from: 0.5; to: 1; stepSize: 0.05; value: Theme.panelOpacity
                         onCommitted: v => win.setTokens({ "panel.opacity": v })
                     }
                     NavRow {
                         spacing: Theme.s2
                         Accessible.name: Tr.t("Panel position")
-                        Txt { text: "Panel"; width: 160; anchors.verticalCenter: parent.verticalCenter }
-                        Btn { text: "Top"; variant: "outline"; checkable: true; active: Theme.panelPosition === "top"; onClicked: win.setTokens({ "panel.position": "top" }) }
-                        Btn { text: "Bottom"; variant: "outline"; checkable: true; active: Theme.panelPosition === "bottom"; onClicked: win.setTokens({ "panel.position": "bottom" }) }
+                        Txt { text: Tr.t("Panel"); width: 160; anchors.verticalCenter: parent.verticalCenter }
+                        Btn { text: Tr.t("Top"); variant: "outline"; checkable: true; active: Theme.panelPosition === "top"; onClicked: win.setTokens({ "panel.position": "top" }) }
+                        Btn { text: Tr.t("Bottom"); variant: "outline"; checkable: true; active: Theme.panelPosition === "bottom"; onClicked: win.setTokens({ "panel.position": "bottom" }) }
                     }
                     // Attached to the screen edge (the default) or the
                     // floating pill.
@@ -236,13 +236,13 @@ FloatingWindow {
                         Btn { text: Tr.t("Floating"); e2e: "settings-panel-floating"; variant: "outline"; checkable: true; active: Theme.panelFloating; onClicked: win.setTokens({ "panel.style": "floating" }) }
                     }
 
-                    Section { title: "Keep this look" }
+                    Section { title: Tr.t("Keep this look") }
                     Row {
                         spacing: Theme.s2
-                        Field { id: saveName; width: 260; placeholder: "Name for a new theme"; e2e: "settings-theme-name"; onAccepted: saveBtn.clicked() }
+                        Field { id: saveName; width: 260; placeholder: Tr.t("Name for a new theme"); e2e: "settings-theme-name"; onAccepted: saveBtn.clicked() }
                         Btn {
                             id: saveBtn
-                            text: "Save as theme"; variant: "primary"
+                            text: Tr.t("Save as theme"); variant: "primary"
                             onClicked: {
                                 const name = saveName.text.trim();
                                 if (!name) return;
@@ -251,7 +251,7 @@ FloatingWindow {
                                 saveName.text = "";
                             }
                         }
-                        Btn { text: "Reset to theme"; variant: "outline"; onClicked: Bus.act("theme.reset", {}) }
+                        Btn { text: Tr.t("Reset to theme"); variant: "outline"; onClicked: Bus.act("theme.reset", {}) }
                     }
                 }
 
@@ -260,18 +260,21 @@ FloatingWindow {
                     visible: Ui.settingsPage === "tokens"
                     Layout.fillWidth: true
                     spacing: Theme.s3
-                    Txt { text: "Design tokens"; role: "display" }
-                    Txt { text: "Every value the shell is drawn with. Colors apply to the current mode (" + Theme.mode + "). A dot marks your overrides."; color: Theme.textMuted; wrapMode: Text.Wrap; Layout.fillWidth: true; elide: Text.ElideNone }
+                    Txt { text: Tr.t("Design tokens"); role: "display" }
+                    Txt { text: Theme.dark ? Tr.t("Every value the shell is drawn with. Colors apply to the current mode (dark). A dot marks your overrides.")
+                                            : Tr.t("Every value the shell is drawn with. Colors apply to the current mode (light). A dot marks your overrides."); color: Theme.textMuted; wrapMode: Text.Wrap; Layout.fillWidth: true; elide: Text.ElideNone }
                     Repeater {
-                        model: ["color", "typography", "shape", "spacing", "elevation", "motion", "windows", "apps"]
+                        // [token group id, its title].
+                        model: [["color", Tr.t("Color")], ["typography", Tr.t("Typography")], ["shape", Tr.t("Shape")], ["spacing", Tr.t("Spacing")],
+                                ["elevation", Tr.t("Elevation")], ["motion", Tr.t("Motion")], ["windows", Tr.t("Windows")], ["apps", Tr.t("Apps")]]
                         delegate: ColumnLayout {
                             id: grp
                             required property var modelData
                             Layout.fillWidth: true
                             spacing: Theme.s1
-                            Section { title: grp.modelData }
+                            Section { title: grp.modelData[1] }
                             Repeater {
-                                model: win.specs.filter(s => s.group === grp.modelData)
+                                model: win.specs.filter(s => s.group === grp.modelData[0])
                                 delegate: TokenRow { required property var modelData; spec: modelData; Layout.fillWidth: true }
                             }
                         }
@@ -283,13 +286,13 @@ FloatingWindow {
                     visible: Ui.settingsPage === "motion"
                     Layout.fillWidth: true
                     spacing: Theme.s4
-                    Txt { text: "Motion"; role: "display" }
-                    Txt { text: "Subtle animations by default. Auto turns them off on weak hardware (software rendering, very few CPUs or little memory)."; color: Theme.textMuted; wrapMode: Text.Wrap; Layout.fillWidth: true; elide: Text.ElideNone }
+                    Txt { text: Tr.t("Motion"); role: "display" }
+                    Txt { text: Tr.t("Subtle animations by default. Auto turns them off on weak hardware (software rendering, very few CPUs or little memory)."); color: Theme.textMuted; wrapMode: Text.Wrap; Layout.fillWidth: true; elide: Text.ElideNone }
                     NavRow {
                         spacing: Theme.s2
                         Accessible.name: Tr.t("Motion")
                         Repeater {
-                            model: [["auto", "Auto"], ["full", "Full"], ["reduced", "Reduced"]]
+                            model: [["auto", Tr.t("Auto")], ["full", Tr.t("Full")], ["reduced", Tr.t("Reduced")]]
                             delegate: Btn {
                                 required property var modelData
                                 text: modelData[1]; variant: "outline"; checkable: true
@@ -310,16 +313,16 @@ FloatingWindow {
                             anchors.fill: parent
                             anchors.margins: Theme.s3
                             spacing: Theme.s1
-                            Txt { text: "Now: " + (Theme.animate ? "animations on" : "animations off"); font.weight: Font.DemiBold }
-                            Txt { text: win.st ? ("GPU: " + win.st.hardware.gpu + ", CPUs: " + win.st.hardware.cpus + ", memory: " + win.st.hardware.mem_mib + " MiB") : ""; color: Theme.textMuted }
-                            Txt { text: win.st && win.st.hardware.weak ? "Weak hardware: " + win.st.hardware.reasons.join("; ") : "Hardware can animate smoothly"; color: Theme.textMuted; width: parent.width; wrapMode: Text.Wrap; elide: Text.ElideNone }
+                            Txt { text: Theme.animate ? Tr.t("Now: animations on") : Tr.t("Now: animations off"); font.weight: Font.DemiBold }
+                            Txt { text: win.st ? Tr.t("GPU: %1, CPUs: %2, memory: %3 MiB").arg(win.st.hardware.gpu).arg(win.st.hardware.cpus).arg(win.st.hardware.mem_mib) : ""; color: Theme.textMuted }
+                            Txt { text: win.st && win.st.hardware.weak ? Tr.t("Weak hardware: %1").arg(win.st.hardware.reasons.join("; ")) : Tr.t("Hardware can animate smoothly"); color: Theme.textMuted; width: parent.width; wrapMode: Text.Wrap; elide: Text.ElideNone }
                         }
                     }
                     Repeater {
                         model: win.specs.filter(s => s.group === "motion")
                         delegate: TokenRow { required property var modelData; spec: modelData; Layout.fillWidth: true }
                     }
-                    Txt { text: "Preview"; role: "large" }
+                    Txt { text: Tr.t("Preview"); role: "large" }
                     Rectangle {
                         id: demo
                         Layout.preferredWidth: 360; Layout.preferredHeight: 60
@@ -340,18 +343,21 @@ FloatingWindow {
                     visible: Ui.settingsPage === "windows"
                     Layout.fillWidth: true
                     spacing: Theme.s4
-                    Txt { text: "Windows"; role: "display" }
+                    Txt { text: Tr.t("Windows"); role: "display" }
                     Txt {
                         Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.textMuted
-                        text: "Compositor: " + (Bus.desktop.compositor || "none") + (Bus.desktop.version ? " (" + Bus.desktop.version + ")" : "") +
-                              ". New windows float by default; tiling is one click away."
+                        text: !Bus.desktop.compositor
+                              ? Tr.t("Compositor: none. New windows float by default; tiling is one click away.")
+                              : Bus.desktop.version
+                                ? Tr.t("Compositor: %1 (%2). New windows float by default; tiling is one click away.").arg(Bus.desktop.compositor).arg(Bus.desktop.version)
+                                : Tr.t("Compositor: %1. New windows float by default; tiling is one click away.").arg(Bus.desktop.compositor)
                     }
                     NavFlow {
                         Layout.fillWidth: true
                         spacing: Theme.s2
                         Accessible.name: Tr.t("Arrange windows")
                         Repeater {
-                            model: [["grid", "Grid"], ["columns", "Side by side"], ["cascade", "Cascade"], ["center", "Center"], ["tile", "Tile"], ["float", "Float all"]]
+                            model: [["grid", Tr.t("Grid")], ["columns", Tr.t("Side by side")], ["cascade", Tr.t("Cascade")], ["center", Tr.t("Center")], ["tile", Tr.t("Tile")], ["float", Tr.t("Float all")]]
                             delegate: Btn { required property var modelData; text: modelData[1]; variant: "outline"; onClicked: Bus.act("windows.arrange", { layout: modelData[0] }) }
                         }
                     }
@@ -359,7 +365,7 @@ FloatingWindow {
                         model: win.specs.filter(s => s.group === "windows")
                         delegate: TokenRow { required property var modelData; spec: modelData; Layout.fillWidth: true }
                     }
-                    Section { title: "What this compositor supports" }
+                    Section { title: Tr.t("What this compositor supports") }
                     Repeater {
                         model: Object.keys(Bus.desktop.caps || {})
                         delegate: Row {
@@ -376,21 +382,25 @@ FloatingWindow {
                     visible: Ui.settingsPage === "ai"
                     Layout.fillWidth: true
                     spacing: Theme.s4
-                    Txt { text: "Assistant and AI"; role: "display" }
+                    Txt { text: Tr.t("Assistant and AI"); role: "display" }
                     Txt {
                         Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone; color: Theme.textMuted
-                        text: "Models never act directly. They ask for typed actions (" + Bus.actions.length + " kinds); every change waits for you on a confirmation sheet and is written to the activity log."
+                        text: Tr.n("Models never act directly. They ask for typed actions (%1 kind); every change waits for you on a confirmation sheet and is written to the activity log.",
+                                   "Models never act directly. They ask for typed actions (%1 kinds); every change waits for you on a confirmation sheet and is written to the activity log.",
+                                   Bus.actions.length)
                     }
                     Row { spacing: Theme.s2; Icon { name: Bus.translatorAvailable ? "check" : "info"; color: Bus.translatorAvailable ? Theme.success : Theme.textMuted }
-                          Txt { text: Bus.translatorAvailable ? "Command bar: local language model (fixed phrases as fallback)" : "Command bar: fixed phrases (no local model configured)" } }
+                          Txt { text: Bus.translatorAvailable ? Tr.t("Command bar: local language model (fixed phrases as fallback)") : Tr.t("Command bar: fixed phrases (no local model configured)") } }
                     Row { spacing: Theme.s2; Icon { name: Bus.assistantAvailable ? "check" : "info"; color: Bus.assistantAvailable ? Theme.success : Theme.textMuted }
-                          Txt { text: Bus.assistantAvailable ? "System assistant (basalt) installed: system questions and its proposals work here" : "System assistant (basalt) not installed" } }
+                          Txt { text: Bus.assistantAvailable ? Tr.t("System assistant (basalt) installed: system questions and its proposals work here") : Tr.t("System assistant (basalt) not installed") } }
                     Row { spacing: Theme.s2
                           Icon { name: Bus.uiCheck && Bus.uiCheck.mode === "selinux" ? "check" : "info"; color: Bus.uiCheck && Bus.uiCheck.mode === "selinux" ? Theme.success : Theme.warning }
                           Txt { text: Bus.uiCheck && Bus.uiCheck.mode === "selinux"
-                                ? "Confirmations: only this shell's SELinux domain can confirm; agents run confined and can only ask"
-                                : "Confirmations: checked by program name only (" + (Bus.uiCheck ? Bus.uiCheck.reason : "unknown") + ")" } }
-                    Section { title: "Connect an MCP client" }
+                                ? Tr.t("Confirmations: only this shell's SELinux domain can confirm; agents run confined and can only ask")
+                                : Bus.uiCheck
+                                  ? Tr.t("Confirmations: checked by program name only (%1)").arg(Bus.uiCheck.reason)
+                                  : Tr.t("Confirmations: checked by program name only (reason unknown)") } }
+                    Section { title: Tr.t("Connect an MCP client") }
                     Rectangle {
                         Layout.fillWidth: true
                         implicitHeight: mcpTxt.implicitHeight + Theme.s3 * 2
@@ -402,7 +412,7 @@ FloatingWindow {
                             text: '{ "mcpServers": { "basalt-shell": { "command": "basalt-shell", "args": ["mcp"] } } }'
                         }
                     }
-                    Section { title: "Available actions" }
+                    Section { title: Tr.t("Available actions") }
                     Repeater {
                         model: Bus.actions
                         delegate: Column {
@@ -443,19 +453,19 @@ FloatingWindow {
                     visible: Ui.settingsPage === "about"
                     Layout.fillWidth: true
                     spacing: Theme.s3
-                    Txt { text: "About"; role: "display" }
-                    Txt { text: "Basalt shell " + Bus.version + " (prototype)"; font.weight: Font.Medium }
-                    Txt { text: "Compositor: " + (Bus.desktop.version || Bus.desktop.compositor); color: Theme.textMuted }
-                    Txt { text: "Theme files: /usr/share/basalt-shell/themes and ~/.config/basalt-shell/themes (JSON). Settings: ~/.config/basalt-shell/settings.json."; color: Theme.textMuted; wrapMode: Text.Wrap; Layout.fillWidth: true; elide: Text.ElideNone }
+                    Txt { text: Tr.t("About"); role: "display" }
+                    Txt { text: Tr.t("Basalt shell %1 (prototype)").arg(Bus.version); font.weight: Font.Medium }
+                    Txt { text: Tr.t("Compositor: %1").arg(Bus.desktop.version || Bus.desktop.compositor); color: Theme.textMuted }
+                    Txt { text: Tr.t("Theme files: /usr/share/basalt-shell/themes and ~/.config/basalt-shell/themes (JSON). Settings: ~/.config/basalt-shell/settings.json."); color: Theme.textMuted; wrapMode: Text.Wrap; Layout.fillWidth: true; elide: Text.ElideNone }
                     Repeater {
                         model: win.st && win.st.errors ? win.st.errors : []
                         delegate: Txt { required property var modelData; text: modelData; color: Theme.warning; Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone }
                     }
                     Repeater {
                         model: win.st && win.st.apps_appearance ? (win.st.apps_appearance.applied || []) : []
-                        delegate: Txt { required property var modelData; text: "Applied to apps: " + modelData; role: "small"; color: Theme.textMuted; Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone }
+                        delegate: Txt { required property var modelData; text: Tr.t("Applied to apps: %1").arg(modelData); role: "small"; color: Theme.textMuted; Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone }
                     }
-                    Btn { text: "Reload themes"; variant: "outline"; onClicked: Bus.call("reload", {}, () => {}) }
+                    Btn { text: Tr.t("Reload themes"); variant: "outline"; onClicked: Bus.call("reload", {}, () => {}) }
                 }
             }
         }
@@ -563,7 +573,7 @@ FloatingWindow {
         // Bool.
         Btn {
             visible: tr.spec.kind === "bool"
-            text: tr.val ? "On" : "Off"; variant: "outline"; active: tr.val === true
+            text: tr.val ? Tr.t("On") : Tr.t("Off"); variant: "outline"; active: tr.val === true
             checkable: true
             accessibleName: tr.spec.label
             onClicked: Bus.setToken(tr.spec.key, !tr.val)
@@ -590,7 +600,7 @@ FloatingWindow {
         Item { Layout.fillWidth: tr.spec.kind !== "number" }
         Btn {
             visible: Bus.overridden(tr.spec.key)
-            text: "Reset"; variant: "ghost"
+            text: Tr.t("Reset"); variant: "ghost"
             accessibleName: Tr.t("Reset %1").arg(tr.spec.label)
             onClicked: Bus.act("theme.reset", { tokens: [tr.spec.key] })
         }
