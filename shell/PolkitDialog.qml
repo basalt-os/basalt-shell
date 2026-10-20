@@ -23,6 +23,12 @@ Scope {
             return Tr.t("Apply the change you confirmed (%1). Changing the system needs an administrator's password.").arg(d.id);
         if (d.kind === "gate-exec")
             return Tr.t("Apply the request you approved (%1). Changing the system needs an administrator's password.").arg(d.id);
+        if (d.kind === "gate-decide")
+            return Tr.t("Approve this request. Your password confirms it is you.");
+        if (d.kind === "gate-decide-admin")
+            return Tr.t("Approve this change to the system. It needs an administrator's password.");
+        if (d.kind === "gate-unlock")
+            return Tr.t("Unlock this protected action once. It needs an administrator's password.");
         return d.message;
     }
     Binding { target: Ui; property: "polkitActive"; value: agent.isActive && agent.flow !== null }

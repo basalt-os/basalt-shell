@@ -375,7 +375,9 @@ fi
   proposal the person confirmed is named by its title ("Apply ..., the
   change you confirmed"), not by systemd's "Authentication is required
   to start 'basalt-apply@p-..._....service'", and the polkit action id is
-  only shown for other requests. The dialog itself is translated.
+  only shown for other requests. The approval gate's own requests
+  (approve a request, a system change, unlock a protected action) are
+  said in the session's language too. The dialog itself is translated.
 
 * Thu Oct 08 2026 Basalt OS developers - 0.10.1-1
 - foot draws its own title bar again, with a close button (26 px, the

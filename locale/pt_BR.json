@@ -3,7 +3,7 @@
   " (%s)"
  ],
  " px unit": [
-  " px por unidade"
+  " px/unid."
  ],
  "%1 (%2), on this computer": [
   "%1 (%2), neste computador"
@@ -326,6 +326,12 @@
  "Approve and remember (%1)": [
   "Aprovar e lembrar (%1)"
  ],
+ "Approve this change to the system. It needs an administrator's password.": [
+  "Aprovar esta mudança no sistema. Ela pede a senha de um administrador."
+ ],
+ "Approve this request. Your password confirms it is you.": [
+  "Aprovar este pedido. A sua senha confirma que é você."
+ ],
  "Apps": [
   "Apps"
  ],
@@ -535,7 +541,7 @@
   "Contém %s. Tratado como dado; nada do que diz foi seguido."
  ],
  "Corner roundness": [
-  "Arredondamento dos cantos"
+  "Arredondamento"
  ],
  "Could not check for updates: %1": [
   "Não foi possível procurar atualizações: %1"
@@ -2108,6 +2114,9 @@
  ],
  "Unlock": [
   "Desbloquear"
+ ],
+ "Unlock this protected action once. It needs an administrator's password.": [
+  "Liberar esta ação protegida uma vez. Ela pede a senha de um administrador."
  ],
  "Unlocking": [
   "Desbloqueando"
