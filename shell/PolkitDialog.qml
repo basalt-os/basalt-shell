@@ -2,16 +2,29 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Services.Polkit
+import "polkit.js" as PK
 
 // The session's polkit authentication agent, in the shell's theme. Used
 // for administrator prompts, including the system assistant's Apply.
 // Keyboard: the password field has the focus (the person types there
 // first); Return in it submits only when something was typed, so a stray
 // Return never authenticates. Tab goes on to Cancel, then Authenticate;
-// Escape cancels.
+// Escape cancels. A system assistant proposal the person confirmed is
+// named in plain words (polkit.js), not by systemd's unit name.
 Scope {
     id: root
     PolkitAgent { id: agent }
+    readonly property var about: PK.describe(agent.flow, Bus.assistantPending)
+    readonly property string plainMessage: {
+        const d = root.about;
+        if (d.kind === "apply" && d.title !== "")
+            return Tr.t("Apply \"%1\", the change you confirmed. Changing the system needs an administrator's password.").arg(d.title);
+        if (d.kind === "apply")
+            return Tr.t("Apply the change you confirmed (%1). Changing the system needs an administrator's password.").arg(d.id);
+        if (d.kind === "gate-exec")
+            return Tr.t("Apply the request you approved (%1). Changing the system needs an administrator's password.").arg(d.id);
+        return d.message;
+    }
     Binding { target: Ui; property: "polkitActive"; value: agent.isActive && agent.flow !== null }
 
     PanelWindow {
@@ -41,18 +54,20 @@ Scope {
                 Row {
                     spacing: Theme.s3
                     Icon { name: "shield"; size: Theme.fontTitle * 1.8; color: Theme.accent }
-                    Txt { id: authTitle; text: "Authentication required"; role: "title"; anchors.verticalCenter: parent.verticalCenter }
+                    Txt { id: authTitle; text: Tr.t("Authentication required"); role: "title"; anchors.verticalCenter: parent.verticalCenter }
                 }
-                Txt { width: parent.width; wrapMode: Text.Wrap; elide: Text.ElideNone; text: agent.flow ? agent.flow.message : "" }
-                Txt { width: parent.width; role: "mono"; color: Theme.textMuted; text: agent.flow ? agent.flow.actionId : "" }
+                Txt { width: parent.width; wrapMode: Text.Wrap; elide: Text.ElideNone; text: root.plainMessage }
+                // The polkit action only where the message is polkit's own.
+                Txt { visible: root.about.kind === "other"; width: parent.width; role: "mono"; color: Theme.textMuted; text: root.about.actionId }
                 Txt {
                     width: parent.width; role: "small"; color: Theme.textMuted
-                    text: agent.flow && agent.flow.selectedIdentity ? "As " + agent.flow.selectedIdentity.displayName : ""
+                    text: agent.flow && agent.flow.selectedIdentity ? Tr.t("As %1").arg(agent.flow.selectedIdentity.displayName) : ""
                 }
                 Field {
                     id: pw
                     width: parent.width
-                    placeholder: agent.flow ? (agent.flow.inputPrompt || "Password") : "Password"
+                    // polkit's own "Password:" prompt in the session's language.
+                    placeholder: agent.flow && agent.flow.inputPrompt && !/^\s*password:?\s*$/i.test(agent.flow.inputPrompt) ? agent.flow.inputPrompt : Tr.t("Password")
                     e2e: "polkit-password"
                     input.echoMode: agent.flow && agent.flow.responseVisible ? TextInput.Normal : TextInput.Password
                     onAccepted: if (agent.flow && text !== "") { agent.flow.submit(text); text = ""; }
@@ -66,8 +81,8 @@ Scope {
                 Row {
                     anchors.right: parent.right
                     spacing: Theme.s2
-                    Btn { text: "Cancel"; variant: "outline"; e2e: "polkit-cancel"; onClicked: if (agent.flow) agent.flow.cancelAuthenticationRequest() }
-                    Btn { text: "Authenticate"; variant: "primary"; e2e: "polkit-authenticate"; onClicked: if (agent.flow) { agent.flow.submit(pw.text); pw.text = ""; } }
+                    Btn { text: Tr.t("Cancel"); variant: "outline"; e2e: "polkit-cancel"; onClicked: if (agent.flow) agent.flow.cancelAuthenticationRequest() }
+                    Btn { text: Tr.t("Authenticate"); variant: "primary"; e2e: "polkit-authenticate"; onClicked: if (agent.flow) { agent.flow.submit(pw.text); pw.text = ""; } }
                 }
             }
         }
