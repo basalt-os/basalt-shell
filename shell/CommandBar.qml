@@ -54,10 +54,10 @@ PanelWindow {
         voiceData = null;
     }
     function skillIcon(s) { return s === "files" || s === "open" ? "search" : (s === "mail" ? "bell" : (s === "web" ? "network" : "shield")); }
-    function skillTitle(s) { return ({ files: qsTr("Files"), mail: qsTr("Mail"), web: qsTr("Web page"), open: qsTr("Open a file"), grant: qsTr("Permission"), revoke: qsTr("Permissions") })[s] || qsTr("Assistant"); }
+    function skillTitle(s) { return ({ files: Tr.t("Files"), mail: Tr.t("Mail"), web: Tr.t("Web page"), open: Tr.t("Open a file"), grant: Tr.t("Permission"), revoke: Tr.t("Permissions") })[s] || Tr.t("Assistant"); }
     function grantLeft(g) {
         const s = Math.max(0, Math.round((new Date(g.expires) - new Date()) / 1000));
-        return s >= 3600 ? qsTr("%n h left", "", Math.round(s / 3600)) : (s >= 60 ? qsTr("%n min left", "", Math.round(s / 60)) : qsTr("%n s left", "", s));
+        return s >= 3600 ? Tr.n("%1 h left", "%1 h left", Math.round(s / 3600)) : (s >= 60 ? Tr.n("%1 min left", "%1 min left", Math.round(s / 60)) : Tr.n("%1 s left", "%1 s left", s));
     }
 
     function submit() {
@@ -94,10 +94,10 @@ PanelWindow {
     function _done(ok, res) {
         busy = false;
         statusOk = ok && (res.status === "applied" || res.status === "declined");
-        const applied = win.isMail ? qsTr("Sent.") : (win.isMove ? qsTr("Done. Say \"undo\" to put the files back.") : qsTr("Applied."));
-        const declined = win.isMail ? qsTr("Not sent. The draft was discarded.") : qsTr("Ignored. Nothing changed.");
+        const applied = win.isMail ? Tr.t("Sent.") : (win.isMove ? Tr.t("Done. Say \"undo\" to put the files back.") : Tr.t("Applied."));
+        const declined = win.isMail ? Tr.t("Not sent. The draft was discarded.") : Tr.t("Ignored. Nothing changed.");
         status = ok ? (res.status === "applied" ? applied : (res.status === "declined" ? declined : res.status + (res.error ? ": " + res.error : "")))
-                    : qsTr("Failed: %1").arg(res);
+                    : Tr.t("Failed: %1").arg(res);
         if (ok && res.status === "applied" && String(res.decided_by || "").indexOf("gate:rule:") === 0)
             status = Tr.t("Done: one of your rules allowed it.");
         result = null;
@@ -229,7 +229,7 @@ PanelWindow {
                     icon: "spark"
                     e2e: "commandbar-field"
                     accessibleName: Tr.t("Ask the system")
-                    placeholder: "Ask the system: \"make it darker with rounder corners\", \"why nginx\""
+                    placeholder: Tr.t("Ask the system: \"make it darker with rounder corners\", \"why nginx\"")
                     onAccepted: win.submit()
                 }
 
@@ -262,7 +262,7 @@ PanelWindow {
 
                 Txt {
                     visible: win.busy
-                    text: "Thinking..."
+                    text: Tr.t("Thinking")
                     color: Theme.textMuted
                 }
 
@@ -273,13 +273,13 @@ PanelWindow {
                     spacing: Theme.s3
                     Row {
                         spacing: Theme.s2
-                        Txt { text: win.isGrant ? qsTr("Permission") : (win.isMail ? qsTr("Reply") : (win.isMove ? qsTr("Files") : qsTr("Proposal"))); role: "large"; font.weight: Font.DemiBold }
+                        Txt { text: win.isGrant ? Tr.t("Permission") : (win.isMail ? Tr.t("Reply") : (win.isMove ? Tr.t("Files") : Tr.t("Proposal"))); role: "large"; font.weight: Font.DemiBold }
                         Rectangle {
                             radius: height / 2; height: Theme.fontSize * 1.8; width: tag.implicitWidth + Theme.s3
                             color: Theme.accentSoft
                             anchors.verticalCenter: parent.verticalCenter
                             Txt { id: tag; anchors.centerIn: parent; role: "small"; color: Theme.accent
-                                  text: win.proposal ? (win.proposal.backend === "skill" ? (win.isGrant ? qsTr("read only, expires by itself") : (win.isMail ? qsTr("not sent until you press Send") : qsTr("from your request"))) : (win.proposal.backend === "model" ? qsTr("understood by the local model") : qsTr("understood by the fixed phrases"))) : "" }
+                                  text: win.proposal ? (win.proposal.backend === "skill" ? (win.isGrant ? Tr.t("read only, expires by itself") : (win.isMail ? Tr.t("not sent until you press Send") : Tr.t("from your request"))) : (win.proposal.backend === "model" ? Tr.t("understood by the local model") : Tr.t("understood by the fixed phrases"))) : "" }
                         }
                     }
                     Txt {
@@ -299,13 +299,13 @@ PanelWindow {
                     }
                     Txt {
                         visible: win.result && win.result.unknown && win.result.unknown.length > 0
-                        text: win.result && win.result.unknown ? "Not understood: " + win.result.unknown.join(", ") : ""
+                        text: win.result && win.result.unknown ? Tr.t("Not understood: %1").arg(win.result.unknown.join(", ")) : ""
                         color: Theme.warning; role: "small"
                     }
                     Row {
                         spacing: Theme.s2
-                        Btn { id: propYes; text: win.isGrant ? qsTr("Allow") : (win.isMail ? qsTr("Send") : (win.isMove ? qsTr("Confirm") : qsTr("Apply"))); icon: "check"; variant: "primary"; e2e: "proposal-confirm"; KeyNavigation.right: propNo; onClicked: win.decide(true) }
-                        Btn { id: propNo; text: win.isGrant ? qsTr("Don't allow") : (win.isMail ? qsTr("Discard") : qsTr("Ignore")); variant: "outline"; e2e: "proposal-decline"; KeyNavigation.left: propYes; onClicked: win.decide(false) }
+                        Btn { id: propYes; text: win.isGrant ? Tr.t("Allow") : (win.isMail ? Tr.t("Send") : (win.isMove ? Tr.t("Confirm") : Tr.t("Apply"))); icon: "check"; variant: "primary"; e2e: "proposal-confirm"; KeyNavigation.right: propNo; onClicked: win.decide(true) }
+                        Btn { id: propNo; text: win.isGrant ? Tr.t("Don't allow") : (win.isMail ? Tr.t("Discard") : Tr.t("Ignore")); variant: "outline"; e2e: "proposal-decline"; KeyNavigation.left: propYes; onClicked: win.decide(false) }
                     }
                 }
 
@@ -323,7 +323,7 @@ PanelWindow {
                             radius: height / 2; height: Theme.fontSize * 1.8; width: rtag.implicitWidth + Theme.s3
                             color: Theme.accentSoft
                             anchors.verticalCenter: parent.verticalCenter
-                            Txt { id: rtag; anchors.centerIn: parent; role: "small"; color: Theme.accent; text: qsTr("read only") }
+                            Txt { id: rtag; anchors.centerIn: parent; role: "small"; color: Theme.accent; text: Tr.t("read only") }
                         }
                     }
                     // Warnings first: content that tried to instruct the assistant.
@@ -385,7 +385,7 @@ PanelWindow {
                                 visible: !!modelData.path
                                 anchors.right: parent.right; anchors.rightMargin: Theme.s3
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: qsTr("Open"); variant: "outline"
+                                text: Tr.t("Open"); variant: "outline"
                                 onClicked: { field.text = "open result " + modelData.n; win.submit(); }
                             }
                         }
@@ -397,7 +397,7 @@ PanelWindow {
                         elide: Text.ElideNone
                         role: "small"
                         color: Theme.textMuted
-                        text: win.skill && win.skill.model ? (win.skill.timing ? qsTr("%1 · total %2 s").arg(win.skill.model.join("; ")).arg((win.skill.timing.total / 1000).toFixed(1)) : win.skill.model.join("; ")) : ""
+                        text: win.skill && win.skill.model ? (win.skill.timing ? Tr.t("%1 · total %2 s").arg(win.skill.model.join("; ")).arg((win.skill.timing.total / 1000).toFixed(1)) : win.skill.model.join("; ")) : ""
                     }
                 }
 
@@ -409,16 +409,16 @@ PanelWindow {
                     Row {
                         spacing: Theme.s2
                         Icon { name: "shield"; size: Theme.fontSize * 1.4; color: Theme.accent }
-                        Txt { text: qsTr("The assistant may read (read only)"); font.weight: Font.DemiBold }
+                        Txt { text: Tr.t("The assistant may read (read only)"); font.weight: Font.DemiBold }
                     }
                     Repeater {
                         model: Bus.grants
                         delegate: Row {
                             required property var modelData
                             spacing: Theme.s3
-                            Txt { text: qsTr("%1: %2").arg(modelData.kind === "folder" ? qsTr("folder") : (modelData.kind === "mailbox" ? qsTr("mailbox") : qsTr("site"))).arg(modelData.label); anchors.verticalCenter: parent.verticalCenter }
+                            Txt { text: Tr.t("%1: %2").arg(modelData.kind === "folder" ? Tr.t("folder") : (modelData.kind === "mailbox" ? Tr.t("mailbox") : Tr.t("site"))).arg(modelData.label); anchors.verticalCenter: parent.verticalCenter }
                             Txt { text: win.grantLeft(modelData); role: "small"; color: Theme.textMuted; anchors.verticalCenter: parent.verticalCenter }
-                            Btn { text: qsTr("End"); variant: "outline"; accessibleName: Tr.t("End permission: %1").arg(modelData.label); onClicked: Bus.revokeGrant(modelData.id) }
+                            Btn { text: Tr.t("End"); variant: "outline"; accessibleName: Tr.t("End permission: %1").arg(modelData.label); onClicked: Bus.revokeGrant(modelData.id) }
                         }
                     }
                 }
@@ -431,7 +431,7 @@ PanelWindow {
                     Row {
                         spacing: Theme.s2
                         Icon { name: "shield"; size: Theme.fontLarge * 1.4; color: Theme.accent }
-                        Txt { text: win.assist ? (win.assist.title || "System assistant proposal " + win.assist.id) : "System assistant"; role: "large"; font.weight: Font.DemiBold }
+                        Txt { text: win.assist ? (win.assist.title || Tr.t("System assistant proposal %1").arg(win.assist.id)) : Tr.t("System assistant"); role: "large"; font.weight: Font.DemiBold }
                     }
                     Rectangle {
                         width: parent.width
@@ -468,13 +468,13 @@ PanelWindow {
                         wrapMode: Text.Wrap
                         color: Theme.textMuted
                         role: "small"
-                        text: win.assist ? "Apply runs the assistant's own confirmation (basalt apply " + win.assist.id + " with code " + win.assist.code + "): snapshot before and after, verification, audit. You will be asked to authenticate." : ""
+                        text: win.assist ? Tr.t("Apply runs the assistant's own confirmation (basalt apply %1 with code %2): snapshot before and after, verification, audit. You will be asked to authenticate.").arg(win.assist.id).arg(win.assist.code) : ""
                     }
                     Row {
                         visible: win.assist !== null
                         spacing: Theme.s2
-                        Btn { id: asYes; text: "Apply"; icon: "check"; variant: "primary"; e2e: "assistant-apply"; KeyNavigation.right: asNo; onClicked: win.assistantDecide(true) }
-                        Btn { id: asNo; text: "Ignore"; variant: "outline"; e2e: "assistant-ignore"; KeyNavigation.left: asYes; onClicked: win.assistantDecide(false) }
+                        Btn { id: asYes; text: Tr.t("Apply"); icon: "check"; variant: "primary"; e2e: "assistant-apply"; KeyNavigation.right: asNo; onClicked: win.assistantDecide(true) }
+                        Btn { id: asNo; text: Tr.t("Ignore"); variant: "outline"; e2e: "assistant-ignore"; KeyNavigation.left: asYes; onClicked: win.assistantDecide(false) }
                     }
                 }
 

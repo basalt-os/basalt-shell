@@ -99,16 +99,16 @@ PanelWindow {
                 Tile {
                     e2e: "quick-mode"
                     icon: Theme.dark ? "moon" : "sun"
-                    label: Theme.dark ? "Dark" : "Light"
-                    sub: "Appearance"
+                    label: Theme.dark ? Tr.t("Dark") : Tr.t("Light")
+                    sub: Tr.t("Appearance")
                     on: Theme.dark
                     onClicked: Bus.act("theme.switch", { mode: "toggle" })
                 }
                 Tile {
                     e2e: "quick-motion"
                     icon: "motion"
-                    label: Theme.animate ? "Animations on" : "Reduced motion"
-                    sub: win.st && win.st.settings.motion === "auto" ? "Auto" + (win.st.hardware.weak ? " (weak GPU)" : "") : "Manual"
+                    label: Theme.animate ? Tr.t("Animations on") : Tr.t("Reduced motion")
+                    sub: win.st && win.st.settings.motion === "auto" ? (win.st.hardware.weak ? Tr.t("Auto (weak GPU)") : Tr.t("Auto")) : Tr.t("Manual")
                     on: Theme.animate
                     onClicked: Bus.act("motion.set", { motion: Theme.animate ? "reduced" : "full" })
                 }
@@ -116,8 +116,8 @@ PanelWindow {
                     e2e: "quick-network"
                     toggle: false
                     icon: "network"
-                    label: Net.online ? (Net.name || Net.kind) : "Offline"
-                    sub: Net.online ? (Net.kind === "wifi" ? "Wi-Fi" : "Wired") : "Network"
+                    label: Net.online ? (Net.name || Net.kind) : Tr.t("Offline")
+                    sub: Net.online ? (Net.kind === "wifi" ? Tr.t("Wi-Fi") : Tr.t("Wired")) : Tr.t("Network")
                     on: Net.online
                     onClicked: Bus.act("app.launch", { app: "nm-connection-editor" })
                 }
@@ -135,8 +135,8 @@ PanelWindow {
                 Tile {
                     e2e: "quick-ask"
                     icon: "spark"
-                    label: "Ask the system"
-                    sub: Bus.translatorAvailable ? "Local model" : "Commands"
+                    label: Tr.t("Ask the system")
+                    sub: Bus.translatorAvailable ? Tr.t("Local model") : Tr.t("Commands")
                     on: false
                     toggle: false
                     onClicked: Ui.openFrom("commandbar", "", "quicksettings", "quick-ask")
@@ -152,7 +152,7 @@ PanelWindow {
             }
 
             // Theme swatches.
-            Txt { text: "Theme"; role: "small"; color: Theme.textMuted }
+            Txt { text: Tr.t("Theme"); role: "small"; color: Theme.textMuted }
             NavRow {
                 spacing: Theme.s2
                 Accessible.name: Tr.t("Theme")
@@ -167,7 +167,7 @@ PanelWindow {
                         color: sw[0]
                         border.width: Theme.themeId === modelData.id ? 2 : 1
                         border.color: Theme.themeId === modelData.id ? Theme.accent : Theme.border
-                        accessibleName: modelData.name
+                        accessibleName: Tr.t(modelData.name)
                         e2e: "quick-theme-" + modelData.id
                         checkable: true
                         active: Theme.themeId === modelData.id
@@ -206,14 +206,14 @@ PanelWindow {
             RowLayout {
                 visible: UPower.displayDevice && UPower.displayDevice.isLaptopBattery
                 Icon { name: "battery" }
-                Txt { text: UPower.displayDevice ? Math.round(UPower.displayDevice.percentage * 100) + "% battery" : "" }
+                Txt { text: UPower.displayDevice ? Tr.t("%1% battery").arg(Math.round(UPower.displayDevice.percentage * 100)) : "" }
             }
 
             RowLayout {
                 Layout.fillWidth: true
-                Btn { text: "Settings"; icon: "sliders"; variant: "outline"; e2e: "qs-settings"; onClicked: { Ui.quickSettings = false; Ui.open("settings", "appearance"); } }
+                Btn { text: Tr.t("Settings"); icon: "sliders"; variant: "outline"; e2e: "qs-settings"; onClicked: { Ui.quickSettings = false; Ui.open("settings", "appearance"); } }
                 Item { Layout.fillWidth: true }
-                Btn { icon: "list"; text: "Activity"; e2e: "qs-activity"; onClicked: Ui.openFrom("activity", "", "quicksettings", "qs-activity") }
+                Btn { icon: "list"; text: Tr.t("Activity"); e2e: "qs-activity"; onClicked: Ui.openFrom("activity", "", "quicksettings", "qs-activity") }
                 // Lock, log out, suspend, restart, power off.
                 Btn { icon: "power"; e2e: "qs-power"; accessibleName: Tr.t("Power"); onClicked: Ui.openFrom("power", "", "quicksettings", "qs-power") }
             }

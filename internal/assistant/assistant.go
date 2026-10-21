@@ -283,15 +283,19 @@ func (b *Bridge) stored(ctx context.Context, args []string) (Proposal, error) {
 
 // Proposal is an assistant proposal as the shell shows it.
 type Proposal struct {
-	ID       string  `json:"id"`
-	Title    string  `json:"title"`
-	Kind     string  `json:"kind"`
-	Subject  string  `json:"subject"`
-	Status   string  `json:"status"`
-	Severity float64 `json:"severity"`
-	Report   string  `json:"report"` // the assistant's full text, with the exact commands
-	Code     string  `json:"code"`   // confirmation code for exactly these commands
-	Review   bool    `json:"needs_review"`
+	ID    string `json:"id"`
+	Title string `json:"title"`
+	// TitleLocal is the title in the reader's language (the assistant
+	// 0.13.2 and later write it next to the English title when its
+	// catalog has a translation); the shell shows it in place of Title.
+	TitleLocal string  `json:"title_local,omitempty"`
+	Kind       string  `json:"kind"`
+	Subject    string  `json:"subject"`
+	Status     string  `json:"status"`
+	Severity   float64 `json:"severity"`
+	Report     string  `json:"report"` // the assistant's full text, with the exact commands
+	Code       string  `json:"code"`   // confirmation code for exactly these commands
+	Review     bool    `json:"needs_review"`
 	// Evidence lines (a new software source: its key's fingerprint and
 	// owner, which the confirmation shows in plain words).
 	Evidence []string `json:"evidence,omitempty"`
@@ -303,12 +307,22 @@ type Proposal struct {
 	ReportOnly bool `json:"report_only"`
 }
 
-// markReports sets ReportOnly on proposals without changes.
+// markReports sets ReportOnly on proposals without changes and shows
+// each title in the reader's language.
 func markReports(ps []Proposal) []Proposal {
 	for i := range ps {
 		ps[i].ReportOnly = len(ps[i].Actions) == 0 && len(ps[i].Hints) == 0
+		ps[i].localTitle()
 	}
 	return ps
+}
+
+// localTitle puts the assistant's translation of the title, when it sent
+// one, in place of the English title.
+func (p *Proposal) localTitle() {
+	if t := strings.TrimSpace(p.TitleLocal); t != "" {
+		p.Title = t
+	}
 }
 
 var (
@@ -357,6 +371,7 @@ func (b *Bridge) Show(ctx context.Context, id string) (Proposal, error) {
 	if err := json.Unmarshal([]byte(out), &p); err != nil {
 		return p, err
 	}
+	p.localTitle()
 	text, err := b.Read(ctx, []string{"show", id})
 	if err != nil {
 		return p, err

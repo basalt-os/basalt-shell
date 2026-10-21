@@ -53,19 +53,19 @@ Column {
         spacing: Theme.s2
         Row {
             spacing: Theme.s2
-            Txt { text: qsTr("From"); width: Theme.fontSize * 6; color: Theme.textMuted; anchors.verticalCenter: parent.verticalCenter }
+            Txt { text: Tr.t("From"); width: Theme.fontSize * 6; color: Theme.textMuted; anchors.verticalCenter: parent.verticalCenter }
             Txt { text: ap.pv ? ((ap.pv.from_name ? ap.pv.from_name + " " : "") + "<" + ap.pv.from + ">") : ""; anchors.verticalCenter: parent.verticalCenter }
         }
         Row {
             spacing: Theme.s2
-            Txt { text: qsTr("To"); width: Theme.fontSize * 6; color: Theme.textMuted; anchors.verticalCenter: parent.verticalCenter }
+            Txt { text: Tr.t("To"); width: Theme.fontSize * 6; color: Theme.textMuted; anchors.verticalCenter: parent.verticalCenter }
             Txt { text: ap.pv ? ((ap.pv.to_name ? ap.pv.to_name + " " : "") + "<" + ap.pv.to + ">") : ""; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
-            Txt { text: qsTr("(the sender of the message; not editable)"); role: "small"; color: Theme.textMuted; anchors.verticalCenter: parent.verticalCenter }
+            Txt { text: Tr.t("(the sender of the message; not editable)"); role: "small"; color: Theme.textMuted; anchors.verticalCenter: parent.verticalCenter }
         }
         Row {
             spacing: Theme.s2
             width: parent.width
-            Txt { text: qsTr("Subject"); width: Theme.fontSize * 6; color: Theme.textMuted; anchors.verticalCenter: parent.verticalCenter }
+            Txt { text: Tr.t("Subject"); width: Theme.fontSize * 6; color: Theme.textMuted; anchors.verticalCenter: parent.verticalCenter }
             Field { id: subjectField; width: parent.width - Theme.fontSize * 6 - Theme.s2 }
         }
         Rectangle {
@@ -100,7 +100,7 @@ Column {
             wrapMode: Text.Wrap
             role: "small"
             color: Theme.textMuted
-            text: qsTr("Plain text, no attachment. You can change the subject and the text; exactly this is sent, and only when you press Send.")
+            text: Tr.t("Plain text, no attachment. You can change the subject and the text; exactly this is sent, and only when you press Send.")
         }
     }
 
@@ -124,7 +124,7 @@ Column {
         }
         Txt {
             visible: ap.isFiles && ap.pv.create && ap.pv.create.length > 0
-            text: ap.isFiles && ap.pv.create ? qsTr("New folder: %1").arg(ap.pv.create.join(", ")) : ""
+            text: ap.isFiles && ap.pv.create ? Tr.t("New folder: %1").arg(ap.pv.create.join(", ")) : ""
             role: "small"; color: Theme.textMuted
         }
         Txt {
@@ -133,7 +133,7 @@ Column {
             wrapMode: Text.Wrap
             role: "small"
             color: Theme.textMuted
-            text: qsTr("Nothing is deleted or replaced. Say \"undo\" afterwards to put the files back.")
+            text: Tr.t("Nothing is deleted or replaced. Say \"undo\" afterwards to put the files back.")
         }
     }
 }

@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/basalt-os/basalt-shell/internal/theme"
 )
 
 // msgids collects the English messages of the sources: i18n.G and i18n.N
@@ -87,7 +89,46 @@ func msgids(t *testing.T, root string) (single map[string]string, plural map[str
 	if err != nil {
 		t.Fatal(err)
 	}
+	for id, where := range dataMsgids(t, root) {
+		single[id] = where
+	}
 	return single, plural
+}
+
+// dataMsgids collects the messages the UI reads from data and translates
+// with Tr.t(value): the label of every design token and the words of its
+// choices (the easing curves keep their names), and the name and
+// description of every shipped theme (themes/*.json).
+func dataMsgids(t *testing.T, root string) map[string]string {
+	ids := map[string]string{}
+	for _, s := range theme.Specs {
+		ids[s.Label] = "internal/theme/tokens.go: " + s.Key
+		if s.Kind == theme.Enum && s.Key != "motion.easing" {
+			for _, o := range s.Options {
+				ids[o] = "internal/theme/tokens.go: " + s.Key
+			}
+		}
+	}
+	files, _ := filepath.Glob(filepath.Join(root, "themes", "*.json"))
+	if len(files) == 0 {
+		t.Fatal("no shipped themes in themes/")
+	}
+	for _, f := range files {
+		b, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var m struct{ Name, Description string }
+		if err := json.Unmarshal(b, &m); err != nil {
+			t.Fatalf("%s: %v", f, err)
+		}
+		if m.Name == "" || m.Description == "" {
+			t.Fatalf("%s: a shipped theme needs a name and a description", f)
+		}
+		ids[m.Name] = f
+		ids[m.Description] = f
+	}
+	return ids
 }
 
 var (

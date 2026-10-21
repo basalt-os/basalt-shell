@@ -38,16 +38,16 @@ PanelWindow {
     }
     // What a record means, for the person (the type stays in the log).
     function label(r) {
-        return ({ request: qsTr("Waiting for you"), apply: qsTr("You confirmed"), done: qsTr("Done"), decline: qsTr("You declined"),
-                  expire: qsTr("Nobody confirmed it"), fail: qsTr("Failed"), refuse: qsTr("Refused"), voice: qsTr("Voice"),
-                  skill: qsTr("The assistant read"), edit: qsTr("You edited it"), confirm: qsTr("You confirmed") })[r.type] || r.type;
+        return ({ request: Tr.t("Waiting for you"), apply: Tr.t("You confirmed"), done: Tr.t("Done"), decline: Tr.t("You declined"),
+                  expire: Tr.t("Nobody confirmed it"), fail: Tr.t("Failed"), refuse: Tr.t("Refused"), voice: Tr.t("Voice"),
+                  skill: Tr.t("The assistant read"), edit: Tr.t("You edited it"), confirm: Tr.t("You confirmed") })[r.type] || r.type;
     }
     // The exact preview of an acting step, one line.
     function detail(r) {
         const pv = r.data && r.data.previews && r.data.previews.length > 0 ? r.data.previews[0] : null;
-        if (pv && pv.kind === "mail") return qsTr("To %1 · %2 · %3 characters, no attachment").arg(pv.to).arg(pv.subject).arg(pv.chars);
-        if (pv && pv.kind === "files") return qsTr("Files: %1").arg((pv.moves || []).map(m => m.from + " → " + m.to).join("; "));
-        if (pv && pv.kind === "dictation") return qsTr("Into %1").arg(pv.app);
+        if (pv && pv.kind === "mail") return Tr.t("To %1 · %2 · %3 characters, no attachment").arg(pv.to).arg(pv.subject).arg(pv.chars);
+        if (pv && pv.kind === "files") return Tr.t("Files: %1").arg((pv.moves || []).map(m => m.from + " → " + m.to).join("; "));
+        if (pv && pv.kind === "dictation") return Tr.t("Into %1").arg(pv.app);
         if (r.type === "skill" && r.data && r.data.warnings && r.data.warnings.length > 0) return r.data.warnings[0];
         return "";
     }
@@ -88,20 +88,20 @@ PanelWindow {
                     spacing: Theme.s1
                     Accessible.role: Accessible.PageTabList
                     Btn {
-                        text: "Notifications"; variant: "tab"; e2e: "drawer-tab-notifications"; accessibleRole: Accessible.PageTab; checkable: true
+                        text: Tr.t("Notifications"); variant: "tab"; e2e: "drawer-tab-notifications"; accessibleRole: Accessible.PageTab; checkable: true
                         active: Ui.drawerTab === "notifications"
                         onClicked: Ui.drawerTab = "notifications"
                         onActiveFocusChanged: if (activeFocus && Ui.focusVisible) Ui.drawerTab = "notifications"
                     }
                     Btn {
-                        text: "Activity"; variant: "tab"; e2e: "drawer-tab-activity"; accessibleRole: Accessible.PageTab; checkable: true
+                        text: Tr.t("Activity"); variant: "tab"; e2e: "drawer-tab-activity"; accessibleRole: Accessible.PageTab; checkable: true
                         active: Ui.drawerTab === "activity"
                         onClicked: { Ui.drawerTab = "activity"; Bus.refreshAssistant(); }
                         onActiveFocusChanged: if (activeFocus && Ui.focusVisible && Ui.drawerTab !== "activity") { Ui.drawerTab = "activity"; Bus.refreshAssistant(); }
                     }
                 }
                 Item { Layout.fillWidth: true }
-                Btn { visible: Ui.drawerTab === "notifications" && Notifs.list.length > 0; text: "Clear"; variant: "outline"; e2e: "drawer-clear"; accessibleName: Tr.t("Clear all notifications"); onClicked: Notifs.clear() }
+                Btn { visible: Ui.drawerTab === "notifications" && Notifs.list.length > 0; text: Tr.t("Clear"); variant: "outline"; e2e: "drawer-clear"; accessibleName: Tr.t("Clear all notifications"); onClicked: Notifs.clear() }
             }
 
             // Notifications.
@@ -113,7 +113,7 @@ PanelWindow {
                 spacing: Theme.s2
                 model: Notifs.list
                 delegate: NotificationCard { width: ListView.view.width; entry: modelData; required property var modelData }
-                Txt { anchors.centerIn: parent; visible: Notifs.list.length === 0; text: "No notifications"; color: Theme.textMuted }
+                Txt { anchors.centerIn: parent; visible: Notifs.list.length === 0; text: Tr.t("No notifications"); color: Theme.textMuted }
                 add: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.normal } }
             }
 
@@ -234,14 +234,14 @@ PanelWindow {
                         }
                         MouseArea { id: actMa; anchors.fill: parent; hoverEnabled: true }
                     }
-                    Txt { anchors.centerIn: parent; visible: feed.count === 0; text: "Nothing yet"; color: Theme.textMuted }
+                    Txt { anchors.centerIn: parent; visible: feed.count === 0; text: Tr.t("Nothing yet"); color: Theme.textMuted }
                 }
                 Txt {
                     Layout.fillWidth: true
                     role: "small"
                     color: Theme.textMuted
                     wrapMode: Text.Wrap
-                    text: "Hash-chained log: basalt-shell audit verify"
+                    text: Tr.t("Hash-chained log: basalt-shell audit verify")
                 }
             }
         }

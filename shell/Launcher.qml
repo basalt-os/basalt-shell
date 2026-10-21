@@ -71,7 +71,7 @@ PanelWindow {
                 width: parent.width
                 icon: "search"
                 e2e: "launcher-search"
-                placeholder: "Search applications"
+                placeholder: Tr.t("Search applications")
                 accessibleName: Tr.t("Search applications")
                 onEdited: win.update()
                 Connections { target: search.input; function onPreeditTextChanged() { win.update(); } }

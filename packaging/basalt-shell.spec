@@ -365,6 +365,22 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Tue Oct 20 2026 Basalt OS developers - 0.10.3-1
+- The rest of the desktop in the session's language: the top bar's Ask,
+  the drawer's Notifications and Activity tabs and their empty states,
+  the command bar (Apply, Ignore, Thinking, the proposal and permission
+  views), quick settings, the mail and files previews, and the theme
+  names, descriptions and design token labels in Settings. qsTr, which
+  the shell never loads translations for, is gone. A test fails on any
+  literal label or qsTr in the shell's QML, and the catalog test also
+  covers the token labels and the shipped themes.
+- The system assistant's proposals show their title in the session's
+  language when the assistant translates it (title_local, assistant
+  0.13.2 and later).
+- Settings, Assistant and AI: the status lines, the MCP snippet and the
+  action list wrap inside the page instead of running past its right
+  edge.
+
 * Tue Oct 20 2026 Basalt OS developers - 0.10.2-1
 - Settings in the session's language: the sidebar (Appearance, Design
   tokens, Motion, Windows, Assistant and AI, About) and every page's
