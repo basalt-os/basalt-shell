@@ -381,7 +381,7 @@ WlSessionLockSurface {
                             text: showCaps ? Tr.t("Caps Lock is on") : (isError ? errorText : surf.ctl.info)
                             Accessible.role: Accessible.StaticText
                             Accessible.name: text
-                            Accessible.description: isError && !showCaps ? "alert" : ""
+                            Accessible.description: isError && !showCaps ? Tr.t("alert") : ""
                         }
                     }
                 }

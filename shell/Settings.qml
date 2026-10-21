@@ -389,13 +389,21 @@ FloatingWindow {
                                    "Models never act directly. They ask for typed actions (%1 kinds); every change waits for you on a confirmation sheet and is written to the activity log.",
                                    Bus.actions.length)
                     }
-                    Row { spacing: Theme.s2; Icon { name: Bus.translatorAvailable ? "check" : "info"; color: Bus.translatorAvailable ? Theme.success : Theme.textMuted }
-                          Txt { text: Bus.translatorAvailable ? Tr.t("Command bar: local language model (fixed phrases as fallback)") : Tr.t("Command bar: fixed phrases (no local model configured)") } }
-                    Row { spacing: Theme.s2; Icon { name: Bus.assistantAvailable ? "check" : "info"; color: Bus.assistantAvailable ? Theme.success : Theme.textMuted }
-                          Txt { text: Bus.assistantAvailable ? Tr.t("System assistant (basalt) installed: system questions and its proposals work here") : Tr.t("System assistant (basalt) not installed") } }
-                    Row { spacing: Theme.s2
-                          Icon { name: Bus.uiCheck && Bus.uiCheck.mode === "selinux" ? "check" : "info"; color: Bus.uiCheck && Bus.uiCheck.mode === "selinux" ? Theme.success : Theme.warning }
-                          Txt { text: Bus.uiCheck && Bus.uiCheck.mode === "selinux"
+                    // A status line: an icon and a sentence that wraps inside the
+                    // page (a plain Row takes the sentence's whole width and
+                    // pushes the page past the window's right edge).
+                    RowLayout { Layout.fillWidth: true; spacing: Theme.s2
+                          Icon { Layout.alignment: Qt.AlignTop; name: Bus.translatorAvailable ? "check" : "info"; color: Bus.translatorAvailable ? Theme.success : Theme.textMuted }
+                          Txt { Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone
+                                text: Bus.translatorAvailable ? Tr.t("Command bar: local language model (fixed phrases as fallback)") : Tr.t("Command bar: fixed phrases (no local model configured)") } }
+                    RowLayout { Layout.fillWidth: true; spacing: Theme.s2
+                          Icon { Layout.alignment: Qt.AlignTop; name: Bus.assistantAvailable ? "check" : "info"; color: Bus.assistantAvailable ? Theme.success : Theme.textMuted }
+                          Txt { Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone
+                                text: Bus.assistantAvailable ? Tr.t("System assistant (basalt) installed: system questions and its proposals work here") : Tr.t("System assistant (basalt) not installed") } }
+                    RowLayout { Layout.fillWidth: true; spacing: Theme.s2
+                          Icon { Layout.alignment: Qt.AlignTop; name: Bus.uiCheck && Bus.uiCheck.mode === "selinux" ? "check" : "info"; color: Bus.uiCheck && Bus.uiCheck.mode === "selinux" ? Theme.success : Theme.warning }
+                          Txt { Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone
+                                text: Bus.uiCheck && Bus.uiCheck.mode === "selinux"
                                 ? Tr.t("Confirmations: only this shell's SELinux domain can confirm; agents run confined and can only ask")
                                 : Bus.uiCheck
                                   ? Tr.t("Confirmations: checked by program name only (%1)").arg(Bus.uiCheck.reason)
@@ -408,18 +416,20 @@ FloatingWindow {
                         Txt {
                             id: mcpTxt
                             anchors.fill: parent; anchors.margins: Theme.s3
-                            role: "mono"; wrapMode: Text.Wrap; elide: Text.ElideNone
-                            text: '{ "mcpServers": { "basalt-shell": { "command": "basalt-shell", "args": ["mcp"] } } }'
+                            // Wrap anywhere: the snippet has long words and must not widen the page.
+                            role: "mono"; wrapMode: Text.WrapAtWordBoundaryOrAnywhere; elide: Text.ElideNone
+                            text: '{ "mcpServers": { "basalt-shell": { "command": "basalt-shell", "args": ["mcp"] } } }' // i18n: not text (a configuration snippet)
                         }
                     }
                     Section { title: Tr.t("Available actions") }
                     Repeater {
                         model: Bus.actions
                         delegate: Column {
+                            id: act
                             required property var modelData
                             Layout.fillWidth: true
-                            Txt { text: modelData.title + "   " ; font.weight: Font.Medium }
-                            Txt { text: modelData.name + ": " + modelData.description; role: "small"; color: Theme.textMuted; width: page.width; wrapMode: Text.Wrap; elide: Text.ElideNone }
+                            Txt { text: act.modelData.title; font.weight: Font.Medium; width: act.width; wrapMode: Text.Wrap; elide: Text.ElideNone }
+                            Txt { text: act.modelData.name + ": " + act.modelData.description; role: "small"; color: Theme.textMuted; width: act.width; wrapMode: Text.WrapAtWordBoundaryOrAnywhere; elide: Text.ElideNone }
                         }
                     }
                 }
@@ -508,12 +518,16 @@ FloatingWindow {
     component ThemeCard: Pressable {
         id: tc
         property var meta
+        // A shipped theme's name and description are catalog messages; a
+        // theme the person wrote keeps its own words.
+        readonly property string themeName: Tr.t(meta.name)
+        readonly property string themeAbout: meta.description ? Tr.t(meta.description) : ""
         readonly property var sw: Theme.dark ? meta.dark : meta.light
         width: 200; height: 128
         radius: Theme.radiusLg
         color: sw[0]
-        accessibleName: meta.name
-        accessibleDescription: meta.description || ""
+        accessibleName: tc.themeName
+        accessibleDescription: tc.themeAbout
         e2e: "settings-theme-" + meta.id
         checkable: true
         active: Theme.themeId === meta.id
@@ -525,13 +539,15 @@ FloatingWindow {
         Rectangle { x: 12; y: 12; width: parent.width - 24; height: 16; radius: 5; color: tc.sw[1] }
         Rectangle { x: 12; y: 36; width: 70; height: 34; radius: 6; color: tc.sw[1] }
         Rectangle { x: 90; y: 36; width: 40; height: 14; radius: 7; color: tc.sw[2] }
-        Txt { x: 12; anchors.bottom: parent.bottom; anchors.bottomMargin: 26; text: tc.meta.name; color: tc.sw[3]; font.weight: Font.DemiBold }
-        Txt { x: 12; anchors.bottom: parent.bottom; anchors.bottomMargin: 8; width: parent.width - 24; text: tc.meta.description || ""; color: tc.sw[3]; opacity: 0.7; role: "small" }
+        Txt { x: 12; anchors.bottom: parent.bottom; anchors.bottomMargin: 26; text: tc.themeName; color: tc.sw[3]; font.weight: Font.DemiBold }
+        Txt { x: 12; anchors.bottom: parent.bottom; anchors.bottomMargin: 8; width: parent.width - 24; text: tc.themeAbout; color: tc.sw[3]; opacity: 0.7; role: "small" }
     }
 
     component TokenRow: RowLayout {
         id: tr
         property var spec
+        // The token's label in the session's language (the catalog has every label).
+        readonly property string label: Tr.t(spec.label)
         readonly property var val: Bus.tokens ? Bus.tokens[spec.key] : undefined
         // The number shown while a slider moves, until the daemon answers.
         property real liveNum: typeof val === "number" ? val : 0
@@ -540,7 +556,7 @@ FloatingWindow {
         Rectangle { width: 6; height: 6; radius: 3; color: Bus.overridden(tr.spec.key) ? Theme.accent : "transparent" }
         Column {
             Layout.preferredWidth: 240
-            Txt { text: tr.spec.label; width: 240 }
+            Txt { text: tr.label; width: 240; wrapMode: Text.Wrap; elide: Text.ElideNone }
             Txt { text: tr.spec.key; role: "mono"; color: Theme.textMuted; width: 240 }
         }
         // Color.
@@ -554,7 +570,7 @@ FloatingWindow {
             }
             Field {
                 width: 140
-                accessibleName: tr.spec.label
+                accessibleName: tr.label
                 text: tr.spec.kind === "color" ? (tr.val || "") : ""
                 onAccepted: Bus.setToken(tr.spec.key, text.trim())
             }
@@ -563,7 +579,7 @@ FloatingWindow {
         Slider {
             visible: tr.spec.kind === "number"
             Layout.fillWidth: true
-            accessibleName: tr.spec.label
+            accessibleName: tr.label
             from: tr.spec.min || 0; to: tr.spec.max || 1; stepSize: tr.spec.step || 0
             value: tr.liveNum
             onMoved: v => { tr.liveNum = v; numTimer.v = v; numTimer.restart(); }
@@ -575,24 +591,24 @@ FloatingWindow {
             visible: tr.spec.kind === "bool"
             text: tr.val ? Tr.t("On") : Tr.t("Off"); variant: "outline"; active: tr.val === true
             checkable: true
-            accessibleName: tr.spec.label
+            accessibleName: tr.label
             onClicked: Bus.setToken(tr.spec.key, !tr.val)
         }
         // Enum.
         NavRow {
             visible: tr.spec.kind === "enum"
             spacing: Theme.s1
-            Accessible.name: tr.spec.label
+            Accessible.name: tr.label
             Repeater {
                 model: tr.spec.kind === "enum" ? tr.spec.options : []
-                delegate: Btn { required property var modelData; text: modelData; variant: "outline"; checkable: true; active: tr.val === modelData
+                delegate: Btn { required property var modelData; text: Tr.t(modelData); variant: "outline"; checkable: true; active: tr.val === modelData
                     onClicked: Bus.setToken(tr.spec.key, modelData) }
             }
         }
         // Text.
         Field {
             visible: tr.spec.kind === "text"
-            accessibleName: tr.spec.label
+            accessibleName: tr.label
             Layout.preferredWidth: 220
             text: tr.spec.kind === "text" ? (tr.val || "") : ""
             onAccepted: Bus.setToken(tr.spec.key, text.trim())
@@ -601,7 +617,7 @@ FloatingWindow {
         Btn {
             visible: Bus.overridden(tr.spec.key)
             text: Tr.t("Reset"); variant: "ghost"
-            accessibleName: Tr.t("Reset %1").arg(tr.spec.label)
+            accessibleName: Tr.t("Reset %1").arg(tr.label)
             onClicked: Bus.act("theme.reset", { tokens: [tr.spec.key] })
         }
     }

@@ -377,7 +377,7 @@ PanelWindow {
                 Btn {
                     id: askBtn
                     icon: "spark"
-                    text: "Ask"
+                    text: Tr.t("Ask")
                     e2e: "panel-ask"
                     accessibleName: Tr.t("Ask the system")
                     implicitHeight: Theme.panelHeight - Theme.s2
@@ -426,7 +426,7 @@ PanelWindow {
                     visible: Bus.grants.length > 0
                     icon: "shield"
                     e2e: "panel-grants"
-                    text: Bus.grants.length === 1 ? Bus.grants[0].label : qsTr("%1 permissions").arg(Bus.grants.length)
+                    text: Bus.grants.length === 1 ? Bus.grants[0].label : Tr.n("%1 permission", "%1 permissions", Bus.grants.length)
                     implicitHeight: Theme.panelHeight - Theme.s2
                     onClicked: bar.openSurface("commandbar", e2e)
                 }
@@ -435,7 +435,7 @@ PanelWindow {
                 Btn {
                     visible: Bus.control !== null
                     icon: "spark"
-                    text: "Agent in control"
+                    text: Tr.t("Agent in control")
                     variant: "danger"
                     e2e: "panel-agent-stop"
                     accessibleName: Tr.t("Agent in control: stop it")

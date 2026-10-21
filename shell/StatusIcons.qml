@@ -38,7 +38,7 @@ Row {
             spacing: Theme.s1
             Icon { visible: st.capturingVideo; name: "screen"; color: "#ffffff"; size: Theme.fontSize * 1.3; anchors.verticalCenter: parent.verticalCenter }
             Icon { visible: st.capturingAudio; name: "mic"; color: "#ffffff"; size: Theme.fontSize * 1.3; anchors.verticalCenter: parent.verticalCenter }
-            Txt { text: st.capturingVideo ? "Sharing" : "Mic on"; color: "#ffffff"; role: "small"; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+            Txt { text: st.capturingVideo ? Tr.t("Sharing") : Tr.t("Mic on"); color: "#ffffff"; role: "small"; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
         }
     }
 

@@ -20,6 +20,10 @@
  "%1 MB, multilingual": [
   "%1 MB, multilíngue"
  ],
+ "%1 h left": [
+  "falta %1 h",
+  "faltam %1 h"
+ ],
  "%1 is now the default layout.": [
   "%1 agora é o layout padrão."
  ],
@@ -36,6 +40,10 @@
   "%1 layout",
   "%1 layouts"
  ],
+ "%1 min left": [
+  "falta %1 min",
+  "faltam %1 min"
+ ],
  "%1 ms": [
   "%1 ms"
  ],
@@ -45,8 +53,16 @@
  "%1 per second": [
   "%1 por segundo"
  ],
+ "%1 permission": [
+  "%1 permissão",
+  "%1 permissões"
+ ],
  "%1 s": [
   "%1 s"
+ ],
+ "%1 s left": [
+  "falta %1 s",
+  "faltam %1 s"
  ],
  "%1 security update": [
   "%1 atualização de segurança",
@@ -69,11 +85,20 @@
  "%1 was added outside these settings (%2); it is shown, not changed here.": [
   "%1 foi adicionada fora destes ajustes (%2); ela aparece aqui, mas não é alterada aqui."
  ],
+ "%1 · total %2 s": [
+  "%1 · total %2 s"
+ ],
+ "%1% battery": [
+  "Bateria: %1%"
+ ],
  "%1, from %2": [
   "%1, de %2"
  ],
  "%1, notifications": [
   "%1, notificações"
+ ],
+ "%1: %2": [
+  "%1: %2"
  ],
  "%d %s %d": [
   "%d de %s de %d"
@@ -155,6 +180,9 @@
  "(not allowed by your administrator)": [
   "(não permitido pelo administrador)"
  ],
+ "(the sender of the message; not editable)": [
+  "(o remetente da mensagem; não editável)"
+ ],
  ", ": [
   ", "
  ],
@@ -199,6 +227,9 @@
  ],
  "About": [
   "Sobre"
+ ],
+ "Accent": [
+  "Destaque"
  ],
  "Accent color": [
   "Cor de destaque"
@@ -248,8 +279,14 @@
  "Address of the repository (https)": [
   "Endereço do repositório (https)"
  ],
+ "Agent in control": [
+  "Agente no controle"
+ ],
  "Agent in control: stop it": [
   "Agente no controle: parar"
+ ],
+ "Allow": [
+  "Permitir"
  ],
  "Allow a remote model: off": [
   "Permitir um modelo remoto: desligado"
@@ -296,6 +333,9 @@
  "An assistant wants to see your screen": [
   "Um assistente quer ver sua tela"
  ],
+ "Animations on": [
+  "Animações ligadas"
+ ],
  "Another source": [
   "Outra fonte"
  ],
@@ -311,14 +351,29 @@
  "Applications": [
   "Aplicativos"
  ],
+ "Applied by the system assistant.": [
+  "Aplicado pelo assistente do sistema."
+ ],
  "Applied to apps: %1": [
   "Aplicado aos apps: %1"
+ ],
+ "Applied.": [
+  "Aplicado."
+ ],
+ "Apply": [
+  "Aplicar"
  ],
  "Apply \"%1\", the change you confirmed. Changing the system needs an administrator's password.": [
   "Aplicar \"%1\", a mudança que você confirmou. Mudar o sistema pede a senha de um administrador."
  ],
+ "Apply runs the assistant's own confirmation (basalt apply %1 with code %2): snapshot before and after, verification, audit. You will be asked to authenticate.": [
+  "Aplicar usa a confirmação do próprio assistente (basalt apply %1 com o código %2): snapshot antes e depois, verificação, auditoria. Sua senha será pedida."
+ ],
  "Apply the change you confirmed (%1). Changing the system needs an administrator's password.": [
   "Aplicar a mudança que você confirmou (%1). Mudar o sistema pede a senha de um administrador."
+ ],
+ "Apply the palette to apps": [
+  "Aplicar a paleta aos apps"
  ],
  "Apply the request you approved (%1). Changing the system needs an administrator's password.": [
   "Aplicar o pedido que você aprovou (%1). Mudar o sistema pede a senha de um administrador."
@@ -347,14 +402,23 @@
  "As %1": [
   "Como %1"
  ],
+ "Ask": [
+  "Perguntar"
+ ],
  "Ask the system": [
   "Pergunte ao sistema"
+ ],
+ "Ask the system: \"make it darker with rounder corners\", \"why nginx\"": [
+  "Pergunte ao sistema: \"deixe mais escuro com cantos mais redondos\", \"por que o nginx\""
  ],
  "Asked by %1": [
   "Pedido por %1"
  ],
  "Asked from %1. It only reads; any change waits for your approval.": [
   "Pedido por %1. Só faz leituras; qualquer mudança espera a sua aprovação."
+ ],
+ "Assistant": [
+  "Assistente"
  ],
  "Assistant and AI": [
   "Assistente e IA"
@@ -380,6 +444,9 @@
  "Auto": [
   "Automático"
  ],
+ "Auto (weak GPU)": [
+  "Automático (GPU fraca)"
+ ],
  "Automatic": [
   "Automático"
  ],
@@ -388,6 +455,12 @@
  ],
  "Available actions": [
   "Ações disponíveis"
+ ],
+ "Background": [
+  "Fundo"
+ ],
+ "Basalt": [
+  "Basalt"
  ],
  "Basalt OS": [
   "Basalt OS"
@@ -413,6 +486,9 @@
  "Basalt tools": [
   "Ferramentas Basalt"
  ],
+ "Base size (pt)": [
+  "Tamanho base (pt)"
+ ],
  "Battery %1%": [
   "Bateria %1%"
  ],
@@ -421,6 +497,15 @@
  ],
  "Blue": [
   "Azul"
+ ],
+ "Blur behind translucent surfaces": [
+  "Desfoque atrás de superfícies translúcidas"
+ ],
+ "Border": [
+  "Borda"
+ ],
+ "Border width": [
+  "Largura da borda"
  ],
  "Both Alt keys": [
   "As duas teclas Alt"
@@ -480,6 +565,9 @@
  "Checking that the download is intact": [
   "Conferindo se o download está íntegro"
  ],
+ "Clear": [
+  "Limpar"
+ ],
  "Clear all notifications": [
   "Limpar todas as notificações"
  ],
@@ -497,6 +585,9 @@
  ],
  "Command bar: local language model (fixed phrases as fallback)": [
   "Barra de comandos: modelo de linguagem local (frases fixas como reserva)"
+ ],
+ "Commands": [
+  "Comandos"
  ],
  "Compose key": [
   "Tecla de composição"
@@ -540,6 +631,9 @@
  "Contains %s. Treated as data; nothing in it was followed.": [
   "Contém %s. Tratado como dado; nada do que diz foi seguido."
  ],
+ "Cool slate and sea blue, tighter corners, panel at the bottom.": [
+  "Ardósia fria e azul do mar, cantos mais retos, painel embaixo."
+ ],
  "Corner roundness": [
   "Arredondamento"
  ],
@@ -555,8 +649,17 @@
  "Ctrl+Shift": [
   "Ctrl+Shift"
  ],
+ "Cursor size": [
+  "Tamanho do cursor"
+ ],
+ "Cursor theme": [
+  "Tema do cursor"
+ ],
  "Daemon not running": [
   "O serviço não está rodando"
+ ],
+ "Danger": [
+  "Perigo"
  ],
  "Dark": [
   "Escuro"
@@ -594,6 +697,9 @@
  "Dictation into %s": [
   "Ditado em %s"
  ],
+ "Dim inactive windows": [
+  "Escurecer janelas inativas"
+ ],
  "Discard": [
   "Descartar"
  ],
@@ -606,11 +712,20 @@
  "Dismiss this report": [
   "Dispensar este relatório"
  ],
+ "Don't allow": [
+  "Não permitir"
+ ],
+ "Done": [
+  "Feito"
+ ],
  "Done.": [
   "Pronto."
  ],
  "Done. Restart the computer to finish: the first start checks the driver.": [
   "Pronto. Reinicie o computador para concluir: a primeira inicialização verifica o driver."
+ ],
+ "Done. Say \"undo\" to put the files back.": [
+  "Feito. Diga \"desfazer\" para devolver os arquivos."
  ],
  "Done. The computer goes back to how it was before the update when it restarts.": [
   "Pronto. O computador volta a como estava antes da atualização quando reiniciar."
@@ -654,8 +769,14 @@
  "Drivers that are not free software, such as NVIDIA's graphics driver.": [
   "Drivers que não são software livre, como o driver gráfico da NVIDIA."
  ],
+ "Easing": [
+  "Curva de animação"
+ ],
  "Elevation": [
   "Elevação"
+ ],
+ "End": [
+  "Encerrar"
  ],
  "End permission: %1": [
   "Encerrar a permissão: %1"
@@ -691,11 +812,26 @@
  "Expires in %1.": [
   "Expira em %1."
  ],
+ "Failed": [
+  "Falhou"
+ ],
+ "Failed: %1": [
+  "Falhou: %1"
+ ],
+ "Fast (ms)": [
+  "Rápido (ms)"
+ ],
  "February": [
   "fevereiro"
  ],
  "Fetch a page from %s. What it says is read as data, never as instructions.": [
   "Buscar uma página de %s. O que ela diz é lido como dados, nunca como instruções."
+ ],
+ "Files": [
+  "Arquivos"
+ ],
+ "Files: %1": [
+  "Arquivos: %1"
  ],
  "Fix security problems. Install these soon.": [
   "Corrigem problemas de segurança. Instale logo."
@@ -724,6 +860,9 @@
  "For testers with supported hardware.": [
   "Para quem testa e tem hardware compatível."
  ],
+ "From": [
+  "De"
+ ],
  "From %1, key %2": [
   "De %1, chave %2"
  ],
@@ -732,6 +871,9 @@
  ],
  "GPU: %1, CPUs: %2, memory: %3 MiB": [
   "GPU: %1, CPUs: %2, memória: %3 MiB"
+ ],
+ "Gaps": [
+  "Espaços entre janelas"
  ],
  "GeForce and Titan software is not licensed for datacenter deployment (NVIDIA Driver License Agreement, section 2.8).": [
   "O software para GeForce e Titan não é licenciado para uso em datacenter (NVIDIA Driver License Agreement, seção 2.8)."
@@ -747,6 +889,9 @@
  ],
  "Hardware can animate smoothly": [
   "O hardware dá conta de animar com fluidez"
+ ],
+ "Hash-chained log: basalt-shell audit verify": [
+  "Registro encadeado por hash: basalt-shell audit verify"
  ],
  "Hello,": [
   "Olá,"
@@ -859,8 +1004,23 @@
  "I will rename %s to %s. Please confirm on the screen.": [
   "Vou renomear %s para %s. Confirme na tela."
  ],
+ "Icon theme": [
+  "Tema de ícones"
+ ],
+ "Ignore": [
+  "Ignorar"
+ ],
+ "Ignored.": [
+  "Ignorado."
+ ],
+ "Ignored. Nothing changed.": [
+  "Ignorado. Nada mudou."
+ ],
  "Indexing your files failed: %s": [
   "A indexação dos seus arquivos falhou: %s"
+ ],
+ "Ink and terra roxa: the Basalt OS identity.": [
+  "Tinta e terra roxa: a identidade do Basalt OS."
  ],
  "Insert": [
   "Inserir"
@@ -893,6 +1053,12 @@
  ],
  "Installing updates": [
   "Instalando atualizações"
+ ],
+ "Interface font": [
+  "Fonte da interface"
+ ],
+ "Into %1": [
+  "Em %1"
  ],
  "It also stops after %1 s of silence, and at %2 s.": [
   "Também para depois de %1 s de silêncio, e em %2 s."
@@ -963,6 +1129,9 @@
  "Laptop with two GPUs: %1 stays the display GPU and saves power. Programs run on %2 when they ask for it (PRIME offload, basalt-nvidia-run PROGRAM), and CUDA works on it.": [
   "Notebook com duas GPUs: %1 continua cuidando da tela e economiza energia. Os programas rodam na %2 quando pedem (PRIME offload, basalt-nvidia-run PROGRAMA), e o CUDA funciona nela."
  ],
+ "Large radius": [
+  "Raio grande"
+ ],
  "Last checked: %1": [
   "Última procura: %1"
  ],
@@ -981,6 +1150,9 @@
  "Libraries, drivers and services that everything else runs on.": [
   "Bibliotecas, drivers e serviços sobre os quais todo o resto roda."
  ],
+ "Lichen": [
+  "Líquen"
+ ],
  "Light": [
   "Claro"
  ],
@@ -989,6 +1161,9 @@
  ],
  "Listening, press Super+V again to stop (%1 s)": [
   "Ouvindo, aperte Super+V de novo para parar (%1 s)"
+ ],
+ "Local model": [
+  "Modelo local"
  ],
  "Local model (none configured: fixed phrases only)": [
   "Modelo local (nenhum configurado: só frases fixas)"
@@ -1020,6 +1195,12 @@
  "Looking for what is installed.": [
   "Vendo o que está instalado."
  ],
+ "Mail": [
+  "E-mail"
+ ],
+ "Manual": [
+  "Manual"
+ ],
  "March": [
   "março"
  ],
@@ -1029,8 +1210,14 @@
  "May": [
   "maio"
  ],
+ "Medium radius": [
+  "Raio médio"
+ ],
  "Menu key": [
   "Tecla Menu"
+ ],
+ "Mic on": [
+  "Microfone ligado"
  ],
  "Microphone open only while you hold the key. Audio stays on this computer and is not kept.": [
   "O microfone só fica aberto enquanto você segura a tecla. O áudio fica neste computador e não é guardado."
@@ -1050,6 +1237,12 @@
  "Models never act directly. They ask for typed actions (%1 kind); every change waits for you on a confirmation sheet and is written to the activity log.": [
   "Os modelos nunca agem por conta própria. Eles pedem ações tipadas (%1 tipo); toda mudança espera por você numa tela de confirmação e fica gravada no registro de atividades.",
   "Os modelos nunca agem por conta própria. Eles pedem ações tipadas (%1 tipos); toda mudança espera por você numa tela de confirmação e fica gravada no registro de atividades."
+ ],
+ "Monospace font": [
+  "Fonte monoespaçada"
+ ],
+ "Moss on stone: soft greens, rounder shapes, calmer motion.": [
+  "Musgo na pedra: verdes suaves, formas mais redondas, movimento mais calmo."
  ],
  "Motion": [
   "Movimento"
@@ -1077,6 +1270,9 @@
  "Mute": [
   "Sem som"
  ],
+ "Muted text": [
+  "Texto discreto"
+ ],
  "NVIDIA Driver License Agreement": [
   "NVIDIA Driver License Agreement"
  ],
@@ -1089,8 +1285,14 @@
  "Needs NVIDIA's 580 legacy driver (Maxwell, Pascal, Volta)": [
   "Precisa do driver legado 580 da NVIDIA (Maxwell, Pascal, Volta)"
  ],
+ "Network": [
+  "Rede"
+ ],
  "Never": [
   "Nunca"
+ ],
+ "New folder: %1": [
+  "Pasta nova: %1"
  ],
  "No NVIDIA GPU: the drivers in use are the right ones.": [
   "Nenhuma GPU NVIDIA: os drivers em uso são os certos."
@@ -1125,6 +1327,9 @@
  "No more updates come from it. What is already installed stays.": [
   "Nenhuma atualização vem mais dele. O que já está instalado fica."
  ],
+ "No notifications": [
+  "Nenhuma notificação"
+ ],
  "No result yet from the program that applies it.": [
   "Ainda sem resultado do programa que aplica a mudança."
  ],
@@ -1140,11 +1345,20 @@
  "No voice is installed on this computer yet, so answers are shown, not spoken.": [
   "Nenhuma voz está instalada neste computador ainda, então as respostas são mostradas, não faladas."
  ],
+ "Nobody confirmed it": [
+  "Ninguém confirmou"
+ ],
  "None": [
   "Nenhuma"
  ],
+ "Normal (ms)": [
+  "Normal (ms)"
+ ],
  "Not allowed: %s": [
   "Não permitido: %s"
+ ],
+ "Not applied.": [
+  "Não aplicado."
  ],
  "Not applied. The assistant's output is below.": [
   "Não aplicado. A saída do assistente está abaixo."
@@ -1170,8 +1384,17 @@
  "Not now": [
   "Agora não"
  ],
+ "Not sent. The draft was discarded.": [
+  "Não enviado. O rascunho foi descartado."
+ ],
  "Not sent: %s": [
   "Não enviado: %s"
+ ],
+ "Not understood: %1": [
+  "Não entendi: %1"
+ ],
+ "Nothing is deleted or replaced. Say \"undo\" afterwards to put the files back.": [
+  "Nada é apagado nem substituído. Diga \"desfazer\" depois para devolver os arquivos."
  ],
  "Nothing runs unless you confirm. Your decision goes to the approvals queue and is recorded.": [
   "Nada é executado sem a sua confirmação. Sua decisão vai para a fila de aprovações e fica registrada."
@@ -1187,6 +1410,9 @@
  ],
  "Nothing was changed: the approval was not given.": [
   "Nada foi alterado: a aprovação não foi dada."
+ ],
+ "Nothing yet": [
+  "Nada por enquanto"
  ],
  "Notifications": [
   "Notificações"
@@ -1244,6 +1470,9 @@
  "Open Additional drivers": [
   "Abrir Drivers adicionais"
  ],
+ "Open a file": [
+  "Abrir um arquivo"
+ ],
  "Open apps: %1. Save your work first: unsaved changes in them may be lost.": [
   "Apps abertos: %1. Salve seu trabalho antes: alterações não salvas neles podem ser perdidas."
  ],
@@ -1274,6 +1503,9 @@
  "Panel": [
   "Painel"
  ],
+ "Panel height": [
+  "Altura do painel"
+ ],
  "Panel opacity": [
   "Opacidade do painel"
  ],
@@ -1286,11 +1518,20 @@
  "Password": [
   "Senha"
  ],
+ "Permission": [
+  "Permissão"
+ ],
+ "Permissions": [
+  "Permissões"
+ ],
  "Pick a theme, then make it yours. Everything below also changes your apps (GTK, libadwaita, Qt) and window borders.": [
   "Escolha um tema e deixe do seu jeito. Tudo aqui embaixo também muda os seus apps (GTK, libadwaita, Qt) e as bordas das janelas."
  ],
  "Pink": [
   "Rosa"
+ ],
+ "Plain text, no attachment. You can change the subject and the text; exactly this is sent, and only when you press Send.": [
+  "Texto simples, sem anexo. Você pode mudar o assunto e o texto; é enviado exatamente isto, e só quando você toca em Enviar."
  ],
  "Please confirm on the screen to put them back.": [
   "Confirme na tela para devolver os arquivos."
@@ -1346,6 +1587,9 @@
  "Programs you open from the launcher.": [
   "Programas que você abre pelo lançador."
  ],
+ "Proposal": [
+  "Proposta"
+ ],
  "Push to talk": [
   "Apertar para falar"
  ],
@@ -1359,6 +1603,9 @@
  ],
  "Quick settings": [
   "Ajustes rápidos"
+ ],
+ "Raised surface": [
+  "Superfície elevada"
  ],
  "Read": [
   "Ler"
@@ -1396,6 +1643,12 @@
  "Reduced": [
   "Reduzido"
  ],
+ "Reduced motion": [
+  "Movimento reduzido"
+ ],
+ "Refused": [
+  "Recusado"
+ ],
  "Refused: %1": [
   "Recusado: %1"
  ],
@@ -1431,6 +1684,9 @@
  ],
  "Replies need the account's address and sending server in skills.conf (address, smtp_host).": [
   "Para responder, a conta precisa do endereço e do servidor de envio em skills.conf (address, smtp_host)."
+ ],
+ "Reply": [
+  "Resposta"
  ],
  "Reset": [
   "Restaurar"
@@ -1507,6 +1763,9 @@
  "Saved. Your keyboard changed at once.": [
   "Salvo. Seu teclado mudou na hora."
  ],
+ "Scrim behind sheets": [
+  "Véu atrás das folhas"
+ ],
  "Search applications": [
   "Buscar aplicativos"
  ],
@@ -1528,6 +1787,9 @@
  "Security updates only": [
   "Só as de segurança"
  ],
+ "Send": [
+  "Enviar"
+ ],
  "Send a reply to %s: %s": [
   "Enviar uma resposta para %s: %s"
  ],
@@ -1540,6 +1802,9 @@
  "Sending without TLS is only allowed to lab servers on reserved names.": [
   "Enviar sem TLS só é permitido para servidores de laboratório com nomes reservados."
  ],
+ "Sent.": [
+  "Enviado."
+ ],
  "September": [
   "setembro"
  ],
@@ -1549,11 +1814,23 @@
  "Settings pages": [
   "Páginas dos Ajustes"
  ],
+ "Shadow softness": [
+  "Suavidade da sombra"
+ ],
+ "Shadow strength": [
+  "Intensidade da sombra"
+ ],
  "Shape": [
   "Forma"
  ],
  "Shape and size": [
   "Forma e tamanho"
+ ],
+ "Sharing": [
+  "Compartilhando"
+ ],
+ "Sheet radius": [
+  "Raio das folhas"
  ],
  "Show all channels": [
   "Mostrar todos os canais"
@@ -1588,6 +1865,12 @@
  "Slate": [
   "Ardósia"
  ],
+ "Slow (ms)": [
+  "Lento (ms)"
+ ],
+ "Small radius": [
+  "Raio pequeno"
+ ],
  "Snap left": [
   "Encaixar à esquerda"
  ],
@@ -1617,6 +1900,9 @@
  ],
  "Spacing": [
   "Espaçamento"
+ ],
+ "Spacing unit (px)": [
+  "Unidade de espaçamento (px)"
  ],
  "Speak the answers aloud": [
   "Falar as respostas em voz alta"
@@ -1654,6 +1940,9 @@
  "Step %1 of %2: %3": [
   "Passo %1 de %2: %3"
  ],
+ "Stop (%1)": [
+  "Parar (%1)"
+ ],
  "Stop by itself after a silence, once you have spoken:": [
   "Parar sozinho depois de um silêncio, quando você já tiver falado:"
  ],
@@ -1663,8 +1952,14 @@
  "Stop the agent": [
   "Parar o agente"
  ],
+ "Subject": [
+  "Assunto"
+ ],
  "Subtle animations by default. Auto turns them off on weak hardware (software rendering, very few CPUs or little memory).": [
   "Animações discretas por padrão. O modo automático desliga as animações em hardware fraco (renderização por software, poucas CPUs ou pouca memória)."
+ ],
+ "Success": [
+  "Sucesso"
  ],
  "Suggestions": [
   "Sugestões"
@@ -1677,6 +1972,9 @@
  ],
  "Supported by the NVIDIA driver %1 (open kernel modules)": [
   "Suportada pelo driver NVIDIA %1 (módulos abertos do kernel)"
+ ],
+ "Surface": [
+  "Superfície"
  ],
  "Suspend": [
   "Suspender"
@@ -1693,11 +1991,17 @@
  "System": [
   "Sistema"
  ],
+ "System assistant": [
+  "Assistente do sistema"
+ ],
  "System assistant (basalt) installed: system questions and its proposals work here": [
   "Assistente do sistema (basalt) instalado: perguntas sobre o sistema e as propostas dele funcionam aqui"
  ],
  "System assistant (basalt) not installed": [
   "Assistente do sistema (basalt) não instalado"
+ ],
+ "System assistant proposal %1": [
+  "Proposta do assistente do sistema %1"
  ],
  "System default": [
   "Padrão do sistema"
@@ -1710,6 +2014,12 @@
  ],
  "Tested before release. Always on.": [
   "Testado antes do lançamento. Sempre ligado."
+ ],
+ "Text": [
+  "Texto"
+ ],
+ "Text on accent": [
+  "Texto sobre o destaque"
  ],
  "Text size": [
   "Tamanho do texto"
@@ -1752,6 +2062,12 @@
  ],
  "The assistant answers in %1.": [
   "O assistente responde em %1."
+ ],
+ "The assistant may read (read only)": [
+  "O assistente pode ler (só leitura)"
+ ],
+ "The assistant read": [
+  "O assistente leu"
  ],
  "The assistant's local model (%1 GB) is not on this computer, and model downloads are turned off: ask your administrator.": [
   "O modelo local do assistente (%1 GB) não está neste computador, e os downloads de modelos estão desligados: fale com o seu administrador."
@@ -1976,6 +2292,9 @@
  "They are downloaded and install while the computer restarts, before the desktop starts. Save your work first.": [
   "Elas já foram baixadas e são instaladas enquanto o computador reinicia, antes de a área de trabalho abrir. Salve seu trabalho antes."
  ],
+ "Thinking": [
+  "Pensando"
+ ],
  "This NVIDIA GPU is not in the list of the NVIDIA driver Basalt OS ships; it may be newer than that driver. Nothing is recommended.": [
   "Esta GPU NVIDIA não está na lista do driver NVIDIA que o Basalt OS distribui; ela pode ser mais nova que o driver. Nada é recomendado."
  ],
@@ -2009,8 +2328,17 @@
  "Those files are already in %s.": [
   "Esses arquivos já estão em %s."
  ],
+ "Tide": [
+  "Maré"
+ ],
  "Tile": [
   "Lado a lado"
+ ],
+ "To": [
+  "Para"
+ ],
+ "To %1 · %2 · %3 characters, no attachment": [
+  "Para %1 · %2 · %3 caracteres, sem anexo"
  ],
  "To dictate into a text field, click in the field first. Say \"assistant\" first to ask the assistant from a text field.": [
   "Para ditar num campo de texto, clique no campo primeiro. Diga \"assistente\" no começo para falar com o assistente a partir de um campo de texto."
@@ -2032,6 +2360,9 @@
  ],
  "To try the NVIDIA driver again instead, run sudo basalt-nvidia retry in a terminal and restart.": [
   "Para tentar o driver NVIDIA de novo, rode sudo basalt-nvidia retry num terminal e reinicie."
+ ],
+ "Token changes (%1)": [
+  "Mudanças de tokens (%1)"
  ],
  "Too many attempts. Wait a few minutes, then try again.": [
   "Muitas tentativas. Espere alguns minutos e tente de novo."
@@ -2086,6 +2417,9 @@
  ],
  "Type here to try your layout": [
   "Digite aqui para experimentar seu layout"
+ ],
+ "Type scale ratio": [
+  "Proporção da escala de texto"
  ],
  "Type the dictated text (%d character) into %s": [
   "Digitar o texto ditado (%d caractere) em %s",
@@ -2157,6 +2491,9 @@
  "Violet": [
   "Violeta"
  ],
+ "Voice": [
+  "Voz"
+ ],
  "Voice and assistant": [
   "Voz e assistente"
  ],
@@ -2184,17 +2521,29 @@
  "Volume %1%": [
   "Volume %1%"
  ],
+ "Waiting for authentication": [
+  "Esperando a autenticação"
+ ],
  "Waiting for authentication. Installing can take a few minutes.": [
   "Aguardando a autenticação. A instalação pode levar alguns minutos."
  ],
  "Waiting for the approval to download": [
   "Aguardando a aprovação para baixar"
  ],
+ "Waiting for you": [
+  "Esperando por você"
+ ],
  "Waiting for your password.": [
   "Esperando sua senha."
  ],
+ "Warning": [
+  "Aviso"
+ ],
  "Weak hardware: %1": [
   "Hardware fraco: %1"
+ ],
+ "Web page": [
+  "Página da web"
  ],
  "Well-known sources, with the address and signing key Basalt OS checked for you.": [
   "Fontes conhecidas, com o endereço e a chave de assinatura que o Basalt OS conferiu para você."
@@ -2223,11 +2572,20 @@
  "Wi-Fi": [
   "Wi-Fi"
  ],
+ "Window corners": [
+  "Cantos das janelas"
+ ],
  "Window menu": [
   "Menu da janela"
  ],
+ "Window shadows": [
+  "Sombras das janelas"
+ ],
  "Windows": [
   "Janelas"
+ ],
+ "Wired": [
+  "Cabo"
  ],
  "Wired network": [
   "Rede cabeada"
@@ -2246,6 +2604,15 @@
  ],
  "You can keep working. This card says when it is ready.": [
   "Você pode continuar trabalhando. Este cartão avisa quando estiver pronto."
+ ],
+ "You confirmed": [
+  "Você confirmou"
+ ],
+ "You declined": [
+  "Você recusou"
+ ],
+ "You edited it": [
+  "Você editou"
  ],
  "You use the system's layouts again.": [
   "Você voltou a usar os layouts do sistema."
@@ -2280,11 +2647,26 @@
  "Your voice settings have a mistake (%s); the defaults are used.": [
   "Suas configurações de voz têm um erro (%s); os valores padrão estão em uso."
  ],
+ "accent": [
+  "destaque"
+ ],
+ "alert": [
+  "alerta"
+ ],
  "an AI agent": [
   "um agente de IA"
  ],
+ "and %1 more": [
+  "e mais %1"
+ ],
+ "attached": [
+  "fixo"
+ ],
  "automatic language detection": [
   "detecção automática do idioma"
+ ],
+ "bottom": [
+  "embaixo"
  ],
  "checking that everything works": [
   "conferindo se tudo funciona"
@@ -2303,6 +2685,18 @@
  ],
  "downloading": [
   "baixando"
+ ],
+ "floating": [
+  "flutuante"
+ ],
+ "folder": [
+  "pasta"
+ ],
+ "from your request": [
+  "do seu pedido"
+ ],
+ "full": [
+  "completa"
  ],
  "hidden text": [
   "texto oculto"
@@ -2337,6 +2731,9 @@
  "look-alike letters": [
   "letras parecidas de outros alfabetos"
  ],
+ "mailbox": [
+  "caixa de correio"
+ ],
  "minimized": [
   "minimizada"
  ],
@@ -2349,8 +2746,14 @@
  "not downloaded": [
   "não baixado"
  ],
+ "not sent until you press Send": [
+  "só é enviado quando você toca em Enviar"
+ ],
  "nouveau, the open driver in use now, is turned off from the next start.": [
   "O nouveau, o driver aberto em uso agora, é desligado a partir da próxima inicialização."
+ ],
+ "off": [
+  "desligada"
  ],
  "on this computer": [
   "neste computador"
@@ -2358,8 +2761,17 @@
  "owner/project": [
   "dono/projeto"
  ],
+ "read only": [
+  "só leitura"
+ ],
+ "read only, expires by itself": [
+  "só leitura, expira sozinha"
+ ],
  "shows the boot screen": [
   "mostra a tela de inicialização"
+ ],
+ "site": [
+  "site"
  ],
  "stopped before the end: undo it to be sure": [
   "parou antes do fim: desfaça para garantir"
@@ -2390,6 +2802,15 @@
  ],
  "today": [
   "hoje"
+ ],
+ "top": [
+  "em cima"
+ ],
+ "understood by the fixed phrases": [
+  "entendido pelas frases fixas"
+ ],
+ "understood by the local model": [
+  "entendido pelo modelo local"
  ],
  "undone": [
   "desfeita"

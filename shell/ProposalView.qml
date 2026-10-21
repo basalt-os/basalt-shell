@@ -42,7 +42,7 @@ Column {
             anchors.fill: parent
             anchors.margins: Theme.s3
             spacing: Theme.s1
-            Txt { text: "Token changes (" + pv.diff.length + ")"; role: "small"; color: Theme.textMuted }
+            Txt { text: Tr.t("Token changes (%1)").arg(pv.diff.length); role: "small"; color: Theme.textMuted }
             Repeater {
                 model: pv.diff.slice(0, pv.maxDiffRows)
                 delegate: Row {
@@ -71,7 +71,7 @@ Column {
             }
             Txt {
                 visible: pv.diff.length > pv.maxDiffRows
-                text: "and " + (pv.diff.length - pv.maxDiffRows) + " more"
+                text: Tr.t("and %1 more").arg(pv.diff.length - pv.maxDiffRows)
                 role: "small"; color: Theme.textMuted
             }
         }

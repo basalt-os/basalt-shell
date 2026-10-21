@@ -179,6 +179,24 @@ func TestReportOnly(t *testing.T) {
 	}
 }
 
+// The assistant's translated title, when it sends one, is the title the
+// desktop shows; without it the English title stays.
+func TestTitleLocal(t *testing.T) {
+	var ps []Proposal
+	raw := `[{"id":"p-000001","title":"turn the basalt-tools channel off","title_local":"desligar o canal basalt-tools"},
+		{"id":"p-000002","title":"restart nginx.service"},
+		{"id":"p-000003","title":"install 3 updates (2 MB to download)","title_local":"  "}]`
+	if err := json.Unmarshal([]byte(raw), &ps); err != nil {
+		t.Fatal(err)
+	}
+	ps = markReports(ps)
+	for i, want := range []string{"desligar o canal basalt-tools", "restart nginx.service", "install 3 updates (2 MB to download)"} {
+		if ps[i].Title != want {
+			t.Errorf("%s: title %q, want %q", ps[i].ID, ps[i].Title, want)
+		}
+	}
+}
+
 func TestSecurityArgs(t *testing.T) {
 	for _, ok := range [][]string{{"security", "audit"}, {"security", "accept", "encryption"}, {"security", "review", "tpm"}, {"security", "risks", "--json"}} {
 		if err := readArgs(ok); err != nil {

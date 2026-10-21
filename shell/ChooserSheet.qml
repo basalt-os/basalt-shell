@@ -74,7 +74,7 @@ PanelWindow {
                     }
                 }
             }
-            Btn { text: "Cancel"; variant: "ghost"; e2e: "chooser-cancel"; anchors.right: parent.right; onClicked: win.answer("") }
+            Btn { text: Tr.t("Cancel"); variant: "ghost"; e2e: "chooser-cancel"; anchors.right: parent.right; onClicked: win.answer("") }
         }
     }
 }

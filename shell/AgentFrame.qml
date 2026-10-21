@@ -85,7 +85,7 @@ Variants {
                     anchors.verticalCenter: parent.verticalCenter
                     width: stopTxt.implicitWidth + Theme.s4; height: banner.height - Theme.s3; radius: height / 2
                     color: stopMa.containsMouse ? "#000000" : "#1b1b1b"
-                    Txt { id: stopTxt; anchors.centerIn: parent; text: "Stop  (Super+Shift+Esc)"; color: "#ffffff"; font.weight: Font.DemiBold; role: "small" }
+                    Txt { id: stopTxt; anchors.centerIn: parent; text: Tr.t("Stop (%1)").arg("Super+Shift+Esc"); color: "#ffffff"; font.weight: Font.DemiBold; role: "small" }
                     MouseArea { id: stopMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Bus.stopControl() }
                 }
             }
