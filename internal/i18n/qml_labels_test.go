@@ -13,6 +13,8 @@ var (
 	reQMLLabelProp = regexp.MustCompile(`(?:^|[\s;{])(text|title|label|sub|placeholder|accessibleName|accessibleDescription|Accessible\.name|Accessible\.description):`)
 	// The literals the catalog reads: the message of Tr.t, both forms of Tr.n.
 	reQMLTrCall = regexp.MustCompile(`Tr\.t\(\s*"(?:[^"\\]|\\.)*"\s*\)|Tr\.n\(\s*"(?:[^"\\]|\\.)*"\s*,\s*"(?:[^"\\]|\\.)*"`)
+	// A person-facing property set from JavaScript (status = "...").
+	reQMLAssign = regexp.MustCompile(`(?:^|[\s;{(.])(status|text|title|label|error|message)\s*=([^=]|$)`)
 	// Words a person reads: two letters in a row.
 	reQMLWords = regexp.MustCompile(`[A-Za-z]{2}`)
 	// A key combination ("Super+Shift+Esc"): key names stay as they are.
@@ -85,7 +87,8 @@ const qmlLabelAllowed = "// i18n: not text"
 
 // TestQMLLabelsTranslated: no QML file of the shell shows English that
 // skips the catalog. A person-facing property (text, title, label, sub,
-// placeholder, the accessible name and description) holds no string
+// placeholder, the accessible name and description, or a status, text,
+// title, label, error or message set from JavaScript) holds no string
 // literal with words outside Tr.t("...") or Tr.n("...", "..."), also in a
 // ternary or a concatenation, and qsTr is not used anywhere: the shell
 // loads no Qt translations, so qsTr("...") always shows English.
@@ -115,10 +118,17 @@ func TestQMLLabelsTranslated(t *testing.T) {
 			// Each person-facing property on the line (several items can
 			// share one line): its value runs to the next property.
 			code = reQMLTrCall.ReplaceAllString(code, "Tr()")
+			var found [][]int
 			for _, m := range reQMLLabelProp.FindAllStringSubmatchIndex(code, -1) {
+				found = append(found, []int{m[2], m[3], m[1]})
+			}
+			for _, m := range reQMLAssign.FindAllStringSubmatchIndex(code, -1) {
+				found = append(found, []int{m[2], m[3], m[4]})
+			}
+			for _, m := range found {
 				checked++
-				prop := code[m[2]:m[3]]
-				for _, lit := range qmlShown(code[m[1]:]) {
+				prop := code[m[0]:m[1]]
+				for _, lit := range qmlShown(code[m[2]:]) {
 					if reQMLWords.MatchString(lit) && !reQMLKeys.MatchString(lit) {
 						t.Errorf("%s:%d: %s shows %q untranslated, use Tr.t(\"...\")", name, i+1, prop, lit)
 					}

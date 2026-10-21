@@ -121,11 +121,11 @@ PanelWindow {
     function assistantDecide(apply) {
         if (!assist) return;
         busy = true;
-        status = apply ? "Waiting for authentication..." : "";
+        status = apply ? Tr.t("Waiting for authentication") : "";
         const handle = (ok, res) => {
             busy = false;
             statusOk = ok && res.ok;
-            status = (statusOk ? (apply ? "Applied by the system assistant." : "Ignored.") : "Not applied.") ;
+            status = (statusOk ? (apply ? Tr.t("Applied by the system assistant.") : Tr.t("Ignored.")) : Tr.t("Not applied.")) ;
             if (ok && res.output) win.result = { kind: "system", text: res.output };
             Bus.refreshAssistant();
         };
@@ -386,7 +386,7 @@ PanelWindow {
                                 anchors.right: parent.right; anchors.rightMargin: Theme.s3
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: Tr.t("Open"); variant: "outline"
-                                onClicked: { field.text = "open result " + modelData.n; win.submit(); }
+                                onClicked: { field.text = "open result " + modelData.n; win.submit(); } // i18n: not text (the command the bar runs)
                             }
                         }
                     }

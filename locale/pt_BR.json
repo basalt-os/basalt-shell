@@ -351,6 +351,9 @@
  "Applications": [
   "Aplicativos"
  ],
+ "Applied by the system assistant.": [
+  "Aplicado pelo assistente do sistema."
+ ],
  "Applied to apps: %1": [
   "Aplicado aos apps: %1"
  ],
@@ -1007,6 +1010,9 @@
  "Ignore": [
   "Ignorar"
  ],
+ "Ignored.": [
+  "Ignorado."
+ ],
  "Ignored. Nothing changed.": [
   "Ignorado. Nada mudou."
  ],
@@ -1350,6 +1356,9 @@
  ],
  "Not allowed: %s": [
   "Não permitido: %s"
+ ],
+ "Not applied.": [
+  "Não aplicado."
  ],
  "Not applied. The assistant's output is below.": [
   "Não aplicado. A saída do assistente está abaixo."
@@ -2511,6 +2520,9 @@
  ],
  "Volume %1%": [
   "Volume %1%"
+ ],
+ "Waiting for authentication": [
+  "Esperando a autenticação"
  ],
  "Waiting for authentication. Installing can take a few minutes.": [
   "Aguardando a autenticação. A instalação pode levar alguns minutos."

@@ -175,7 +175,7 @@ PanelWindow {
                         onClicked: Bus.act("theme.switch", { theme: modelData.id })
                         Rectangle { x: 8; y: 8; width: 40; height: 10; radius: 3; color: sw[1] }
                         Rectangle { x: 8; y: 22; width: 24; height: 10; radius: 3; color: sw[2] }
-                        Txt { anchors.left: parent.left; anchors.bottom: parent.bottom; anchors.margins: 6; text: modelData.name; role: "small"; color: sw[3] }
+                        Txt { anchors.left: parent.left; anchors.bottom: parent.bottom; anchors.margins: 6; text: Tr.t(modelData.name); role: "small"; color: sw[3] }
                     }
                 }
             }
