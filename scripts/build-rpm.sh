@@ -25,7 +25,7 @@ tar --transform "s,^\.,basalt-shell-$ver," --exclude=./build --exclude=./.git --
   -czf "build/rpm/basalt-shell-$ver.tar.gz" .
 $podman run --rm --net=host -v "$PWD/build/rpm:/out:Z" -v "$PWD/packaging:/spec:ro,Z" \
   "registry.fedoraproject.org/fedora:$rel" bash -euc "
-    dnf -y -q install rpm-build golang make systemd-rpm-macros selinux-policy-devel bzip2 >/dev/null
+    dnf -y -q install rpm-build golang make systemd-rpm-macros systemd-devel selinux-policy-devel bzip2 >/dev/null
     cp /out/basalt_agent_base.if /usr/share/selinux/devel/include/distributed/
     mkdir -p ~/rpmbuild/SOURCES && cp /out/basalt-shell-$ver.tar.gz ~/rpmbuild/SOURCES/
     rpmbuild -bb --nodeps --define 'basalt_version $ver' /spec/basalt-shell.spec >/out/rpmbuild.log 2>&1 || { tail -40 /out/rpmbuild.log; exit 1; }
