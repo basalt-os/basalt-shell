@@ -278,7 +278,10 @@ func (ss *session) requireUI() error {
 	return nil
 }
 
-// Catalog describes the actions for clients.
+// Catalog describes the actions for clients. Titles and descriptions stay
+// English (agents and the MCP schema read them); the shell UI shows them
+// with Tr.t in the session's language, and the catalog test requires a
+// translation for each one.
 func Catalog() []map[string]any {
 	out := make([]map[string]any, 0, len(Actions))
 	for _, a := range Actions {

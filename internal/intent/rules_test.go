@@ -1,6 +1,11 @@
 package intent
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/basalt-os/basalt-shell/internal/theme"
@@ -128,6 +133,68 @@ func TestRulesSpokenAnswers(t *testing.T) {
 		r := Compose([]string{fixed[intent]}, ctx, "model")
 		if len(r.Calls) != 1 || r.Calls[0].Action != "voice.answers.set" || r.Calls[0].Args["spoken"] != want {
 			t.Errorf("%s: %+v", intent, r.Calls)
+		}
+	}
+}
+
+// TestSuggestionChips: the command bar's suggestion chips are fixed
+// phrases shown in the session's language (Tr.t) and submitted as shown,
+// so each translation must reach the same actions (or the same system
+// request) as its English form, with nothing left unknown.
+func TestSuggestionChips(t *testing.T) {
+	chips := []string{"make it darker with rounder corners", "light mode", "arrange windows side by side", "open text editor", "system status"}
+	qml, err := os.ReadFile("../../shell/CommandBar.qml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range chips {
+		if !strings.Contains(string(qml), `Tr.t("`+c+`")`) {
+			t.Errorf("%q is not a suggestion chip of CommandBar.qml (keep this list in step)", c)
+		}
+	}
+	cats, _ := filepath.Glob("../../locale/*.json")
+	if len(cats) == 0 {
+		t.Fatal("no catalogs in locale/")
+	}
+	actions := func(r Result) []string {
+		var a []string
+		for _, c := range r.Calls {
+			a = append(a, c.Action)
+		}
+		return a
+	}
+	for _, f := range cats {
+		b, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var cat map[string][]string
+		if err := json.Unmarshal(b, &cat); err != nil {
+			t.Fatalf("%s: %v", f, err)
+		}
+		for _, en := range chips {
+			tr := cat[en]
+			if len(tr) == 0 || tr[0] == "" {
+				t.Errorf("%s: no translation of the chip %q", filepath.Base(f), en)
+				continue
+			}
+			ctx := Context{Tokens: tokens(), Themes: []theme.Meta{{ID: "lichen", Name: "Lichen"}}}
+			want, got := Rules(en, ctx), Rules(tr[0], ctx)
+			if len(want.Calls) == 0 && len(want.System) == 0 {
+				t.Errorf("%q: the English chip does nothing", en)
+			}
+			if len(got.Unknown) > 0 || len(want.Unknown) > 0 {
+				t.Errorf("%q / %q: not understood: %v %v", en, tr[0], want.Unknown, got.Unknown)
+			}
+			if !reflect.DeepEqual(actions(got), actions(want)) || !reflect.DeepEqual(got.System, want.System) {
+				t.Errorf("%s: %q reaches %v %v, want %v %v (as %q)", filepath.Base(f), tr[0],
+					actions(got), got.System, actions(want), want.System, en)
+			}
+			// Token changes and mode switches are the same values too
+			// (only an app name may differ: "editor de texto").
+			if actions(want) != nil && actions(want)[0] != "app.launch" && !reflect.DeepEqual(got.Calls, want.Calls) {
+				t.Errorf("%s: %q: %+v, want %+v", filepath.Base(f), tr[0], got.Calls, want.Calls)
+			}
 		}
 	}
 }

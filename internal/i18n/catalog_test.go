@@ -128,6 +128,84 @@ func dataMsgids(t *testing.T, root string) map[string]string {
 		ids[m.Name] = f
 		ids[m.Description] = f
 	}
+	for id, where := range actionMsgids(t, filepath.Join(root, "internal", "shell")) {
+		ids[id] = where
+	}
+	return ids
+}
+
+// actionMsgids collects the title and the description of every typed
+// action (the ActionDef literals of internal/shell): the daemon's catalog
+// keeps them in English for agents and the MCP schema, and Settings,
+// Assistant and AI shows them with Tr.t(value). Read from the source (the
+// shell package imports this one, a test import would be a cycle); the
+// descriptions of parameters are for agents only and are not collected.
+func actionMsgids(t *testing.T, dir string) map[string]string {
+	ids := map[string]string{}
+	fs := token.NewFileSet()
+	files, _ := filepath.Glob(filepath.Join(dir, "*.go"))
+	isDef := func(e ast.Expr) bool {
+		if s, ok := e.(*ast.StarExpr); ok {
+			e = s.X
+		}
+		id, ok := e.(*ast.Ident)
+		return ok && id.Name == "ActionDef"
+	}
+	defs := 0
+	collect := func(cl *ast.CompositeLit) {
+		defs++
+		for _, el := range cl.Elts {
+			kv, ok := el.(*ast.KeyValueExpr)
+			if !ok {
+				continue
+			}
+			k, ok := kv.Key.(*ast.Ident)
+			if !ok || (k.Name != "Title" && k.Name != "Description") {
+				continue
+			}
+			bl, ok := kv.Value.(*ast.BasicLit)
+			if !ok || bl.Kind != token.STRING {
+				t.Errorf("%s: an action's %s needs a literal string (the UI translates it)", fs.Position(kv.Pos()), k.Name)
+				continue
+			}
+			s, _ := strconv.Unquote(bl.Value)
+			ids[s] = fs.Position(kv.Pos()).String()
+		}
+	}
+	for _, p := range files {
+		if strings.HasSuffix(p, "_test.go") {
+			continue
+		}
+		f, err := parser.ParseFile(fs, p, nil, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ast.Inspect(f, func(n ast.Node) bool {
+			cl, ok := n.(*ast.CompositeLit)
+			if !ok {
+				return true
+			}
+			switch typ := cl.Type.(type) {
+			case *ast.Ident:
+				if isDef(typ) {
+					collect(cl)
+				}
+			case *ast.ArrayType:
+				// []*ActionDef{{...}, {...}}: the elements leave the type out.
+				if isDef(typ.Elt) {
+					for _, el := range cl.Elts {
+						if e, ok := el.(*ast.CompositeLit); ok && e.Type == nil {
+							collect(e)
+						}
+					}
+				}
+			}
+			return true
+		})
+	}
+	if defs < 20 {
+		t.Fatalf("only %d action definitions found in %s: is the scan broken?", defs, dir)
+	}
 	return ids
 }
 

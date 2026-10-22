@@ -378,7 +378,7 @@ ColumnLayout {
         spacing: Theme.s2
         Accessible.name: Tr.t("Switch layouts")
         Repeater {
-            model: ["super+shift+space", "alt+shift", "ctrl+shift", "both-alts"]
+            model: ["super+shift+space", "alt+shift", "ctrl+shift", "both-alts"] // i18n: not text (setting values, labeled by kb.switchText)
             delegate: Btn {
                 required property var modelData
                 text: kb.switchText(modelData); variant: "outline"; checkable: true
@@ -411,7 +411,7 @@ ColumnLayout {
         spacing: Theme.s2
         Accessible.name: Tr.t("Caps Lock")
         Repeater {
-            model: ["normal", "ctrl", "escape", "swap-escape", "off"]
+            model: ["normal", "ctrl", "escape", "swap-escape", "off"] // i18n: not text (setting values, labeled by kb.capsText)
             delegate: Btn {
                 required property var modelData
                 text: kb.capsText(modelData); variant: "outline"; checkable: true
@@ -432,7 +432,7 @@ ColumnLayout {
         spacing: Theme.s2
         Accessible.name: Tr.t("Compose key")
         Repeater {
-            model: ["none", "right-alt", "menu", "right-ctrl", "caps-lock"]
+            model: ["none", "right-alt", "menu", "right-ctrl", "caps-lock"] // i18n: not text (setting values, labeled by kb.composeText)
             delegate: Btn {
                 required property var modelData
                 text: kb.composeText(modelData); variant: "outline"; checkable: true
