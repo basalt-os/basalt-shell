@@ -365,6 +365,16 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Wed Oct 21 2026 Basalt OS developers - 0.10.4-1
+- Settings, Assistant and AI: the available actions list shows each
+  action's title and description in the session's language (the
+  daemon's catalog stays English for agents and the MCP schema).
+- The command bar's suggestion chips are shown in the session's language
+  and submitted as shown; the fixed phrases understand both forms the
+  same way (a test checks every translated chip).
+- The QML label test also covers string-array models, so a list of
+  literal phrases cannot show English again.
+
 * Tue Oct 20 2026 Basalt OS developers - 0.10.3-1
 - The rest of the desktop in the session's language: the top bar's Ask,
   the drawer's Notifications and Activity tabs and their empty states,

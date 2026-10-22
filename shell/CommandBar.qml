@@ -250,7 +250,11 @@ PanelWindow {
                     visible: !win.result && !win.busy && win.status === "" && win.appAsk === null
                     Accessible.name: Tr.t("Suggestions")
                     Repeater {
-                        model: ["make it darker with rounder corners", "light mode", "arrange windows side by side", "open text editor", "system status"]
+                        // Fixed phrases the rules read in English and Brazilian
+                        // Portuguese (internal/intent TestSuggestionChips): a
+                        // chip is submitted in the language it is shown in.
+                        model: [Tr.t("make it darker with rounder corners"), Tr.t("light mode"), Tr.t("arrange windows side by side"),
+                                Tr.t("open text editor"), Tr.t("system status")]
                         delegate: Btn {
                             required property var modelData
                             text: modelData

@@ -428,8 +428,8 @@ FloatingWindow {
                             id: act
                             required property var modelData
                             Layout.fillWidth: true
-                            Txt { text: act.modelData.title; font.weight: Font.Medium; width: act.width; wrapMode: Text.Wrap; elide: Text.ElideNone }
-                            Txt { text: act.modelData.name + ": " + act.modelData.description; role: "small"; color: Theme.textMuted; width: act.width; wrapMode: Text.WrapAtWordBoundaryOrAnywhere; elide: Text.ElideNone }
+                            Txt { text: Tr.t(act.modelData.title); font.weight: Font.Medium; width: act.width; wrapMode: Text.Wrap; elide: Text.ElideNone }
+                            Txt { text: act.modelData.name + ": " + Tr.t(act.modelData.description); role: "small"; color: Theme.textMuted; width: act.width; wrapMode: Text.WrapAtWordBoundaryOrAnywhere; elide: Text.ElideNone }
                         }
                     }
                 }

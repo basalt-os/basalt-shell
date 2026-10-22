@@ -216,6 +216,9 @@
  "A restart is needed at the end.": [
   "No final é preciso reiniciar."
  ],
+ "A screenshot of a screen or of one window, for the agent that asked.": [
+  "Uma captura de uma tela ou de uma janela, para o agente que pediu."
+ ],
  "A snapshot is taken first. The next start checks the driver; if it fails, the start after it uses nouveau again and you can return to the snapshot.": [
   "Primeiro é tirado um snapshot. A próxima inicialização verifica o driver; se ele falhar, a inicialização seguinte volta a usar o nouveau e você pode voltar ao snapshot."
  ],
@@ -336,6 +339,9 @@
  "Animations on": [
   "Animações ligadas"
  ],
+ "Animations: auto (off on weak hardware), full, or reduced (no animations).": [
+  "Animações: automático (desligadas em hardware fraco), completo ou reduzido (sem animações)."
+ ],
  "Another source": [
   "Outra fonte"
  ],
@@ -396,6 +402,9 @@
  "April": [
   "abril"
  ],
+ "Arrange the windows of a workspace: grid, columns, rows, cascade, center (floating placements), tile (hand them to the compositor's tiling) or float (all floating, cascaded).": [
+  "Organiza as janelas de uma área de trabalho: grade, colunas, linhas, cascata, centralizar (posições flutuantes), lado a lado (entrega ao lado a lado do compositor) ou flutuar (todas flutuantes, em cascata)."
+ ],
  "Arrange windows": [
   "Organizar as janelas"
  ],
@@ -404,6 +413,9 @@
  ],
  "Ask": [
   "Perguntar"
+ ],
+ "Ask a window to close (the app may ask to save first).": [
+  "Pede que uma janela feche (o aplicativo pode pedir para salvar antes)."
  ],
  "Ask the system": [
   "Pergunte ao sistema"
@@ -513,6 +525,9 @@
  "Bottom": [
   "Embaixo"
  ],
+ "Bring a window to the front and focus it (switches to its workspace).": [
+  "Traz uma janela para a frente e coloca o foco nela (troca para a área de trabalho dela)."
+ ],
  "COPR project": [
   "Projeto do COPR"
  ],
@@ -536,6 +551,9 @@
  ],
  "Change %1": [
   "Alterar %1"
+ ],
+ "Change theme tokens": [
+  "Mudar tokens do tema"
  ],
  "Changing the keyboard of the login screen needs the system assistant (basalt).": [
   "Mudar o teclado da tela de login precisa do assistente do sistema (basalt)."
@@ -573,6 +591,9 @@
  ],
  "Close": [
   "Fechar"
+ ],
+ "Close a window": [
+  "Fechar uma janela"
  ],
  "Color": [
   "Cor"
@@ -739,6 +760,12 @@
  "Download": [
   "Baixar"
  ],
+ "Download a knowledge pack": [
+  "Baixar um pacote de conhecimento"
+ ],
+ "Download a signed knowledge pack for a topic the assistant needs (data only, checked before use). Asked by the assistant or the person, never by an agent.": [
+  "Baixa um pacote de conhecimento assinado sobre um assunto de que o assistente precisa (só dados, verificados antes do uso). Pedido pelo assistente ou pela pessoa, nunca por um agente."
+ ],
  "Download the assistant's local model (%1 GB) from %2? It runs on this computer.": [
   "Baixar o modelo local do assistente (%1 GB) de %2? Ele roda neste computador."
  ],
@@ -768,6 +795,9 @@
  ],
  "Drivers that are not free software, such as NVIDIA's graphics driver.": [
   "Drivers que não são software livre, como o driver gráfico da NVIDIA."
+ ],
+ "Drop the user's overrides (all, or the listed token keys) so the theme's values apply again.": [
+  "Descarta o que o usuário mudou (tudo, ou as chaves de token da lista) para que os valores do tema voltem a valer."
  ],
  "Easing": [
   "Curva de animação"
@@ -839,11 +869,20 @@
  "Float": [
   "Flutuante"
  ],
+ "Float a window and place it at x, y with a size, in global logical pixels (see outputs in desktop_state).": [
+  "Deixa uma janela flutuante e a coloca em x, y com um tamanho, em pixels lógicos globais (veja outputs em desktop_state)."
+ ],
  "Float all": [
   "Todas flutuantes"
  ],
+ "Float or tile a window": [
+  "Deixar uma janela flutuante ou lado a lado"
+ ],
  "Floating": [
   "Flutuante"
+ ],
+ "Focus a window": [
+  "Focar uma janela"
  ],
  "For computers with that hardware.": [
   "Para computadores com esse hardware."
@@ -877,6 +916,9 @@
  ],
  "GeForce and Titan software is not licensed for datacenter deployment (NVIDIA Driver License Agreement, section 2.8).": [
   "O software para GeForce e Titan não é licenciado para uso em datacenter (NVIDIA Driver License Agreement, seção 2.8)."
+ ],
+ "Give the read-only skills a scope for a limited time: a folder (and below), a mailbox, or a web site. Read only: the skills search, read and summarize; they never change, send, submit or delete.": [
+  "Dá às habilidades somente leitura um escopo por tempo limitado: uma pasta (e o que está dentro), uma caixa de correio ou um site. Somente leitura: as habilidades buscam, leem e resumem; nunca mudam, enviam, submetem nem apagam."
  ],
  "Graphics hardware": [
   "Placas de vídeo"
@@ -1135,8 +1177,17 @@
  "Last checked: %1": [
   "Última procura: %1"
  ],
+ "Last resort for apps without a typed action: ask the person for a time-limited control session in which this agent may see the screen and use a virtual keyboard and pointer. The shell shows that an agent is in control and the person can stop it at any time.": [
+  "Último recurso para aplicativos sem uma ação tipada: pede à pessoa uma sessão de controle com tempo limitado, em que este agente pode ver a tela e usar um teclado e um ponteiro virtuais. O shell mostra que um agente está no controle e a pessoa pode pará-lo a qualquer momento."
+ ],
+ "Launch an application": [
+  "Abrir um aplicativo"
+ ],
  "Layouts": [
   "Layouts"
+ ],
+ "Let an agent control the desktop": [
+  "Deixar um agente controlar a área de trabalho"
  ],
  "Let the assistant read and search the files in %s (and below; hidden files, keys and browser data stay closed) for %s": [
   "Deixar o assistente ler e pesquisar os arquivos em %s (e subpastas; arquivos ocultos, chaves e dados do navegador continuam fechados) por %s"
@@ -1146,6 +1197,15 @@
  ],
  "Let the assistant read pages of %s in a separate browser profile (no forms are submitted; other sites stay blocked) for %s": [
   "Deixar o assistente ler páginas de %s num perfil de navegador separado (nenhum formulário é enviado; os outros sites continuam bloqueados) por %s"
+ ],
+ "Let the assistant read something": [
+  "Deixar o assistente ler algo"
+ ],
+ "Let the assistant send a web search, fetch a page or use a remote model for this conversation. What it reads stays data. Asked by the assistant or the person, never by an agent.": [
+  "Deixa o assistente fazer uma pesquisa na web, buscar uma página ou usar um modelo remoto nesta conversa. O que ele lê continua sendo dados. Pedido pelo assistente ou pela pessoa, nunca por um agente."
+ ],
+ "Let the assistant use the web": [
+  "Deixar o assistente usar a web"
  ],
  "Libraries, drivers and services that everything else runs on.": [
   "Bibliotecas, drivers e serviços sobre os quais todo o resto roda."
@@ -1177,6 +1237,12 @@
  "Lock the screen": [
   "Bloquear a tela"
  ],
+ "Lock the screen, log out of the session, suspend, restart or power off the computer. Only from the person's own request or the shell's power menu.": [
+  "Bloqueia a tela, sai da sessão, suspende, reinicia ou desliga o computador. Só a pedido da própria pessoa ou pelo menu de energia do shell."
+ ],
+ "Lock, log out, suspend, restart or power off": [
+  "Bloquear, sair da sessão, suspender, reiniciar ou desligar"
+ ],
  "Log out": [
   "Sair da sessão"
  ],
@@ -1197,6 +1263,9 @@
  ],
  "Mail": [
   "E-mail"
+ ],
+ "Make a window floating (free placement) or tiled.": [
+  "Deixa uma janela flutuante (posição livre) ou lado a lado."
  ],
  "Manual": [
   "Manual"
@@ -1224,6 +1293,12 @@
  ],
  "Minimize": [
   "Minimizar"
+ ],
+ "Minimize a window (hidden; the panel's window list brings it back), maximize it to the usable area, snap it to the left or right half, or restore it (normal: back from minimized, or to its size before maximize or snap).": [
+  "Minimiza uma janela (oculta; a lista de janelas do painel a traz de volta), maximiza na área útil, encaixa na metade esquerda ou direita, ou restaura (normal: volta de minimizada, ou ao tamanho de antes de maximizar ou encaixar)."
+ ],
+ "Minimize, maximize, snap or restore a window": [
+  "Minimizar, maximizar, encaixar ou restaurar uma janela"
  ],
  "Mode": [
   "Modo"
@@ -1260,6 +1335,15 @@
  "Move %d file to %s? Check the list, then confirm. You can undo it afterwards.": [
   "Mover %d arquivo para %s? Confira a lista e confirme. Você pode desfazer depois.",
   "Mover %d arquivos para %s? Confira a lista e confirme. Você pode desfazer depois."
+ ],
+ "Move a window to another workspace without following it.": [
+  "Move uma janela para outra área de trabalho sem ir junto com ela."
+ ],
+ "Move and resize a window": [
+  "Mover e redimensionar uma janela"
+ ],
+ "Move or rename files": [
+  "Mover ou renomear arquivos"
  ],
  "Move to": [
   "Mover para"
@@ -1473,8 +1557,23 @@
  "Open a file": [
   "Abrir um arquivo"
  ],
+ "Open a file found by the files skill with its default application. Only files inside a folder the person granted.": [
+  "Abre um arquivo encontrado pela habilidade de arquivos com o aplicativo padrão dele. Só arquivos dentro de uma pasta que a pessoa permitiu."
+ ],
+ "Open a settings page": [
+  "Abrir uma página das configurações"
+ ],
+ "Open a shell surface": [
+  "Abrir uma parte do shell"
+ ],
  "Open apps: %1. Save your work first: unsaved changes in them may be lost.": [
   "Apps abertos: %1. Salve seu trabalho antes: alterações não salvas neles podem ser perdidas."
+ ],
+ "Open the launcher, command bar, quick settings, activity feed or notification center.": [
+  "Abre o lançador, a barra de comandos, os ajustes rápidos, a atividade ou a central de notificações."
+ ],
+ "Open the shell's settings on a page.": [
+  "Abre as configurações do shell em uma página."
  ],
  "Opening %s. Please confirm.": [
   "Abrindo %s. Confirme."
@@ -1679,6 +1778,9 @@
  "Rename %s to %s? You can undo it afterwards.": [
   "Renomear %s para %s? Você pode desfazer depois."
  ],
+ "Rename or move files inside one folder the person granted. Never deletes, never replaces a file. Only from the person's own request; undo puts them back.": [
+  "Renomeia ou move arquivos dentro de uma pasta que a pessoa permitiu. Nunca apaga nem substitui um arquivo. Só a pedido da própria pessoa; desfazer coloca tudo de volta."
+ ],
  "Repeat speed": [
   "Velocidade da repetição"
  ],
@@ -1696,6 +1798,9 @@
  ],
  "Reset to theme": [
   "Voltar ao tema"
+ ],
+ "Reset tokens": [
+  "Restaurar tokens"
  ],
  "Restart": [
   "Reiniciar"
@@ -1793,6 +1898,15 @@
  "Send a reply to %s: %s": [
   "Enviar uma resposta para %s: %s"
  ],
+ "Send a window to a workspace": [
+  "Enviar uma janela para uma área de trabalho"
+ ],
+ "Send an e-mail reply": [
+  "Enviar uma resposta por e-mail"
+ ],
+ "Send one plain-text reply, to the sender of a message the person named, from the person's mail account. Only from the person's own request; the text can be edited before sending.": [
+  "Envia uma resposta em texto simples ao remetente de uma mensagem que a pessoa indicou, pela conta de e-mail da pessoa. Só a pedido da própria pessoa; o texto pode ser editado antes do envio."
+ ],
  "Send this conversation to the remote model at %s.": [
   "Enviar esta conversa para o modelo remoto em %s."
  ],
@@ -1807,6 +1921,12 @@
  ],
  "September": [
   "setembro"
+ ],
+ "Set motion": [
+  "Definir o movimento"
+ ],
+ "Set one or more design tokens (see theme_get for keys, ranges and current values). Color tokens apply to the current mode unless mode is given.": [
+  "Define um ou mais tokens de design (veja theme_get para as chaves, faixas e valores atuais). Os tokens de cor valem para o modo atual, a menos que mode seja informado."
  ],
  "Settings": [
   "Configurações"
@@ -1831,6 +1951,18 @@
  ],
  "Sheet radius": [
   "Raio das folhas"
+ ],
+ "Show a desktop notification from the assistant.": [
+  "Mostra uma notificação na área de trabalho, vinda do assistente."
+ ],
+ "Show a notification": [
+  "Mostrar uma notificação"
+ ],
+ "Show a screenshot to an agent": [
+  "Mostrar uma captura de tela a um agente"
+ ],
+ "Show a workspace.": [
+  "Mostra uma área de trabalho."
  ],
  "Show all channels": [
   "Mostrar todos os canais"
@@ -1934,8 +2066,14 @@
  "Spoken answers": [
   "Respostas faladas"
  ],
+ "Spoken answers on or off": [
+  "Ligar ou desligar as respostas faladas"
+ ],
  "Stable. Turning it off stops updates of those tools.": [
   "Estável. Desligar interrompe as atualizações dessas ferramentas."
+ ],
+ "Start an installed application by desktop id or name (see apps_list). Only installed desktop entries can be started; there is no free-form command.": [
+  "Abre um aplicativo instalado pelo id do desktop ou pelo nome (veja apps_list). Só entradas de desktop instaladas podem ser abertas; não há comando livre."
  ],
  "Step %1 of %2: %3": [
   "Passo %1 de %2: %3"
@@ -1987,6 +2125,15 @@
  ],
  "Switch layouts": [
   "Trocar de layout"
+ ],
+ "Switch theme or mode": [
+  "Trocar o tema ou o modo"
+ ],
+ "Switch to another theme and/or between light and dark mode. A new theme starts from its own values (the person's token overrides are dropped unless keep_overrides is true); a mode switch keeps them.": [
+  "Troca para outro tema e/ou entre o modo claro e o escuro. Um tema novo começa com os próprios valores (os tokens que a pessoa mudou são descartados, a menos que keep_overrides seja true); a troca de modo os mantém."
+ ],
+ "Switch workspace": [
+  "Trocar de área de trabalho"
  ],
  "System": [
   "Sistema"
@@ -2397,6 +2544,9 @@
  "Turn on preview builds?": [
   "Ligar versões de teste?"
  ],
+ "Turn the person's spoken answers on or off (answers are always shown). Only from the person's own request.": [
+  "Liga ou desliga as respostas faladas da pessoa (as respostas sempre aparecem na tela). Só a pedido da própria pessoa."
+ ],
  "Turned on by Additional drivers, together with the driver.": [
   "Ligado por Drivers adicionais, junto com o driver."
  ],
@@ -2415,6 +2565,9 @@
  "Type accents and symbols in sequence: the compose key, then ' and e, gives é.": [
   "Digite acentos e símbolos em sequência: a tecla de composição, depois ' e e, dá é."
  ],
+ "Type dictated text": [
+  "Digitar o texto ditado"
+ ],
  "Type here to try your layout": [
   "Digite aqui para experimentar seu layout"
  ],
@@ -2427,6 +2580,9 @@
  ],
  "Type this into %1?": [
   "Digitar isto em %1?"
+ ],
+ "Type what the person dictated into the text field that had focus when they spoke (as an input method, not as key presses). Only from the person's own voice.": [
+  "Digita o que a pessoa ditou no campo de texto que estava em foco quando ela falou (como método de entrada, não como teclas). Só pela voz da própria pessoa."
  ],
  "Type your password to unlock": [
   "Digite sua senha para desbloquear"
@@ -2659,6 +2815,9 @@
  "and %1 more": [
   "e mais %1"
  ],
+ "arrange windows side by side": [
+  "organize as janelas lado a lado"
+ ],
  "attached": [
   "fixo"
  ],
@@ -2725,6 +2884,9 @@
  "last year": [
   "ano passado"
  ],
+ "light mode": [
+  "modo claro"
+ ],
  "links or images that would send data out": [
   "links ou imagens que enviariam dados para fora"
  ],
@@ -2733,6 +2895,9 @@
  ],
  "mailbox": [
   "caixa de correio"
+ ],
+ "make it darker with rounder corners": [
+  "deixe mais escuro com cantos mais redondos"
  ],
  "minimized": [
   "minimizada"
@@ -2758,6 +2923,9 @@
  "on this computer": [
   "neste computador"
  ],
+ "open text editor": [
+  "abra o editor de texto"
+ ],
  "owner/project": [
   "dono/projeto"
  ],
@@ -2775,6 +2943,9 @@
  ],
  "stopped before the end: undo it to be sure": [
   "parou antes do fim: desfaça para garantir"
+ ],
+ "system status": [
+  "status do sistema"
  ],
  "taking a snapshot": [
   "fazendo um snapshot"

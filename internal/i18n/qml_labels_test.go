@@ -139,4 +139,130 @@ func TestQMLLabelsTranslated(t *testing.T) {
 	if checked < 200 {
 		t.Fatalf("only %d person-facing properties checked: is the scan broken?", checked)
 	}
+	if models := checkQMLModels(t, files); models < 2 {
+		t.Fatalf("only %d string-array models checked: is the scan broken?", models)
+	}
+}
+
+// A model given as an array literal ("model: [", up to its "]", over
+// several lines too).
+var reQMLModel = regexp.MustCompile(`(?:^|[\s;{])model:\s*\[`)
+
+// checkQMLModels: a Repeater or a list whose model is an array of strings
+// usually shows each string as is (text: modelData), so every element with
+// words must be Tr.t("...") too ("light mode" stayed English in the command
+// bar's suggestions that way). Arrays of arrays or objects (a value and its
+// Tr.t label) are left to the label check; an array of values that the
+// delegate turns into labels itself carries the "// i18n: not text" mark on
+// its model line. It returns how many flat string arrays it checked.
+func checkQMLModels(t *testing.T, files []string) int {
+	checked := 0
+	for _, f := range files {
+		b, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		name := filepath.Base(f)
+		lines := strings.Split(string(b), "\n")
+		// Comments out (outside strings), Tr calls reduced to Tr(), one
+		// text with line starts to report positions.
+		var code strings.Builder
+		starts := make([]int, len(lines))
+		for i, line := range lines {
+			starts[i] = code.Len()
+			c := line
+			if j := strings.Index(c, "//"); j >= 0 && !strings.Contains(c[:j], `"`) && !strings.Contains(c[:j], `'`) {
+				c = c[:j]
+			}
+			if strings.Contains(line, qmlLabelAllowed) {
+				c = "" // the whole line is marked
+			}
+			code.WriteString(reQMLTrCall.ReplaceAllString(c, "Tr()"))
+			code.WriteByte('\n')
+		}
+		src := code.String()
+		lineOf := func(off int) int {
+			n := 0
+			for n+1 < len(starts) && starts[n+1] <= off {
+				n++
+			}
+			return n + 1
+		}
+		for _, m := range reQMLModel.FindAllStringIndex(src, -1) {
+			body, flat := qmlArrayBody(src[m[1]:])
+			if !flat {
+				continue
+			}
+			checked++
+			for _, el := range qmlSplitTop(body) {
+				for _, lit := range qmlShown(el) {
+					if reQMLWords.MatchString(lit) && !reQMLKeys.MatchString(lit) {
+						t.Errorf("%s:%d: model shows %q untranslated, use Tr.t(\"...\")", name, lineOf(m[0]), lit)
+					}
+				}
+			}
+		}
+	}
+	return checked
+}
+
+// qmlArrayBody returns the text of an array literal up to its closing "]"
+// (s starts right after the "["), and whether it is flat: no nested array
+// or object literal among its elements (calls and groupings are fine).
+func qmlArrayBody(s string) (string, bool) {
+	depth, flat := 0, true
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case c == '"' || c == '\'' || c == '`':
+			j := i + 1
+			for j < len(s) && s[j] != c {
+				if s[j] == '\\' {
+					j++
+				}
+				j++
+			}
+			i = j
+		case c == '(':
+			depth++
+		case c == ')':
+			depth--
+		case (c == '[' || c == '{') && depth == 0:
+			flat = false
+			depth++
+		case (c == ']' || c == '}') && depth > 0:
+			depth--
+		case c == ']':
+			return s[:i], flat
+		}
+	}
+	return s, false
+}
+
+// qmlSplitTop splits an array's text at its top-level commas.
+func qmlSplitTop(s string) []string {
+	var out []string
+	depth, start := 0, 0
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case c == '"' || c == '\'' || c == '`':
+			j := i + 1
+			for j < len(s) && s[j] != c {
+				if s[j] == '\\' {
+					j++
+				}
+				j++
+			}
+			i = j
+		case c == '(' || c == '[' || c == '{':
+			depth++
+		case c == ')' || c == ']' || c == '}':
+			depth--
+		case c == ',' && depth == 0:
+			out = append(out, s[start:i])
+			start = i + 1
+		}
+	}
+	return append(out, s[start:])
 }
