@@ -10,12 +10,12 @@ GO ?= go
 GOFLAGS ?= -trimpath
 BUILD := build
 
-.PHONY: all build test test-greeter test-js vet install install-greeter uninstall clean rpm selinux install-selinux help
+.PHONY: all build test test-greeter test-js ci vet install install-greeter uninstall clean rpm selinux install-selinux help
 
 all: build
 
 help:
-	@echo "make build | test | install [PREFIX=/usr/local DESTDIR=] | selinux | install-selinux | rpm | clean"
+	@echo "make build | test | ci | install [PREFIX=/usr/local DESTDIR=] | selinux | install-selinux | rpm | clean"
 	@echo "scripts/install.sh --user | --system   install with dependencies (see README)"
 	@echo "scripts/try-nested.sh [sway|niri]      run a session in a window of your desktop"
 
@@ -38,10 +38,10 @@ test:
 # (greeter/logic.js) and the lock screen's (shell/lock.js, and the rules of
 # shell/Lock.qml that keep the session locked until PAM says yes).
 test-js: test-greeter
-	node --test shell/tests/
+	node --test shell/tests/*.test.js
 
 test-greeter:
-	node --test greeter/tests/
+	node --test greeter/tests/*.test.js
 
 install:
 	test -x $(BUILD)/basalt-shell || $(MAKE) build
@@ -127,6 +127,11 @@ install-selinux:
 
 rpm:
 	scripts/build-rpm.sh
+
+# What CI runs: make test, qmllint, ShellCheck and actionlint in a Fedora
+# container (scripts/ci/check.sh; PODMAN="sudo podman" on the runner).
+ci:
+	scripts/ci/check.sh --container
 
 clean:
 	rm -rf $(BUILD)

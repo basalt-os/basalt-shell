@@ -1,0 +1,40 @@
+# Checks on GitHub-hosted runners: go vet, go test (the translation
+# catalogs, the QML label and model checks, the command bar's chips), the
+# JavaScript tests, qmllint, ShellCheck and actionlint, in a Fedora
+# container. The job calls scripts/ci/check.sh, which also runs locally
+# (make ci). No secrets are used.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**.md", "docs/**", "media/**", "LICENSE", "LICENSE-artwork"]
+  pull_request:
+    paths-ignore: ["**.md", "docs/**", "media/**", "LICENSE", "LICENSE-artwork"]
+  schedule:
+    # Weekly, so a Fedora update that breaks the checks shows up without a commit.
+    - cron: "41 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FEDORA_RELEASE: "44"
+  PODMAN: sudo podman
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: go vet, go test, JavaScript tests, qmllint, ShellCheck, actionlint (Fedora container)
+        run: make ci
