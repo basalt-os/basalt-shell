@@ -106,6 +106,12 @@ Requires:       mesa-dri-drivers
 Requires:       mesa-vulkan-drivers
 Requires:       upower
 Requires:       NetworkManager
+# Wi-Fi: NetworkManager's Wi-Fi plugin and the supplicant it drives. The
+# server system has neither, and without them a laptop has no Wi-Fi at all
+# after the first boot (the vendor firmware comes from the installer's
+# package set).
+Requires:       NetworkManager-wifi
+Requires:       wpa_supplicant
 Requires:       xdg-user-dirs
 Requires:       xdg-utils
 Requires:       adwaita-icon-theme
