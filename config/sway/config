@@ -167,8 +167,10 @@ bindsym $mod+Shift+5 move container to workspace number 5
 bindsym XF86AudioRaiseVolume exec wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
 bindsym XF86AudioLowerVolume exec wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
 bindsym XF86AudioMute exec wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
-bindsym XF86MonBrightnessUp exec brightnessctl set 5%+
-bindsym XF86MonBrightnessDown exec brightnessctl set 5%-
+# Brightness: every backlight of the panel (laptops with a GPU switch have
+# more than one), never below 1% (bin/basalt-brightness).
+bindsym XF86MonBrightnessUp exec basalt-brightness +5%
+bindsym XF86MonBrightnessDown exec basalt-brightness 5%-
 
 # Super+Shift+E: the shell's power menu (lock, log out, suspend,
 # restart, power off; log out, restart and power off ask first). Without

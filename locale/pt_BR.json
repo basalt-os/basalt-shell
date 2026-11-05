@@ -82,6 +82,9 @@
   "%1 atualização está pronta",
   "%1 atualizações estão prontas"
  ],
+ "%1 uses a company login (802.1X): join it in the network settings.": [
+  "%1 usa login corporativo (802.1X): conecte nas configurações de rede."
+ ],
  "%1 was added outside these settings (%2); it is shown, not changed here.": [
   "%1 foi adicionada fora destes ajustes (%2); ela aparece aqui, mas não é alterada aqui."
  ],
@@ -164,6 +167,12 @@
  "%s is outside the folders you allowed.": [
   "%s está fora das pastas que você permitiu."
  ],
+ "%s needs a password.": [
+  "%s pede uma senha."
+ ],
+ "%s uses a company login (802.1X) or WEP: join it in the network settings.": [
+  "%s usa login corporativo (802.1X) ou WEP: conecte nas configurações de rede."
+ ],
  "%s, by %s": [
   "%s, de %s"
  ],
@@ -188,6 +197,9 @@
  ],
  "A COPR project": [
   "Um projeto do COPR"
+ ],
+ "A Wi-Fi password has 8 to 63 characters (or 64 hexadecimal digits), on one line.": [
+  "Uma senha de Wi-Fi tem de 8 a 63 caracteres (ou 64 dígitos hexadecimais), em uma linha."
  ],
  "A coming update of Basalt OS installs drivers such as NVIDIA's from this page. Until then the open drivers in use keep your hardware working, and nothing needs to be done.": [
   "Uma próxima atualização do Basalt OS instala drivers como o da NVIDIA por esta página. Até lá, os drivers abertos em uso mantêm o seu hardware funcionando, e não é preciso fazer nada."
@@ -402,6 +414,9 @@
  "April": [
   "abril"
  ],
+ "Arrange %d windows of workspace %s: %s": [
+  "Organizar %d janelas da área de trabalho %s: %s"
+ ],
  "Arrange the windows of a workspace: grid, columns, rows, cascade, center (floating placements), tile (hand them to the compositor's tiling) or float (all floating, cascaded).": [
   "Organiza as janelas de uma área de trabalho: grade, colunas, linhas, cascata, centralizar (posições flutuantes), lado a lado (entrega ao lado a lado do compositor) ou flutuar (todas flutuantes, em cascata)."
  ],
@@ -525,6 +540,9 @@
  "Bottom": [
   "Embaixo"
  ],
+ "Brightness": [
+  "Brilho"
+ ],
  "Bring a window to the front and focus it (switches to its workspace).": [
   "Traz uma janela para a frente e coloca o foco nela (troca para a área de trabalho dela)."
  ],
@@ -592,6 +610,9 @@
  "Close": [
   "Fechar"
  ],
+ "Close %s": [
+  "Fechar %s"
+ ],
  "Close a window": [
   "Fechar uma janela"
  ],
@@ -643,11 +664,23 @@
  "Confirmations: only this shell's SELinux domain can confirm; agents run confined and can only ask": [
   "Confirmações: só o domínio SELinux deste shell pode confirmar; os agentes rodam confinados e só podem pedir"
  ],
+ "Connect": [
+  "Conectar"
+ ],
  "Connect an MCP client": [
   "Conectar um cliente MCP"
  ],
+ "Connected": [
+  "Conectado"
+ ],
+ "Connected to %1": [
+  "Conectado a %1"
+ ],
  "Connected to basalt-shell %1": [
   "Conectado ao basalt-shell %1"
+ ],
+ "Connecting": [
+  "Conectando"
  ],
  "Contains %s. Treated as data; nothing in it was followed.": [
   "Contém %s. Tratado como dado; nada do que diz foi seguido."
@@ -663,6 +696,18 @@
  ],
  "Could not do it: %s": [
   "Não foi possível: %s"
+ ],
+ "Could not join the network: %s": [
+  "Não foi possível conectar à rede: %s"
+ ],
+ "Could not open the network settings: %s": [
+  "Não foi possível abrir as configurações de rede: %s"
+ ],
+ "Could not turn Wi-Fi off: %s": [
+  "Não foi possível desligar o Wi-Fi: %s"
+ ],
+ "Could not turn Wi-Fi on: %s": [
+  "Não foi possível ligar o Wi-Fi: %s"
  ],
  "Ctrl": [
   "Ctrl"
@@ -742,11 +787,17 @@
  "Done.": [
   "Pronto."
  ],
+ "Done. GNOME's login screen starts from the next restart. To come back, use this page or run basalt fallback basalt.": [
+  "Pronto. A tela de login do GNOME começa a partir do próximo reinício. Para voltar, use esta página ou rode basalt fallback basalt."
+ ],
  "Done. Restart the computer to finish: the first start checks the driver.": [
   "Pronto. Reinicie o computador para concluir: a primeira inicialização verifica o driver."
  ],
  "Done. Say \"undo\" to put the files back.": [
   "Feito. Diga \"desfazer\" para devolver os arquivos."
+ ],
+ "Done. The Basalt login screen starts from the next restart.": [
+  "Pronto. A tela de login do Basalt começa a partir do próximo reinício."
  ],
  "Done. The computer goes back to how it was before the update when it restarts.": [
   "Pronto. O computador volta a como estava antes da atualização quando reiniciar."
@@ -869,6 +920,9 @@
  "Float": [
   "Flutuante"
  ],
+ "Float %s": [
+  "Deixar %s flutuante"
+ ],
  "Float a window and place it at x, y with a size, in global logical pixels (see outputs in desktop_state).": [
   "Deixa uma janela flutuante e a coloca em x, y com um tamanho, em pixels lógicos globais (veja outputs em desktop_state)."
  ],
@@ -880,6 +934,12 @@
  ],
  "Floating": [
   "Flutuante"
+ ],
+ "Focus %s": [
+  "Focar %s"
+ ],
+ "Focus %s (already in its normal state)": [
+  "Focar %s (já está no estado normal)"
  ],
  "Focus a window": [
   "Focar uma janela"
@@ -907,6 +967,18 @@
  ],
  "Full": [
   "Completo"
+ ],
+ "GNOME and its login screen (GDM) are not installed. Install basalt-desktop-gnome-fallback first.": [
+  "O GNOME e a tela de login dele (GDM) não estão instalados. Instale antes o basalt-desktop-gnome-fallback."
+ ],
+ "GNOME as a fallback": [
+  "GNOME como alternativa"
+ ],
+ "GNOME is installed next to Basalt. It cannot lock the screen when the Basalt login screen starts it: while you use GNOME, let GNOME's login screen (GDM) start instead. The change takes effect at the next restart, and you can switch back the same way.": [
+  "O GNOME está instalado ao lado do Basalt. Ele não consegue bloquear a tela quando é iniciado pela tela de login do Basalt: enquanto você usa o GNOME, deixe a tela de login do GNOME (GDM) começar no lugar. A mudança vale a partir do próximo reinício, e você pode voltar do mesmo jeito."
+ ],
+ "GNOME's login screen (GDM) is not installed.": [
+  "A tela de login do GNOME (GDM) não está instalada."
  ],
  "GPU: %1, CPUs: %2, memory: %3 MiB": [
   "GPU: %1, CPUs: %2, memória: %3 MiB"
@@ -1126,6 +1198,9 @@
  "January": [
   "janeiro"
  ],
+ "Joined %s, but the network has not given this computer an address yet. It keeps trying.": [
+  "Conectado a %s, mas a rede ainda não deu um endereço a este computador. Ele continua tentando."
+ ],
  "July": [
   "julho"
  ],
@@ -1179,6 +1254,9 @@
  ],
  "Last resort for apps without a typed action: ask the person for a time-limited control session in which this agent may see the screen and use a virtual keyboard and pointer. The shell shows that an agent is in control and the person can stop it at any time.": [
   "Último recurso para aplicativos sem uma ação tipada: pede à pessoa uma sessão de controle com tempo limitado, em que este agente pode ver a tela e usar um teclado e um ponteiro virtuais. O shell mostra que um agente está no controle e a pessoa pode pará-lo a qualquer momento."
+ ],
+ "Launch %s (%s)": [
+  "Abrir %s (%s)"
  ],
  "Launch an application": [
   "Abrir um aplicativo"
@@ -1255,6 +1333,12 @@
  "Login screen and new accounts": [
   "Tela de login e novas contas"
  ],
+ "Login screen now: Basalt's.": [
+  "Tela de login agora: a do Basalt."
+ ],
+ "Login screen now: GNOME's (GDM).": [
+  "Tela de login agora: a do GNOME (GDM)."
+ ],
  "Looking at the hardware.": [
   "Olhando o hardware."
  ],
@@ -1276,6 +1360,9 @@
  "Maximize": [
   "Maximizar"
  ],
+ "Maximize %s": [
+  "Maximizar %s"
+ ],
  "May": [
   "maio"
  ],
@@ -1293,6 +1380,9 @@
  ],
  "Minimize": [
   "Minimizar"
+ ],
+ "Minimize %s": [
+  "Minimizar %s"
  ],
  "Minimize a window (hidden; the panel's window list brings it back), maximize it to the usable area, snap it to the left or right half, or restore it (normal: back from minimized, or to its size before maximize or snap).": [
   "Minimiza uma janela (oculta; a lista de janelas do painel a traz de volta), maximiza na área útil, encaixa na metade esquerda ou direita, ou restaura (normal: volta de minimizada, ou ao tamanho de antes de maximizar ou encaixar)."
@@ -1321,6 +1411,15 @@
  ],
  "Motion": [
   "Movimento"
+ ],
+ "Motion: auto": [
+  "Movimento: automático"
+ ],
+ "Motion: full": [
+  "Movimento: completo"
+ ],
+ "Motion: reduced": [
+  "Movimento: reduzido"
  ],
  "Move %1 down": [
   "Mover %1 para baixo"
@@ -1369,8 +1468,17 @@
  "Needs NVIDIA's 580 legacy driver (Maxwell, Pascal, Volta)": [
   "Precisa do driver legado 580 da NVIDIA (Maxwell, Pascal, Volta)"
  ],
+ "Needs a password": [
+  "Pede senha"
+ ],
  "Network": [
   "Rede"
+ ],
+ "Network settings": [
+  "Configurações de rede"
+ ],
+ "NetworkManager does not answer: %s": [
+  "O NetworkManager não responde: %s"
  ],
  "Never": [
   "Nunca"
@@ -1410,6 +1518,12 @@
  ],
  "No more updates come from it. What is already installed stays.": [
   "Nenhuma atualização vem mais dele. O que já está instalado fica."
+ ],
+ "No network settings application is installed (nm-connection-editor, or NetworkManager-tui with foot).": [
+  "Nenhum aplicativo de configurações de rede está instalado (nm-connection-editor, ou NetworkManager-tui com foot)."
+ ],
+ "No networks in range.": [
+  "Nenhuma rede ao alcance."
  ],
  "No notifications": [
   "Nenhuma notificação"
@@ -1545,6 +1659,9 @@
  "Open": [
   "Abrir"
  ],
+ "Open %s": [
+  "Abrir %s"
+ ],
  "Open %s with its default application": [
   "Abrir %s com o aplicativo padrão"
  ],
@@ -1568,6 +1685,12 @@
  ],
  "Open apps: %1. Save your work first: unsaved changes in them may be lost.": [
   "Apps abertos: %1. Salve seu trabalho antes: alterações não salvas neles podem ser perdidas."
+ ],
+ "Open network": [
+  "Rede aberta"
+ ],
+ "Open settings: %s": [
+  "Abrir configurações: %s"
  ],
  "Open the launcher, command bar, quick settings, activity feed or notification center.": [
   "Abre o lançador, a barra de comandos, os ajustes rápidos, a atividade ou a central de notificações."
@@ -1616,6 +1739,9 @@
  ],
  "Password": [
   "Senha"
+ ],
+ "Password for %1": [
+  "Senha de %1"
  ],
  "Permission": [
   "Permissão"
@@ -1796,6 +1922,12 @@
  "Reset %1": [
   "Restaurar %1"
  ],
+ "Reset %s": [
+  "Restaurar %s"
+ ],
+ "Reset every token to the theme's values": [
+  "Voltar todos os tokens aos valores do tema"
+ ],
  "Reset to theme": [
   "Voltar ao tema"
  ],
@@ -1829,8 +1961,14 @@
  "Restarting to install updates": [
   "Reiniciando para instalar as atualizações"
  ],
+ "Restore %s": [
+  "Restaurar %s"
+ ],
  "Restore size": [
   "Restaurar tamanho"
+ ],
+ "Restore the size of %s": [
+  "Restaurar o tamanho de %s"
  ],
  "Retry now": [
   "Tentar agora"
@@ -1853,6 +1991,9 @@
  "Save as theme": [
   "Salvar como tema"
  ],
+ "Saved": [
+  "Salva"
+ ],
  "Saved in %1.": [
   "Salvo em %1."
  ],
@@ -1871,6 +2012,9 @@
  "Scrim behind sheets": [
   "Véu atrás das folhas"
  ],
+ "Search again": [
+  "Procurar de novo"
+ ],
  "Search applications": [
   "Buscar aplicativos"
  ],
@@ -1883,6 +2027,9 @@
  "Searching failed: %s": [
   "A pesquisa falhou: %s"
  ],
+ "Searching for networks": [
+  "Procurando redes"
+ ],
  "Secure Boot is on and the Basalt kernel module CA is not enrolled yet, so the kernel would refuse the NVIDIA module. Enroll it first: run sudo basalt-secureboot enroll-mok in a terminal and confirm at the next start (one time only).": [
   "O Secure Boot está ligado e a CA de módulos do kernel do Basalt ainda não foi registrada, então o kernel recusaria o módulo NVIDIA. Registre-a primeiro: rode sudo basalt-secureboot enroll-mok num terminal e confirme na próxima inicialização (só uma vez)."
  ],
@@ -1894,6 +2041,9 @@
  ],
  "Send": [
   "Enviar"
+ ],
+ "Send %s to workspace %s": [
+  "Enviar %s para a área de trabalho %s"
  ],
  "Send a reply to %s: %s": [
   "Enviar uma resposta para %s: %s"
@@ -1921,6 +2071,9 @@
  ],
  "September": [
   "setembro"
+ ],
+ "Set %s": [
+  "Definir %s"
  ],
  "Set motion": [
   "Definir o movimento"
@@ -2008,6 +2161,12 @@
  ],
  "Snap right": [
   "Encaixar à direita"
+ ],
+ "Snap to the left half: %s": [
+  "Encaixar na metade esquerda: %s"
+ ],
+ "Snap to the right half: %s": [
+  "Encaixar na metade direita: %s"
  ],
  "Snapshot %1 holds the system as it was before the install. Rolling back returns to it at the next start; your files in your home folder stay as they are.": [
   "O snapshot %1 guarda o sistema como estava antes da instalação. Voltar a ele vale a partir da próxima inicialização; os seus arquivos na pasta pessoal ficam como estão."
@@ -2123,14 +2282,23 @@
  "Swap with Escape": [
   "Trocar com Esc"
  ],
+ "Switch at the next restart": [
+  "Trocar no próximo reinício"
+ ],
  "Switch layouts": [
   "Trocar de layout"
  ],
  "Switch theme or mode": [
   "Trocar o tema ou o modo"
  ],
+ "Switch to %s": [
+  "Usar %s"
+ ],
  "Switch to another theme and/or between light and dark mode. A new theme starts from its own values (the person's token overrides are dropped unless keep_overrides is true); a mode switch keeps them.": [
   "Troca para outro tema e/ou entre o modo claro e o escuro. Um tema novo começa com os próprios valores (os tokens que a pessoa mudou são descartados, a menos que keep_overrides seja true); a troca de modo os mantém."
+ ],
+ "Switch to workspace %s": [
+  "Ir para a área de trabalho %s"
  ],
  "Switch workspace": [
   "Trocar de área de trabalho"
@@ -2171,11 +2339,17 @@
  "Text size": [
   "Tamanho do texto"
  ],
+ "That is not a network name.": [
+  "Isso não é um nome de rede."
+ ],
  "That is not something the desktop does. Try: \"dark mode\", \"open text editor\", \"arrange windows side by side\", \"why nginx\".": [
   "Isso não é algo que a área de trabalho faz. Experimente: \"modo escuro\", \"abra o editor de texto\", \"organize as janelas lado a lado\", \"por que o nginx\"."
  ],
  "That message has no sender to answer.": [
   "Essa mensagem não tem remetente para responder."
+ ],
+ "That network is not in range any more.": [
+  "Essa rede não está mais ao alcance."
  ],
  "That password did not work. Check Caps Lock and the keyboard layout (%1).": [
   "Essa senha não funcionou. Confira o Caps Lock e o layout do teclado (%1)."
@@ -2318,11 +2492,20 @@
  "The model that understands your requests and writes the summaries. Your administrator decides which ones you may choose.": [
   "O modelo que entende seus pedidos e escreve os resumos. O administrador decide quais você pode escolher."
  ],
+ "The network did not answer in time. Try again closer to it.": [
+  "A rede não respondeu a tempo. Tente de novo mais perto dela."
+ ],
  "The page dictates what the assistant should say. Its summary was withheld; read the page yourself.": [
   "A página dita o que o assistente deve falar. O resumo foi retido; leia a página você mesmo."
  ],
  "The password could not be checked. Try again.": [
   "Não foi possível verificar a senha. Tente de novo."
+ ],
+ "The password was not accepted, or the network did not answer. Check the password and try again.": [
+  "A senha não foi aceita, ou a rede não respondeu. Confira a senha e tente de novo."
+ ],
+ "The password was not accepted. Check it and try again.": [
+  "A senha não foi aceita. Confira e tente de novo."
  ],
  "The permission to read that folder has ended. Allow it again to open the file.": [
   "A permissão para ler essa pasta terminou. Permita de novo para abrir o arquivo."
@@ -2368,6 +2551,9 @@
  ],
  "The system assistant (basalt) is not installed: changing the keyboard of the login screen needs it.": [
   "O assistente do sistema (basalt) não está instalado: mudar o teclado da tela de login precisa dele."
+ ],
+ "The system assistant (basalt) is not installed: changing the login screen needs it.": [
+  "O assistente do sistema (basalt) não está instalado: ele é necessário para trocar a tela de login."
  ],
  "The system assistant on this computer is older than this page. A coming update of Basalt OS brings it.": [
   "O assistente do sistema neste computador é mais antigo que esta página. Uma próxima atualização do Basalt OS traz o que falta."
@@ -2451,6 +2637,15 @@
  "This changes the whole computer, so it needs an administrator's password.": [
   "Isto muda o computador inteiro, então precisa da senha de um administrador."
  ],
+ "This changes the whole computer, so it needs an administrator's password. Nothing changes in the sessions running now.": [
+  "Isso muda o computador inteiro, então pede a senha de um administrador. Nada muda nas sessões abertas agora."
+ ],
+ "This computer has no Wi-Fi adapter that works.": [
+  "Este computador não tem um adaptador Wi-Fi funcionando."
+ ],
+ "This computer has no Wi-Fi adapter that works. A cable or the network settings can connect it.": [
+  "Este computador não tem um adaptador Wi-Fi funcionando. Use um cabo ou as configurações de rede."
+ ],
  "This download offer is no longer open.": [
   "Esta oferta de download não está mais aberta."
  ],
@@ -2480,6 +2675,9 @@
  ],
  "Tile": [
   "Lado a lado"
+ ],
+ "Tile %s": [
+  "Encaixar %s"
  ],
  "To": [
   "Para"
@@ -2632,11 +2830,23 @@
  "Updates will also come from this channel. Its packages are signed with the OpenBasalt release key.": [
   "As atualizações também virão deste canal. Os pacotes dele são assinados com a chave de lançamento da OpenBasalt."
  ],
+ "Use GNOME's login screen": [
+  "Usar a tela de login do GNOME"
+ ],
+ "Use GNOME's login screen (GDM) from the next restart?": [
+  "Usar a tela de login do GNOME (GDM) a partir do próximo reinício?"
+ ],
  "Use for the login screen": [
   "Usar na tela de login"
  ],
  "Use my layouts there too": [
   "Usar meus layouts lá também"
+ ],
+ "Use the Basalt login screen again": [
+  "Voltar à tela de login do Basalt"
+ ],
+ "Use the Basalt login screen from the next restart?": [
+  "Usar a tela de login do Basalt a partir do próximo reinício?"
  ],
  "Use the system's layouts": [
   "Usar os layouts do sistema"
@@ -2728,6 +2938,12 @@
  "Wi-Fi": [
   "Wi-Fi"
  ],
+ "Wi-Fi is off.": [
+  "O Wi-Fi está desligado."
+ ],
+ "Wi-Fi networks": [
+  "Redes Wi-Fi"
+ ],
  "Window corners": [
   "Cantos das janelas"
  ],
@@ -2806,6 +3022,12 @@
  "accent": [
   "destaque"
  ],
+ "accent %s": [
+  "destaque %s"
+ ],
+ "accent %s %s": [
+  "destaque %s %s"
+ ],
  "alert": [
   "alerta"
  ],
@@ -2818,17 +3040,38 @@
  "arrange windows side by side": [
   "organize as janelas lado a lado"
  ],
+ "arrange: %s": [
+  "organizar: %s"
+ ],
  "attached": [
   "fixo"
  ],
  "automatic language detection": [
   "detecção automática do idioma"
  ],
+ "blur off": [
+  "desfoque desligado"
+ ],
+ "blur on": [
+  "desfoque ligado"
+ ],
  "bottom": [
   "embaixo"
  ],
  "checking that everything works": [
   "conferindo se tudo funciona"
+ ],
+ "close %s": [
+  "fechar %s"
+ ],
+ "dark mode": [
+  "modo escuro"
+ ],
+ "darker: surfaces %s darker (%s)": [
+  "mais escuro: superfícies %s mais escuras (%s)"
+ ],
+ "darker: switch to dark mode": [
+  "mais escuro: mudar para o modo escuro"
  ],
  "dddd, MMMM d": [
   "dddd, d 'de' MMMM"
@@ -2845,8 +3088,14 @@
  "downloading": [
   "baixando"
  ],
+ "float %s": [
+  "flutuar %s"
+ ],
  "floating": [
   "flutuante"
+ ],
+ "focus %s": [
+  "focar %s"
  ],
  "folder": [
   "pasta"
@@ -2856,6 +3105,9 @@
  ],
  "full": [
   "completa"
+ ],
+ "full motion": [
+  "animações completas"
  ],
  "hidden text": [
   "texto oculto"
@@ -2884,11 +3136,23 @@
  "last year": [
   "ano passado"
  ],
+ "launch %s": [
+  "abrir %s"
+ ],
  "light mode": [
   "modo claro"
  ],
+ "lighter: surfaces %s lighter (%s)": [
+  "mais claro: superfícies %s mais claras (%s)"
+ ],
+ "lighter: switch to light mode": [
+  "mais claro: mudar para o modo claro"
+ ],
  "links or images that would send data out": [
   "links ou imagens que enviariam dados para fora"
+ ],
+ "local model unavailable (%s)": [
+  "modelo local indisponível (%s)"
  ],
  "look-alike letters": [
   "letras parecidas de outros alfabetos"
@@ -2899,14 +3163,23 @@
  "make it darker with rounder corners": [
   "deixe mais escuro com cantos mais redondos"
  ],
+ "maximized: %s": [
+  "maximizada: %s"
+ ],
  "minimized": [
   "minimizada"
+ ],
+ "minimized: %s": [
+  "minimizada: %s"
  ],
  "multilingual": [
   "multilíngue"
  ],
  "new: %1": [
   "novo: %1"
+ ],
+ "normal: %s": [
+  "normal: %s"
  ],
  "not downloaded": [
   "não baixado"
@@ -2923,11 +3196,23 @@
  "on this computer": [
   "neste computador"
  ],
+ "open settings: %s": [
+  "abrir configurações: %s"
+ ],
  "open text editor": [
   "abra o editor de texto"
  ],
  "owner/project": [
   "dono/projeto"
+ ],
+ "panel at the bottom": [
+  "painel embaixo"
+ ],
+ "panel at the top": [
+  "painel em cima"
+ ],
+ "radius.md %s": [
+  "radius.md %s"
  ],
  "read only": [
   "só leitura"
@@ -2935,14 +3220,68 @@
  "read only, expires by itself": [
   "só leitura, expira sozinha"
  ],
+ "reduced motion": [
+  "movimento reduzido"
+ ],
+ "reset to the theme's values": [
+  "voltar aos valores do tema"
+ ],
+ "rounder corners": [
+  "cantos mais redondos"
+ ],
+ "send %s to workspace %s": [
+  "enviar %s para a área de trabalho %s"
+ ],
+ "session: lock": [
+  "sessão: bloquear"
+ ],
+ "session: log out": [
+  "sessão: sair"
+ ],
+ "session: power off": [
+  "sessão: desligar"
+ ],
+ "session: restart": [
+  "sessão: reiniciar"
+ ],
+ "session: suspend": [
+  "sessão: suspender"
+ ],
+ "sharper corners": [
+  "cantos mais retos"
+ ],
  "shows the boot screen": [
   "mostra a tela de inicialização"
  ],
  "site": [
   "site"
  ],
+ "snap %s left": [
+  "encaixar %s à esquerda"
+ ],
+ "snap %s right": [
+  "encaixar %s à direita"
+ ],
+ "spacing unit %g, gaps %g": [
+  "unidade de espaço %g, vãos %g"
+ ],
+ "spoken answers off": [
+  "respostas faladas desligadas"
+ ],
+ "spoken answers on": [
+  "respostas faladas ligadas"
+ ],
+ "square corners": [
+  "cantos retos"
+ ],
  "stopped before the end: undo it to be sure": [
   "parou antes do fim: desfaça para garantir"
+ ],
+ "system assistant: basalt %s": [
+  "assistente do sistema: basalt %s"
+ ],
+ "system request (fixed phrases): basalt %s": [
+  "pedido ao sistema (frases fixas): basalt %s"
  ],
  "system status": [
   "status do sistema"
@@ -2959,8 +3298,14 @@
  "the last two weeks": [
   "as duas últimas semanas"
  ],
+ "the local model was unsure; used what the fixed phrases understood": [
+  "o modelo local ficou em dúvida; foi usado o que as frases fixas entenderam"
+ ],
  "the mail password file is missing or not private (0600)": [
   "o arquivo de senha do e-mail não existe ou não é privado (0600)"
+ ],
+ "theme %s": [
+  "tema %s"
  ],
  "this month": [
   "este mês"
@@ -2970,6 +3315,9 @@
  ],
  "this year": [
   "este ano"
+ ],
+ "tile %s": [
+  "encaixar %s"
  ],
  "today": [
   "hoje"
@@ -2985,6 +3333,15 @@
  ],
  "undone": [
   "desfeita"
+ ],
+ "window shadows off": [
+  "sombras das janelas desligadas"
+ ],
+ "window shadows on": [
+  "sombras das janelas ligadas"
+ ],
+ "workspace %s": [
+  "área de trabalho %s"
  ],
  "yesterday": [
   "ontem"

@@ -10,7 +10,7 @@ GO ?= go
 GOFLAGS ?= -trimpath
 BUILD := build
 
-.PHONY: all build test test-greeter test-js ci vet install install-greeter uninstall clean rpm selinux install-selinux help
+.PHONY: check-skill-files all build test test-greeter test-js ci vet install install-greeter uninstall clean rpm selinux install-selinux help
 
 all: build
 
@@ -26,8 +26,13 @@ build:
 	$(GO) build $(GOFLAGS) -o $(BUILD)/basalt-shell-ui-launch ./cmd/basalt-shell-ui-launch
 	$(GO) build $(GOFLAGS) -o $(BUILD)/basalt-vm-cursor ./cmd/basalt-vm-cursor
 	$(GO) build $(GOFLAGS) -o $(BUILD)/basalt-greetd-cancel ./cmd/basalt-greetd-cancel
+	$(GO) build $(GOFLAGS) -o $(BUILD)/basalt-greetd-ipc ./cmd/basalt-greetd-ipc
 	$(GO) build $(GOFLAGS) -ldflags "-X main.version=$(VERSION)" -o $(BUILD)/basalt-voiced ./cmd/basalt-voiced
-	$(GO) build $(GOFLAGS) -o $(BUILD)/basalt-skill ./cmd/basalt-skill
+	# The skills worker, four distinct builds (see install): each embeds its
+	# own program name, so no two files are identical.
+	for p in basalt-skill basalt-skill-index basalt-skill-send basalt-skill-files; do \
+		$(GO) build $(GOFLAGS) -ldflags "-X main.program=$$p" -o $(BUILD)/$$p ./cmd/basalt-skill || exit 1; \
+	done
 
 test:
 	$(GO) vet ./...
@@ -43,6 +48,11 @@ test-js: test-greeter
 test-greeter:
 	node --test greeter/tests/*.test.js
 
+# The four skill programs must stay four files (DIR: an installed
+# libexec/basalt-shell, a DESTDIR tree or the RPM build root).
+check-skill-files:
+	scripts/check-skill-files.sh $(DESTDIR)$(PREFIX)/libexec/basalt-shell
+
 install:
 	test -x $(BUILD)/basalt-shell || $(MAKE) build
 	install -Dm755 $(BUILD)/basalt-shell $(DESTDIR)$(PREFIX)/bin/basalt-shell
@@ -50,14 +60,17 @@ install:
 	install -Dm755 $(BUILD)/basalt-shell-ui-launch $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-shell-ui-launch
 	install -Dm755 $(BUILD)/basalt-vm-cursor $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-vm-cursor
 	install -Dm755 $(BUILD)/basalt-greetd-cancel $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-greetd-cancel
+	install -Dm755 $(BUILD)/basalt-greetd-ipc $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-greetd-ipc
 	install -Dm755 $(BUILD)/basalt-voiced $(DESTDIR)$(PREFIX)/bin/basalt-voiced
-	# The skills worker, four times: four files, four SELinux types (read
+	# The skills worker, four programs: four files, four SELinux types (read
 	# content, index documents, send one confirmed e-mail, rename files
-	# inside a grant); each job kind runs only in its own program.
+	# inside a grant); each job kind runs only in its own program. They are
+	# four different builds, never copies or hard links of one file (one
+	# inode carries one label): scripts/check-skill-files.sh checks it.
 	install -Dm755 $(BUILD)/basalt-skill $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill
-	install -Dm755 $(BUILD)/basalt-skill $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-index
-	install -Dm755 $(BUILD)/basalt-skill $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-send
-	install -Dm755 $(BUILD)/basalt-skill $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-files
+	install -Dm755 $(BUILD)/basalt-skill-index $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-index
+	install -Dm755 $(BUILD)/basalt-skill-send $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-send
+	install -Dm755 $(BUILD)/basalt-skill-files $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-files
 	install -Dm644 config/systemd/basalt-voice.service $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-voice.service
 	install -Dm644 config/systemd/80-basalt-shell.preset $(DESTDIR)$(PREFIX)/lib/systemd/user-preset/80-basalt-shell.preset
 	install -Dm644 config/voice/voice.conf $(DESTDIR)$(SYSCONFDIR)/basalt/voice.conf
@@ -66,6 +79,7 @@ install:
 	install -Dm755 bin/basalt-shell-ui $(DESTDIR)$(PREFIX)/bin/basalt-shell-ui
 	install -Dm755 bin/basalt-session $(DESTDIR)$(PREFIX)/bin/basalt-session
 	install -Dm755 bin/basalt-lock $(DESTDIR)$(PREFIX)/bin/basalt-lock
+	install -Dm755 bin/basalt-brightness $(DESTDIR)$(PREFIX)/bin/basalt-brightness
 	install -Dm755 bin/basalt-session-init $(DESTDIR)$(PREFIX)/bin/basalt-session-init
 	install -d $(DESTDIR)$(PREFIX)/share/basalt-shell/qml/wallpapers $(DESTDIR)$(PREFIX)/share/basalt-shell/themes
 	install -m644 shell/*.qml shell/*.js $(DESTDIR)$(PREFIX)/share/basalt-shell/qml/
@@ -78,6 +92,7 @@ install:
 	install -Dm644 config/niri/basalt-theme.kdl $(DESTDIR)$(PREFIX)/share/basalt-shell/niri/basalt-theme.kdl
 	install -Dm644 config/niri/basalt-keyboard.kdl $(DESTDIR)$(PREFIX)/share/basalt-shell/niri/basalt-keyboard.kdl
 	install -Dm644 config/portals/xdpw-config $(DESTDIR)$(PREFIX)/share/basalt-shell/portals/xdpw-config
+	install -Dm644 config/applications/org.basalt.Settings.desktop $(DESTDIR)$(PREFIX)/share/applications/org.basalt.Settings.desktop
 	install -Dm644 config/sessions/basalt-sway.desktop $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-sway.desktop
 	install -Dm644 config/sessions/basalt-niri.desktop $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-niri.desktop
 	install -Dm644 config/portals/sway-portals.conf $(DESTDIR)$(SYSCONFDIR)/xdg/xdg-desktop-portal/sway-portals.conf
@@ -93,7 +108,7 @@ install:
 # the launchers greetd runs, its configuration and runtime directories.
 install-greeter:
 	install -d $(DESTDIR)$(PREFIX)/share/basalt-greeter/qml $(DESTDIR)$(PREFIX)/share/basalt-greeter/locale $(DESTDIR)$(LIBEXECDIR)/basalt-greeter
-	install -m644 greeter/*.qml greeter/logic.js $(DESTDIR)$(PREFIX)/share/basalt-greeter/qml/
+	install -m644 greeter/*.qml greeter/*.js $(DESTDIR)$(PREFIX)/share/basalt-greeter/qml/
 	install -m644 greeter/locale/*.json $(DESTDIR)$(PREFIX)/share/basalt-greeter/locale/
 	install -m644 greeter/sway.conf $(DESTDIR)$(PREFIX)/share/basalt-greeter/sway.conf
 	install -m755 greeter/bin/greeter-session greeter/bin/basalt-greeter greeter/bin/greeter-ui $(DESTDIR)$(LIBEXECDIR)/basalt-greeter/
@@ -102,7 +117,8 @@ install-greeter:
 
 uninstall:
 	rm -rf $(DESTDIR)$(PREFIX)/share/basalt-shell $(DESTDIR)$(LIBEXECDIR)/basalt-shell
-	rm -f $(DESTDIR)$(PREFIX)/bin/basalt-shell $(DESTDIR)$(PREFIX)/bin/basalt-shelld $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-shell-ui-launch $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-vm-cursor $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-greetd-cancel $(DESTDIR)$(PREFIX)/bin/basalt-shell-ui $(DESTDIR)$(PREFIX)/bin/basalt-session $(DESTDIR)$(PREFIX)/bin/basalt-lock $(DESTDIR)$(PREFIX)/bin/basalt-session-init
+	rm -f $(DESTDIR)$(PREFIX)/bin/basalt-shell $(DESTDIR)$(PREFIX)/bin/basalt-shelld $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-shell-ui-launch $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-vm-cursor $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-greetd-cancel $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-greetd-ipc $(DESTDIR)$(PREFIX)/bin/basalt-shell-ui $(DESTDIR)$(PREFIX)/bin/basalt-session $(DESTDIR)$(PREFIX)/bin/basalt-lock $(DESTDIR)$(PREFIX)/bin/basalt-brightness $(DESTDIR)$(PREFIX)/bin/basalt-session-init
+	rm -f $(DESTDIR)$(PREFIX)/share/applications/org.basalt.Settings.desktop
 	rm -f $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-sway.desktop $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-niri.desktop
 	rm -f $(DESTDIR)$(SYSCONFDIR)/xdg/xdg-desktop-portal/sway-portals.conf $(DESTDIR)$(SYSCONFDIR)/xdg/xdg-desktop-portal/niri-portals.conf
 	rm -f $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-session.target $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-headless.service
@@ -123,7 +139,8 @@ selinux:
 install-selinux:
 	semodule -i $(BUILD)/selinux/basalt_shell.pp $(BUILD)/selinux/basalt_greeter.pp
 	restorecon -F $(PREFIX)/bin/basalt-shell $(PREFIX)/bin/basalt-shelld $(PREFIX)/libexec/basalt-shell/basalt-shell-ui-launch \
-		$(PREFIX)/bin/basalt-voiced $(PREFIX)/libexec/basalt-shell/basalt-skill $(PREFIX)/libexec/basalt-shell/basalt-skill-index
+		$(PREFIX)/bin/basalt-voiced $(PREFIX)/libexec/basalt-shell/basalt-skill $(PREFIX)/libexec/basalt-shell/basalt-skill-index \
+		$(PREFIX)/libexec/basalt-shell/basalt-skill-send $(PREFIX)/libexec/basalt-shell/basalt-skill-files
 
 rpm:
 	scripts/build-rpm.sh

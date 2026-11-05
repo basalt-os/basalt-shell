@@ -71,12 +71,12 @@ func (c *Core) Ask(ctx context.Context, text string) AskResult {
 		cancel()
 		switch {
 		case err != nil:
-			r.Explain = append(r.Explain, "local model unavailable ("+err.Error()+")")
+			r.Explain = append(r.Explain, i18n.G("local model unavailable (%s)", err.Error()))
 		case len(mr.Calls) > 0 || mr.AskSystem:
 			r = mr
 		case len(rr.Calls) > 0:
 			r.Model = mr.Model
-			r.Explain = append(r.Explain, "the local model was unsure; used what the fixed phrases understood")
+			r.Explain = append(r.Explain, i18n.G("the local model was unsure; used what the fixed phrases understood"))
 		default:
 			r = mr
 		}
@@ -94,10 +94,10 @@ func (c *Core) Ask(ctx context.Context, text string) AskResult {
 		out, err := c.Assistant.Ask(ctx, text)
 		if args := assistant.Understood(out); len(args) > 0 && err == nil {
 			r.System = args
-			res.Explain = append(res.Explain, "system assistant: basalt "+strings.Join(args, " "))
+			res.Explain = append(res.Explain, i18n.G("system assistant: basalt %s", strings.Join(args, " ")))
 		} else if rr := intent.Rules(text, ictx); len(rr.System) > 0 {
 			r.System = rr.System
-			res.Explain = append(res.Explain, "system request (fixed phrases): basalt "+strings.Join(rr.System, " "))
+			res.Explain = append(res.Explain, i18n.G("system request (fixed phrases): basalt %s", strings.Join(rr.System, " ")))
 		} else {
 			res.Kind, res.Text = "system", strings.TrimSpace(out)
 			if res.Text == "" && err != nil {
@@ -157,6 +157,19 @@ func (c *Core) Ask(ctx context.Context, text string) AskResult {
 }
 
 // AssistantApply runs an assistant proposal the person accepted.
+// AssistantChecks are the checks of an applied proposal in the reader's
+// language (nil when the assistant has none or cannot be asked).
+func (c *Core) AssistantChecks(ctx context.Context, id string) []assistant.CheckLine {
+	if c.Assistant == nil {
+		return nil
+	}
+	p, err := c.Assistant.Show(ctx, id)
+	if err != nil {
+		return nil
+	}
+	return p.CheckLines
+}
+
 func (c *Core) AssistantApply(ctx context.Context, id, code string) (string, error) {
 	if c.Assistant == nil {
 		return "", fmt.Errorf("the system assistant is not installed")

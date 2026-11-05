@@ -23,6 +23,10 @@ PanelWindow {
     WlrLayershell.keyboardFocus: Ui.commandBar && !Ui.modal ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     property var result: null      // AskResult from the daemon
+    // The checks that ran after the system assistant applied a proposal,
+    // in the session's language when the assistant translates them
+    // (check_lines: checks_local and checks_output_local, else English).
+    property var applyChecks: []
     property bool busy: false
     property string status: ""     // after Apply / Ignore
     property bool statusOk: true
@@ -121,11 +125,13 @@ PanelWindow {
     function assistantDecide(apply) {
         if (!assist) return;
         busy = true;
+        applyChecks = [];
         status = apply ? Tr.t("Waiting for authentication") : "";
         const handle = (ok, res) => {
             busy = false;
             statusOk = ok && res.ok;
             status = (statusOk ? (apply ? Tr.t("Applied by the system assistant.") : Tr.t("Ignored.")) : Tr.t("Not applied.")) ;
+            win.applyChecks = ok && res.checks ? res.checks : [];
             if (ok && res.output) win.result = { kind: "system", text: res.output };
             Bus.refreshAssistant();
         };
@@ -495,6 +501,19 @@ PanelWindow {
                     spacing: Theme.s2
                     Icon { name: win.statusOk ? "check" : "info"; color: win.statusOk ? Theme.success : Theme.warning; size: Theme.fontLarge * 1.3 }
                     Txt { text: win.status; color: win.statusOk ? Theme.success : Theme.warning; font.weight: Font.Medium }
+                }
+                Repeater {
+                    model: win.status !== "" ? win.applyChecks : []
+                    delegate: Row {
+                        required property var modelData
+                        spacing: Theme.s2
+                        Icon { name: modelData.ok ? "check" : "warning"; color: modelData.ok ? Theme.success : Theme.warning; size: Theme.fontSize * 1.2 }
+                        Txt {
+                            width: Math.min(implicitWidth, card.width - Theme.s8 * 2)
+                            wrapMode: Text.Wrap; elide: Text.ElideNone; role: "small"
+                            text: modelData.output ? Tr.t("%1: %2").arg(modelData.what).arg(modelData.output) : modelData.what
+                        }
+                    }
                 }
             }
         }

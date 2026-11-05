@@ -1,0 +1,8 @@
+[Desktop Entry]
+# Basalt desktop: kept out of the launcher (the shell themes Qt apps and
+# starts foot itself). Same desktop id as the package's entry, earlier
+# in XDG_DATA_DIRS, so only the Basalt session hides it.
+Type=Application
+Name=Qt6 Settings
+Exec=qt6ct
+NoDisplay=true

@@ -12,7 +12,9 @@
 # updates and channels (their reports; storing a proposal, which changes
 # nothing until the person applies it), keyboard (the system's keyboard
 # report, or storing the keyboard.system proposal: localectl runs only in
-# the assistant's executor, after the person applied it). Package queries never run here:
+# the assistant's executor, after the person applied it), fallback (the
+# GNOME fallback's display manager: storing the desktop.fallback
+# proposal; systemctl runs only in the assistant's executor). Package queries never run here:
 # the updates and drivers reports are the ones the assistant's root units
 # wrote (basalt-updates-check, basalt-drivers-refresh), and a test of the
 # shell (internal/assistant/policy_test.go) refuses rpm or dnf in this
@@ -127,5 +129,14 @@ case "$cmd" in
     esac
     [ "$ok" = yes ] || { echo "refused argument" >&2; exit 3; }
     exec basalt keyboard "$@" ;;
+  fallback)
+    # The GNOME fallback's display manager: the report, or storing the
+    # desktop.fallback proposal (GDM while GNOME is used, greetd again);
+    # the units are switched only by the assistant's executor, after the
+    # person applied it.
+    case "$*" in
+      "--json" | "gnome --json" | "basalt --json") exec basalt fallback "$@" ;;
+      *) echo "refused argument" >&2; exit 3 ;;
+    esac ;;
   *) echo "refused: $cmd is not a read command" >&2; exit 3 ;;
 esac

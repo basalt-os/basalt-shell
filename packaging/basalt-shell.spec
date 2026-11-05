@@ -1,6 +1,11 @@
 # Go binaries built with -trimpath; no separate debuginfo for the prototype.
 %global debug_package %{nil}
 %global selinuxtype targeted
+# No hard link pass over the build root: the four skill programs under
+# libexec/basalt-shell have four SELinux types, and one inode carries one
+# label (they are distinct builds anyway; %%check fails on shared inodes).
+%global __os_install_post_hardlink %{nil}
+%global __brp_linkdupes %{nil}
 
 Name:           basalt-shell
 Version:        %{basalt_version}
@@ -59,6 +64,8 @@ Recommends:     jetbrains-mono-fonts
 Recommends:     swayidle
 # The lock screen's fallback when the shell UI is not running (basalt-lock).
 Requires:       swaylock
+# Brightness keys and the quick settings slider (basalt-brightness).
+Requires:       brightnessctl
 Recommends:     wl-clipboard
 Recommends:     cliphist
 Recommends:     slurp
@@ -106,6 +113,17 @@ Requires:       mesa-dri-drivers
 Requires:       mesa-vulkan-drivers
 Requires:       upower
 Requires:       NetworkManager
+# Wi-Fi: NetworkManager's Wi-Fi plugin and the supplicant it drives. The
+# server system has neither, and without them a laptop has no Wi-Fi at all
+# after the first boot (the vendor firmware comes from the installer's
+# package set).
+Requires:       NetworkManager-wifi
+Requires:       wpa_supplicant
+# Joining networks: quick settings lists Wi-Fi networks through nmcli; the
+# "Network settings" button opens nm-connection-editor (hidden networks,
+# 802.1X, VPN, static addresses), or nmtui in a terminal.
+Requires:       NetworkManager-tui
+Requires:       nm-connection-editor
 Requires:       xdg-user-dirs
 Requires:       xdg-utils
 Requires:       adwaita-icon-theme
@@ -154,6 +172,26 @@ default apps (foot, Files, Text Editor, Firefox), Flatpak with the
 Flathub remote, and GCR's SSH agent. The graphical target is
 set by the installer.
 
+%package -n basalt-desktop-gnome-fallback
+Summary:        GNOME as a fallback session of the Basalt OS desktop edition
+BuildArch:      noarch
+Requires:       basalt-desktop = %{version}-%{release}
+Requires:       gnome-shell
+Requires:       gnome-session-wayland-session
+Requires:       ptyxis
+Requires:       gnome-control-center
+
+%description -n basalt-desktop-gnome-fallback
+GNOME next to the Basalt session, as a fallback: the login screen lists
+"GNOME" next to "Basalt", with GNOME's terminal (Ptyxis) and Settings.
+Install it with --exclude=gnome-initial-setup,gnome-software,PackageKit*,
+gnome-classic-session,gnome-tour (the installer does). greetd and the
+Basalt login screen stay the display manager (basalt-desktop's preset
+disables gdm.service); GNOME has no screen lock without GDM, so switching
+the display manager while GNOME is in use is an explicit, confirmed step.
+The fallback has none of the Basalt shell's features and shares GNOME's
+appearance settings, which the Basalt session sets at each login.
+
 %package -n basalt-greeter
 Summary:        Basalt OS login screen: a graphical greetd greeter
 BuildArch:      noarch
@@ -165,6 +203,11 @@ Requires:       quickshell
 Requires:       sway
 # The text login, when the graphical one cannot run.
 Requires:       tuigreet
+# The languages the login screen offers: a session started in one of
+# them needs its glibc locale, else the login shell's lang.sh drops LANG
+# for /etc/locale.conf's.
+Requires:       glibc-langpack-en
+Requires:       glibc-langpack-pt
 Requires:       util-linux
 Requires:       rsms-inter-fonts
 Requires:       adwaita-cursor-theme
@@ -226,6 +269,10 @@ make install DESTDIR=%{buildroot} PREFIX=%{_prefix} SYSCONFDIR=%{_sysconfdir} LI
 install -Dpm 0644 config/desktop/greetd.toml %{buildroot}%{_sysconfdir}/basalt/greetd.toml
 install -Dpm 0644 config/desktop/greetd-basalt.conf %{buildroot}%{_unitdir}/greetd.service.d/50-basalt.conf
 install -Dpm 0644 config/desktop/80-basalt-desktop.preset %{buildroot}%{_presetdir}/80-basalt-desktop.preset
+# Launcher overrides of the Basalt session (bin/basalt-session puts this
+# directory first in XDG_DATA_DIRS): helper entries hidden.
+install -d %{buildroot}%{_datadir}/basalt-desktop/applications
+install -pm 0644 config/desktop/applications/*.desktop %{buildroot}%{_datadir}/basalt-desktop/applications/
 # Application defaults (GSettings vendor override; glib2's file trigger
 # compiles the schemas). Keys of applications that are not installed are
 # skipped by glib-compile-schemas.
@@ -237,6 +284,10 @@ for m in basalt_shell basalt_greeter; do
     install -Dpm 0644 $m.pp.bz2 %{buildroot}%{_datadir}/selinux/packages/%{selinuxtype}/$m.pp.bz2
     install -Dpm 0644 selinux/$m.if %{buildroot}%{_datadir}/selinux/devel/include/distributed/$m.if
 done
+
+%check
+# The four skill programs: four files, four labels (see the top).
+scripts/check-skill-files.sh %{buildroot}%{_libexecdir}/basalt-shell
 
 %post
 # The voice service starts with every person's session (user preset).
@@ -312,10 +363,12 @@ fi
 %{_bindir}/basalt-shell-ui
 %{_bindir}/basalt-session
 %{_bindir}/basalt-lock
+%{_bindir}/basalt-brightness
 %{_bindir}/basalt-session-init
 %{_datadir}/basalt-shell/
 %exclude %{_datadir}/basalt-shell/niri/
 %{_datadir}/wayland-sessions/basalt-sway.desktop
+%{_datadir}/applications/org.basalt.Settings.desktop
 %config(noreplace) %{_sysconfdir}/xdg/xdg-desktop-portal/sway-portals.conf
 %{_userunitdir}/basalt-session.target
 %{_userunitdir}/basalt-headless.service
@@ -340,9 +393,13 @@ fi
 %dir %{_unitdir}/greetd.service.d
 %{_unitdir}/greetd.service.d/50-basalt.conf
 %{_presetdir}/80-basalt-desktop.preset
+%{_datadir}/basalt-desktop/
 %{_datadir}/glib-2.0/schemas/50_basalt-desktop.gschema.override
 %dir %{_datadir}/flatpak/remotes.d
 %{_datadir}/flatpak/remotes.d/flathub.flatpakrepo
+
+# A metapackage: no files of its own.
+%files -n basalt-desktop-gnome-fallback
 
 %files -n basalt-greeter
 %license LICENSE
@@ -365,6 +422,26 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Thu Nov 05 2026 Basalt OS developers - 0.10.5-1
+- Login screen: an own greetd client (its state machine in greetd.js,
+  with Node tests); a wrong password shows the error and lets the person
+  try again, a greetd answer that never comes times out instead of
+  hanging, and the language picker sets the session's LANG.
+  basalt-greeter requires the langpacks of its languages.
+- Wi-Fi list and join from quick settings: the password reaches nmcli
+  through a passwd-file, escaped (spaces, quotes, backslashes, $, #,
+  non-ASCII letters) and checked for length; a refused network is
+  removed again. nm-connection-editor opens even without a desktop
+  entry. basalt-desktop requires NetworkManager-wifi and wpa_supplicant.
+- GNOME fallback: basalt-desktop-gnome-fallback, gdm kept disabled by
+  preset; the login screen switches to GDM while GNOME is used and back
+  (basalt fallback, assistant 0.13.4); About reads the state each time
+  it opens.
+- Brightness keys and a brightness slider; long quick settings labels
+  wrap; helper entries hidden from the launcher, Settings listed.
+- Fixed-phrase proposals and applied checks in the session's language.
+- SELinux: four distinct skill programs, never hard links.
+
 * Wed Oct 21 2026 Basalt OS developers - 0.10.4-1
 - Settings, Assistant and AI: the available actions list shows each
   action's title and description in the session's language (the

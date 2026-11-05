@@ -1,10 +1,13 @@
 package greetd
 
 import (
+	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"net"
 	"os"
 	"sync"
+	"time"
 )
 
 // Fake is a greetd stand-in for tests and the lab: users with passwords,
@@ -31,6 +34,11 @@ type Fake struct {
 	NoticeType string
 	// Locked users get the notice "The account is locked" and an auth_error.
 	Locked map[string]bool
+	// Split writes each answer like greetd itself does: the length and
+	// the JSON in two writes, a moment apart. A client that reads one
+	// length and one body per "data ready" event breaks on it (the
+	// login screen hung on Quickshell's client, release audit 2026-11).
+	Split bool
 
 	mu       sync.Mutex
 	started  []Started
@@ -105,10 +113,32 @@ func (f *Fake) serve(c net.Conn) {
 		resp := f.handle(&conv, req)
 		// The answer is not kept.
 		req.Response = nil
+		if f.Split {
+			if err := writeSplit(c, resp); err != nil {
+				return
+			}
+			continue
+		}
 		if err := Write(c, resp); err != nil {
 			return
 		}
 	}
+}
+
+// writeSplit sends one message as two writes: the length, then the JSON.
+func writeSplit(c net.Conn, v any) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	var hdr [4]byte
+	binary.NativeEndian.PutUint32(hdr[:], uint32(len(b)))
+	if _, err := c.Write(hdr[:]); err != nil {
+		return err
+	}
+	time.Sleep(20 * time.Millisecond)
+	_, err = c.Write(b)
+	return err
 }
 
 func errResp(kind, desc string) Response {

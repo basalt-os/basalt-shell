@@ -2,11 +2,10 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
-import Quickshell.Services.Greetd
 import "logic.js" as L
 
-// The login conversation with greetd (through Quickshell's greetd client:
-// create_session, answers to PAM's questions, start_session). The
+// The login conversation with greetd (through GreetdIpc and its helper
+// program: create_session, answers to PAM's questions, start_session). The
 // password goes from the field to greetd and nowhere else: it is never
 // logged or written anywhere, and held in memory only when Enter comes
 // before PAM's question (until the question arrives, then dropped).
@@ -52,7 +51,7 @@ Singleton {
     function setRawError(text) { errorId = ""; errorArg = ""; errorRaw = text; }
     function clearError() { errorId = ""; errorArg = ""; errorRaw = ""; }
     property int failures: 0
-    readonly property bool available: Greetd.available
+    readonly property bool available: GreetdIpc.available
     readonly property bool busy: phase === "checking" || phase === "launching"
     property bool capsGuess: false
     readonly property bool capsOn: Sys.capsLed !== null ? Sys.capsLed : capsGuess
@@ -82,12 +81,10 @@ Singleton {
         else
             setError(L.N_("That password did not work. Try again."));
         notice = "";
-        expectCancelReply = true;
         failed();
         phase = "idle";
         retry();
     }
-    property bool expectCancelReply: false
     signal launching()
 
     function choose(u) {
@@ -106,14 +103,13 @@ Singleton {
         if (otherName !== "") restart();
     }
     function cancel() {
-        if (Greetd.state !== GreetdState.Inactive) Greetd.cancelSession();
+        if (!GreetdIpc.inactive) GreetdIpc.cancelSession();
         phase = "idle"; promptText = ""; info = ""; notice = ""; answerPending = false; pendingAnswer = null;
     }
     // restart begins a new conversation for the chosen user (after a
-    // failure PAM's conversation is over). greetd answers every request,
-    // cancel included, and Quickshell's client takes a late "success" for
-    // the cancel as the end of the next conversation's authentication: the
-    // new conversation starts only after that answer is in (a short wait).
+    // failure PAM's conversation is over). The answer to the cancel and to
+    // anything asked before it is dropped by GreetdIpc; the short wait only
+    // keeps quick changes of person from starting several conversations.
     function restart() {
         cancel();
         clearError();
@@ -130,9 +126,8 @@ Singleton {
         id: startTimer
         interval: 350
         onTriggered: {
-            if (login.userName === "" || Greetd.state !== GreetdState.Inactive) return;
-            login.expectCancelReply = false;
-            Greetd.createSession(login.userName);
+            if (login.userName === "" || !GreetdIpc.inactive) return;
+            GreetdIpc.createSession(login.userName);
         }
     }
 
@@ -143,14 +138,14 @@ Singleton {
         if (phase === "ready") { launch(); return; }
         if (phase !== "prompt") {
             // PAM has not asked yet: keep the answer until it does.
-            if (Greetd.state === GreetdState.Inactive && !startTimer.running) restart();
+            if (GreetdIpc.inactive && !startTimer.running) restart();
             answerPending = true;
             pendingAnswer = answer;
             phase = "checking";
             return;
         }
         phase = "checking";
-        Greetd.respond(answer);
+        GreetdIpc.respond(answer);
     }
 
     // retry: a new conversation after a failure, keeping the message.
@@ -171,11 +166,32 @@ Singleton {
     Timer {
         id: launchTimer
         interval: Math.max(G.slow * 1.6, 360)
-        onTriggered: Greetd.launch(login.session.command, login.session.env, true)
+        onTriggered: GreetdIpc.launch(login.session.command, L.sessionEnv(login.session.env, I18n.chosen, I18n.systemLang), true)
+    }
+
+    // A conversation that stops answering (greetd or PAM stuck, the
+    // connection lost) never leaves a spinner turning forever: after a
+    // while the connection is dropped and opened again, the person is told
+    // and can try again. PAM's delay after a wrong password is a few
+    // seconds; a fingerprint reader's question is a prompt, not a wait.
+    readonly property int checkTimeout: 30000
+    Timer {
+        id: stuckTimer
+        interval: login.checkTimeout
+        running: login.phase === "checking" || login.phase === "launching"
+        onTriggered: {
+            console.warn("login: no answer from greetd in", interval, "ms, starting over");
+            login.answerPending = false;
+            login.pendingAnswer = null;
+            GreetdIpc.reset();
+            login.setError(L.N_("The login did not answer in time. Try again."));
+            login.phase = "idle";
+            login.retry();
+        }
     }
 
     Connections {
-        target: Greetd
+        target: GreetdIpc
         function onAuthMessage(message, isError, responseRequired, echoResponse) {
             if (!responseRequired) {
                 // Information from PAM ("your password expires in 3 days"),
@@ -191,7 +207,7 @@ Singleton {
                 login.answerPending = false;
                 login.pendingAnswer = null;
                 login.phase = "checking";
-                Greetd.respond(a);
+                GreetdIpc.respond(a);
                 return;
             }
             login.answerPending = false;
@@ -208,14 +224,9 @@ Singleton {
             else login.phase = "ready";
         }
         function onError(err) {
-            // After a refused password Quickshell cancels the conversation,
-            // and greetd 0.10 answers that cancel with an error (its worker
-            // is already gone): expected, not a new problem.
-            if (login.expectCancelReply) {
-                login.expectCancelReply = false;
-                login.retry();
-                return;
-            }
+            // (greetd 0.10's error for the cancel after a refused password
+            // never gets here: GreetdIpc drops the answers to cancels.)
+            console.warn("login: greetd:", err);
             login.setError(L.N_("Something went wrong while logging in. Try again."));
             login.phase = "idle";
             login.retry();

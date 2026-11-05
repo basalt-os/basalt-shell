@@ -1,0 +1,15 @@
+[Desktop Entry]
+# The shell's Settings window, listed in the launcher like an app. Only in
+# the Basalt session: it talks to the running Basalt shell.
+Type=Application
+Name=Settings
+Name[pt_BR]=Configurações
+Comment=Appearance, keyboard, updates, drivers, assistant and AI
+Comment[pt_BR]=Aparência, teclado, atualizações, drivers, assistente e IA
+Keywords=preferences;settings;control;theme;keyboard;updates;
+Keywords[pt_BR]=preferências;configurações;controle;tema;teclado;atualizações;
+Icon=preferences-system
+Exec=basalt-shell-ui ipc call shell settingsPage appearance
+Categories=Settings;
+OnlyShowIn=Basalt;
+NoDisplay=false

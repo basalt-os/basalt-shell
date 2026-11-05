@@ -111,9 +111,21 @@ type IndexStats struct {
 	Errors  []string `json:"errors,omitempty"`
 }
 
+// program is the name this binary was built for (make build sets it with
+// -X main.program=...). The four installed programs are four distinct
+// builds, not copies: identical files would be merged into one inode by
+// rpmbuild's hard link pass and could then carry only one SELinux label,
+// so every job would run in a single domain. Built without it (go run,
+// tests), the binary answers to whatever name it has.
+var program string
+
 func main() {
 	self := filepath.Base(os.Args[0])
 	out := json.NewEncoder(os.Stdout)
+	if program != "" && self != program && !anyKind {
+		_ = out.Encode(Result{Error: "this is " + program + ", started as " + self})
+		os.Exit(1)
+	}
 	if err := harden.NoNewPrivs(); err != nil {
 		_ = out.Encode(Result{Error: "no_new_privs: " + err.Error()})
 		os.Exit(1)

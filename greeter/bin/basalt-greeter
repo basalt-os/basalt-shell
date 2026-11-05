@@ -72,6 +72,8 @@ export QT_LOGGING_RULES="*.debug=false"
 # and the greeter has no session bus (only the system bus: logind,
 # NetworkManager, UPower).
 unset QT_PLUGIN_PATH QML2_IMPORT_PATH QML_IMPORT_PATH LD_PRELOAD LD_LIBRARY_PATH QT_QPA_PLATFORMTHEME DBUS_SESSION_BUS_ADDRESS
+# The program that holds greetd's socket is always the installed one.
+unset BASALT_GREETD_IPC
 # QML runs interpreted: no just-in-time code, so the domain needs no
 # executable shared memory.
 export QV4_FORCE_INTERPRETER=1

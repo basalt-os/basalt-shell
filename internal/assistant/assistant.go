@@ -79,6 +79,9 @@ func readArgs(args []string) error {
 	if args[0] == "security" {
 		return securityArgs(args[1:])
 	}
+	if args[0] == "fallback" {
+		return fallbackArgs(args[1:])
+	}
 	for _, a := range args {
 		if !reWord.MatchString(a) && !strings.HasPrefix(a, "--") {
 			return fmt.Errorf("invalid argument %q", a)
@@ -305,6 +308,58 @@ type Proposal struct {
 	// ReportOnly: nothing to apply, a report to read ("Nothing will be
 	// changed"). The desktop does not count it as waiting for a decision.
 	ReportOnly bool `json:"report_only"`
+	// Result is the outcome of an apply: the checks that ran after it.
+	Result *ProposalResult `json:"result,omitempty"`
+	// ChecksLocal and ChecksOutputLocal are result.checks[].what and
+	// .output in the reader's language, in the same order (the assistant
+	// writes them when its catalog has a translation; checks_output_local
+	// since basalt-assistant with basalt-os 538d69b).
+	ChecksLocal       []string `json:"checks_local,omitempty"`
+	ChecksOutputLocal []string `json:"checks_output_local,omitempty"`
+	// CheckLines are the checks as the desktop shows them: the localized
+	// text when there is one, else the English reference.
+	CheckLines []CheckLine `json:"check_lines,omitempty"`
+}
+
+// ProposalResult is the part of an apply's result the desktop shows.
+type ProposalResult struct {
+	OK     bool   `json:"ok"`
+	Checks []Step `json:"checks"`
+}
+
+// Step is one check outcome of an apply.
+type Step struct {
+	What   string `json:"what"`
+	OK     bool   `json:"ok"`
+	Output string `json:"output,omitempty"`
+}
+
+// CheckLine is one check of an applied proposal, ready to show.
+type CheckLine struct {
+	What   string `json:"what"`
+	Output string `json:"output,omitempty"`
+	OK     bool   `json:"ok"`
+}
+
+// localChecks fills CheckLines from the result, preferring the
+// assistant's localized texts (checks_local, checks_output_local) and
+// falling back to the English ones (an older assistant, or no
+// translation).
+func (p *Proposal) localChecks() {
+	p.CheckLines = nil
+	if p.Result == nil {
+		return
+	}
+	for i, c := range p.Result.Checks {
+		l := CheckLine{What: c.What, Output: c.Output, OK: c.OK}
+		if i < len(p.ChecksLocal) && p.ChecksLocal[i] != "" {
+			l.What = p.ChecksLocal[i]
+		}
+		if i < len(p.ChecksOutputLocal) && p.ChecksOutputLocal[i] != "" {
+			l.Output = p.ChecksOutputLocal[i]
+		}
+		p.CheckLines = append(p.CheckLines, l)
+	}
 }
 
 // markReports sets ReportOnly on proposals without changes and shows
@@ -372,6 +427,7 @@ func (b *Bridge) Show(ctx context.Context, id string) (Proposal, error) {
 		return p, err
 	}
 	p.localTitle()
+	p.localChecks()
 	text, err := b.Read(ctx, []string{"show", id})
 	if err != nil {
 		return p, err
@@ -574,6 +630,11 @@ func Understood(out string) []string {
 	}
 	// The keyboard: storing keyboard.system starts from Settings, Keyboard.
 	if args[0] == "keyboard" && (len(args) < 2 || args[1] == "set") {
+		return nil
+	}
+	// The fallback's login screen: storing desktop.fallback starts from
+	// Settings, About (or basalt fallback in a terminal).
+	if args[0] == "fallback" && len(args) > 1 && args[1] != "--json" {
 		return nil
 	}
 	return args

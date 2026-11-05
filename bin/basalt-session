@@ -86,6 +86,14 @@ data=${XDG_DATA_DIRS:-/usr/local/share:/usr/share}
 for d in /var/lib/flatpak/exports/share "${XDG_DATA_HOME:-$HOME/.local/share}/flatpak/exports/share"; do
   case ":$data:" in *":$d:"*) ;; *) data="$d:$data" ;; esac
 done
+# The desktop edition's launcher overrides (basalt-desktop): entries with
+# the same desktop id as a package's, NoDisplay=true, so helpers such as
+# Foot Server or Qt5 Settings stay out of the Basalt launcher and menus
+# (other sessions, GNOME included, do not read this directory).
+d=/usr/share/basalt-desktop
+if [ -d "$d/applications" ]; then
+  case ":$data:" in *":$d:"*) ;; *) data="$d:$data" ;; esac
+fi
 export XDG_DATA_DIRS=$data
 unset data d
 # SSH keys: GCR's SSH agent (the one GNOME uses) holds them for the

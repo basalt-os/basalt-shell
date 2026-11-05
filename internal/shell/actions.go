@@ -12,6 +12,7 @@ import (
 
 	"github.com/basalt-os/basalt-shell/internal/apps"
 	"github.com/basalt-os/basalt-shell/internal/compositor"
+	"github.com/basalt-os/basalt-shell/internal/i18n"
 	"github.com/basalt-os/basalt-shell/internal/theme"
 )
 
@@ -197,7 +198,7 @@ var Actions = []*ActionDef{
 			if err != nil {
 				return step{}, err
 			}
-			return step{Summary: "Focus " + label(w), run: func(ctx context.Context) (any, error) {
+			return step{Summary: i18n.G("Focus %s", label(w)), run: func(ctx context.Context) (any, error) {
 				return nil, p.c.Comp.Focus(ctx, w.ID)
 			}}, nil
 		},
@@ -211,7 +212,7 @@ var Actions = []*ActionDef{
 			if err != nil {
 				return step{}, err
 			}
-			return step{Summary: "Close " + label(w), run: func(ctx context.Context) (any, error) {
+			return step{Summary: i18n.G("Close %s", label(w)), run: func(ctx context.Context) (any, error) {
 				return nil, p.c.Comp.Close(ctx, w.ID)
 			}}, nil
 		},
@@ -269,11 +270,11 @@ var Actions = []*ActionDef{
 			if !ok {
 				return step{}, errors.New("floating must be true or false")
 			}
-			verb := "Tile "
+			sum := i18n.G("Tile %s", label(w))
 			if on {
-				verb = "Float "
+				sum = i18n.G("Float %s", label(w))
 			}
-			return step{Summary: verb + label(w), run: func(ctx context.Context) (any, error) {
+			return step{Summary: sum, run: func(ctx context.Context) (any, error) {
 				return nil, p.c.Comp.SetFloating(ctx, w.ID, on)
 			}}, nil
 		},
@@ -303,7 +304,7 @@ var Actions = []*ActionDef{
 			if err != nil {
 				return step{}, err
 			}
-			return step{Summary: fmt.Sprintf("Send %s to workspace %s", label(w), ws.Name), run: func(ctx context.Context) (any, error) {
+			return step{Summary: i18n.G("Send %s to workspace %s", label(w), ws.Name), run: func(ctx context.Context) (any, error) {
 				return nil, p.c.Comp.MoveToWorkspace(ctx, w.ID, ws)
 			}}, nil
 		},
@@ -326,7 +327,7 @@ var Actions = []*ActionDef{
 			if err != nil {
 				return step{}, err
 			}
-			return step{Summary: "Switch to workspace " + ws.Name, run: func(ctx context.Context) (any, error) {
+			return step{Summary: i18n.G("Switch to workspace %s", ws.Name), run: func(ctx context.Context) (any, error) {
 				return nil, p.c.Comp.SwitchWorkspace(ctx, ws)
 			}}, nil
 		},
@@ -345,7 +346,7 @@ var Actions = []*ActionDef{
 			if err != nil {
 				return step{}, err
 			}
-			return step{Summary: fmt.Sprintf("Launch %s (%s)", app.Name, app.ID), run: func(ctx context.Context) (any, error) {
+			return step{Summary: i18n.G("Launch %s (%s)", app.Name, app.ID), run: func(ctx context.Context) (any, error) {
 				return map[string]any{"app": app.ID}, p.c.Launch(ctx, app.ID, argv)
 			}}, nil
 		},
@@ -385,7 +386,7 @@ var Actions = []*ActionDef{
 				}
 				p.setToken(spec, mode, v)
 			}
-			return step{Summary: "Set " + strings.Join(keys, ", ")}, nil
+			return step{Summary: i18n.G("Set %s", strings.Join(keys, ", "))}, nil
 		},
 	},
 	{
@@ -412,7 +413,7 @@ var Actions = []*ActionDef{
 					}
 				}
 				p.settings.Theme = id
-				parts = append(parts, "theme "+id)
+				parts = append(parts, i18n.G("theme %s", id))
 			}
 			switch mode {
 			case "":
@@ -422,15 +423,15 @@ var Actions = []*ActionDef{
 				} else {
 					p.settings.Mode = "dark"
 				}
-				parts = append(parts, p.settings.Mode+" mode")
+				parts = append(parts, modeName(p.settings.Mode))
 			case "light", "dark":
 				p.settings.Mode = mode
-				parts = append(parts, mode+" mode")
+				parts = append(parts, modeName(mode))
 			default:
 				return step{}, errors.New("mode must be light, dark or toggle")
 			}
 			p.touched = true
-			return step{Summary: "Switch to " + strings.Join(parts, ", ")}, nil
+			return step{Summary: i18n.G("Switch to %s", strings.Join(parts, ", "))}, nil
 		},
 	},
 	{
@@ -442,7 +443,7 @@ var Actions = []*ActionDef{
 			if len(list) == 0 {
 				p.settings.Overrides, p.settings.Light, p.settings.Dark = nil, nil, nil
 				p.touched = true
-				return step{Summary: "Reset every token to the theme's values"}, nil
+				return step{Summary: i18n.G("Reset every token to the theme's values")}, nil
 			}
 			var keys []string
 			for _, x := range list {
@@ -456,7 +457,7 @@ var Actions = []*ActionDef{
 				keys = append(keys, k)
 			}
 			p.touched = true
-			return step{Summary: "Reset " + strings.Join(keys, ", ")}, nil
+			return step{Summary: i18n.G("Reset %s", strings.Join(keys, ", "))}, nil
 		},
 	},
 	{
@@ -470,7 +471,7 @@ var Actions = []*ActionDef{
 			}
 			p.settings.Motion = m
 			p.touched = true
-			return step{Summary: "Motion: " + m}, nil
+			return step{Summary: motionSummary(m)}, nil
 		},
 	},
 	{
@@ -510,7 +511,7 @@ var Actions = []*ActionDef{
 			if !oneOf(pg, pages...) {
 				return step{}, fmt.Errorf("unknown page %q", pg)
 			}
-			return step{Summary: "Open settings: " + pg, run: func(ctx context.Context) (any, error) {
+			return step{Summary: i18n.G("Open settings: %s", pg), run: func(ctx context.Context) (any, error) {
 				p.c.Broadcast("ui", map[string]any{"open": "settings", "page": pg})
 				return nil, nil
 			}}, nil
@@ -525,7 +526,7 @@ var Actions = []*ActionDef{
 			if !oneOf(s, surfaces...) {
 				return step{}, fmt.Errorf("unknown surface %q", s)
 			}
-			return step{Summary: "Open " + s, run: func(ctx context.Context) (any, error) {
+			return step{Summary: i18n.G("Open %s", s), run: func(ctx context.Context) (any, error) {
 				p.c.Broadcast("ui", map[string]any{"open": s})
 				return nil, nil
 			}}, nil
@@ -656,7 +657,7 @@ func planArrange(ctx context.Context, p *planner, a map[string]any) (step, error
 			rects[i] = compositor.Rect{X: area.X + (area.W-w)/2, Y: area.Y + (area.H-h)/2, W: w, H: h}
 		}
 	}
-	summary := fmt.Sprintf("Arrange %d windows of workspace %s: %s", n, ws.Name, layout)
+	summary := i18n.G("Arrange %d windows of workspace %s: %s", n, ws.Name, layout)
 	return step{Summary: summary, run: func(ctx context.Context) (any, error) {
 		for i, w := range wins {
 			var err error
@@ -699,7 +700,7 @@ func planSetState(ctx context.Context, p *planner, a map[string]any) (step, erro
 		if w.State == "minimized" {
 			return step{}, fmt.Errorf("%s is already minimized", label(w))
 		}
-		return step{Summary: "Minimize " + label(w), run: func(ctx context.Context) (any, error) {
+		return step{Summary: i18n.G("Minimize %s", label(w)), run: func(ctx context.Context) (any, error) {
 			return nil, min.Minimize(ctx, w.ID)
 		}}, nil
 	case "normal":
@@ -707,7 +708,7 @@ func planSetState(ctx context.Context, p *planner, a map[string]any) (step, erro
 			if !canMin {
 				return step{}, fmt.Errorf("%s cannot restore minimized windows", p.c.Comp.Name())
 			}
-			return step{Summary: "Restore " + label(w), run: func(ctx context.Context) (any, error) {
+			return step{Summary: i18n.G("Restore %s", label(w)), run: func(ctx context.Context) (any, error) {
 				return nil, min.Unminimize(ctx, w.ID)
 			}}, nil
 		}
@@ -715,11 +716,11 @@ func planSetState(ctx context.Context, p *planner, a map[string]any) (step, erro
 		pl, ok := p.c.placed[w.ID]
 		p.c.mu.Unlock()
 		if !ok {
-			return step{Summary: "Focus " + label(w) + " (already in its normal state)", run: func(ctx context.Context) (any, error) {
+			return step{Summary: i18n.G("Focus %s (already in its normal state)", label(w)), run: func(ctx context.Context) (any, error) {
 				return nil, p.c.Comp.Focus(ctx, w.ID)
 			}}, nil
 		}
-		return step{Summary: "Restore the size of " + label(w), run: func(ctx context.Context) (any, error) {
+		return step{Summary: i18n.G("Restore the size of %s", label(w)), run: func(ctx context.Context) (any, error) {
 			p.c.mu.Lock()
 			delete(p.c.placed, w.ID)
 			p.c.mu.Unlock()
@@ -762,8 +763,14 @@ func planSetState(ctx context.Context, p *planner, a map[string]any) (step, erro
 	// the app's content), and so do snapped halves.
 	framer, canFrame := p.c.Comp.(compositor.Framer)
 	unframe := canFrame && state == "maximized" && w.Decoration == "server"
-	verb := map[string]string{"maximized": "Maximize ", "left": "Snap to the left half: ", "right": "Snap to the right half: "}[state]
-	return step{Summary: verb + label(w), run: func(ctx context.Context) (any, error) {
+	sum := i18n.G("Maximize %s", label(w))
+	switch state {
+	case "left":
+		sum = i18n.G("Snap to the left half: %s", label(w))
+	case "right":
+		sum = i18n.G("Snap to the right half: %s", label(w))
+	}
+	return step{Summary: sum, run: func(ctx context.Context) (any, error) {
 		p.c.mu.Lock()
 		before := w.Rect
 		old, had := p.c.placed[w.ID]
@@ -859,4 +866,27 @@ func intersect(a, b compositor.Rect) compositor.Rect {
 		return compositor.Rect{}
 	}
 	return compositor.Rect{X: x0, Y: y0, W: x1 - x0, H: y1 - y0}
+}
+
+// Step summaries are shown to the person in the session's language (the
+// command bar's proposal, the activity feed); agents get them the same
+// way, as the other translated summaries (skills, files, voice).
+
+// modeName names a color mode in a step ("light mode", "dark mode").
+func modeName(m string) string {
+	if m == "light" {
+		return i18n.G("light mode")
+	}
+	return i18n.G("dark mode")
+}
+
+// motionSummary is the step of motion.set.
+func motionSummary(m string) string {
+	switch m {
+	case "reduced":
+		return i18n.G("Motion: reduced")
+	case "full":
+		return i18n.G("Motion: full")
+	}
+	return i18n.G("Motion: auto")
 }

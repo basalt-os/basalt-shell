@@ -2,11 +2,13 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Io
 import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
 
 // Quick settings: light/dark, theme, motion, spoken answers, volume,
-// network, battery and a door to the full settings page. Changes made
+// brightness, network (the Wi-Fi list opens under the tiles), battery and
+// a door to the full settings page. Changes made
 // here are the person's own, so they apply at once (audited as "ui").
 // Keyboard: it takes the keyboard while open; Tab moves between the
 // tiles, the themes, the volume and the buttons at the bottom; arrows
@@ -42,10 +44,17 @@ PanelWindow {
             else win.voiceError = res;
         });
     }
+    // The Wi-Fi list under the tiles (the network tile opens and closes it).
+    property bool netOpen: false
+    function toggleNet() {
+        win.netOpen = !win.netOpen;
+        if (win.netOpen) { wifi.reset(); wifi.load(false); }
+    }
     Connections {
         target: Ui
         function onQuickSettingsChanged() {
-            if (!Ui.quickSettings) return;
+            if (!Ui.quickSettings) { win.netOpen = false; return; }
+            win.readBrightness();
             win.loadVoice();
             Qt.callLater(win.focusFirst);
         }
@@ -57,6 +66,40 @@ PanelWindow {
     Connections {
         target: Bus
         function onVoiceSettings(data) { win.voiceInfo = data; }
+    }
+
+    // Screen brightness (bin/basalt-brightness, brightnessctl): -1 when
+    // the computer has no backlight (a desktop monitor, a VM), and the
+    // slider is hidden. Moving it sends at most one change every 80 ms.
+    property int brightness: -1
+    function readBrightness() { if (!brightGet.running) brightGet.running = true; }
+    Process {
+        id: brightGet
+        command: ["basalt-brightness", "get"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const v = parseInt(text.trim(), 10);
+                win.brightness = isNaN(v) ? -1 : v;
+            }
+        }
+    }
+    property int brightWanted: -1
+    Process { id: brightSet }
+    Timer {
+        id: brightTimer
+        interval: 80
+        onTriggered: {
+            if (win.brightWanted < 0) return;
+            if (brightSet.running) { brightTimer.restart(); return; }
+            brightSet.command = ["basalt-brightness", "set", win.brightWanted + "%"];
+            brightSet.running = true;
+            win.brightWanted = -1;
+        }
+    }
+    function setBrightness(v) {
+        win.brightness = Math.max(1, Math.min(100, Math.round(v)));
+        win.brightWanted = win.brightness;
+        if (!brightTimer.running) brightTimer.start();
     }
 
     MouseArea { anchors.fill: parent; onClicked: Ui.quickSettings = false }
@@ -119,7 +162,9 @@ PanelWindow {
                     label: Net.online ? (Net.name || Net.kind) : Tr.t("Offline")
                     sub: Net.online ? (Net.kind === "wifi" ? Tr.t("Wi-Fi") : Tr.t("Wired")) : Tr.t("Network")
                     on: Net.online
-                    onClicked: Bus.act("app.launch", { app: "nm-connection-editor" })
+                    checkable: true
+                    checked: win.netOpen
+                    onClicked: win.toggleNet()
                 }
                 Tile {
                     // Spoken answers: off means answers are only shown and
@@ -141,6 +186,12 @@ PanelWindow {
                     toggle: false
                     onClicked: Ui.openFrom("commandbar", "", "quicksettings", "quick-ask")
                 }
+            }
+
+            WifiList {
+                id: wifi
+                visible: win.netOpen
+                Layout.fillWidth: true
             }
 
             Txt {
@@ -203,6 +254,22 @@ PanelWindow {
                 }
             }
 
+            // Brightness.
+            RowLayout {
+                visible: win.brightness >= 0
+                Layout.fillWidth: true
+                spacing: Theme.s2
+                Icon { name: "sun"; size: Theme.fontSize * 1.55; color: Theme.text; Layout.leftMargin: Theme.s2; Layout.rightMargin: Theme.s2 }
+                Slider {
+                    Layout.fillWidth: true
+                    e2e: "quick-brightness"
+                    accessibleName: Tr.t("Brightness")
+                    from: 1; to: 100; stepSize: 5
+                    value: Math.max(1, win.brightness)
+                    onMoved: v => win.setBrightness(v)
+                }
+            }
+
             RowLayout {
                 visible: UPower.displayDevice && UPower.displayDevice.isLaptopBattery
                 Icon { name: "battery" }
@@ -229,13 +296,16 @@ PanelWindow {
         property bool on
         property bool toggle: true
         // Two equal columns that always fit the card: the same preferred
-        // width for every tile (the grid shares the width evenly), and the
-        // text elides inside the tile's own padding.
+        // width for every tile (the grid shares the width evenly). A label
+        // longer than the tile ("Movimento reduzido", "Pergunte ao
+        // sistema") wraps to a second line instead of being cut; the tiles
+        // of a row keep the same height.
         Layout.fillWidth: true
+        Layout.fillHeight: true
         Layout.preferredWidth: 1
         Layout.minimumWidth: 0
         implicitWidth: 1
-        implicitHeight: Theme.fontSize * 5
+        implicitHeight: Math.max(Theme.fontSize * 5, tileText.implicitHeight + Theme.s3 * 2)
         radius: Theme.radiusMd
         accessibleName: tile.label
         accessibleDescription: tile.sub
@@ -254,13 +324,14 @@ PanelWindow {
             anchors.verticalCenter: parent.verticalCenter
         }
         Column {
+            id: tileText
             anchors.left: tileIcon.right
             anchors.leftMargin: Theme.s2
             anchors.right: parent.right
             anchors.rightMargin: Theme.s3
             anchors.verticalCenter: parent.verticalCenter
-            Txt { text: tile.label; font.weight: Font.DemiBold; color: tile.on ? Theme.accentText : Theme.text; width: parent.width }
-            Txt { text: tile.sub; role: "small"; color: tile.on ? Theme.alpha(Theme.accentText, 0.8) : Theme.textMuted; width: parent.width }
+            Txt { text: tile.label; font.weight: Font.DemiBold; color: tile.on ? Theme.accentText : Theme.text; width: parent.width; wrapMode: Text.WordWrap; maximumLineCount: 2 }
+            Txt { text: tile.sub; role: "small"; color: tile.on ? Theme.alpha(Theme.accentText, 0.8) : Theme.textMuted; width: parent.width; wrapMode: Text.WordWrap; maximumLineCount: 2 }
         }
     }
 }
