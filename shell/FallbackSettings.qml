@@ -52,7 +52,13 @@ ColumnLayout {
             fb.load();
         });
     }
-    onVisibleChanged: if (visible) load()
+    // Read again each time About is shown (GNOME may have been installed
+    // since); the section itself is hidden until GNOME is there.
+    Connections {
+        target: Ui
+        function onSettingsPageChanged() { if (Ui.settingsPage === "about") fb.load(); }
+        function onSettingsChanged() { if (Ui.settings && Ui.settingsPage === "about") fb.load(); }
+    }
     Component.onCompleted: load()
 
     visible: info !== null && info.gnome
