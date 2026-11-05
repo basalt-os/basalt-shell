@@ -203,6 +203,11 @@ Requires:       quickshell
 Requires:       sway
 # The text login, when the graphical one cannot run.
 Requires:       tuigreet
+# The languages the login screen offers: a session started in one of
+# them needs its glibc locale, else the login shell's lang.sh drops LANG
+# for /etc/locale.conf's.
+Requires:       glibc-langpack-en
+Requires:       glibc-langpack-pt
 Requires:       util-linux
 Requires:       rsms-inter-fonts
 Requires:       adwaita-cursor-theme
