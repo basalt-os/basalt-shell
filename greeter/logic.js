@@ -352,3 +352,22 @@ function mainScreen(names, active) {
     if (active && list.indexOf(active) >= 0) return active;
     return list[0];
 }
+
+// sessionLocales: the locale a language picked on the login screen
+// starts the session with (the language's usual country, UTF-8).
+var sessionLocales = { en: "en_US.UTF-8", pt_BR: "pt_BR.UTF-8" };
+
+// sessionEnv returns the session's environment for greetd's
+// start_session: the session file's variables, and LANG when the person
+// picked a language on this screen that is not the system's (a system
+// locale of the same language, en_GB for English, is kept as it is).
+// chosen is the picked language id ("" when none), systemLang the
+// system's LANG.
+function sessionEnv(env, chosen, systemLang) {
+    const out = (env || []).filter(e => String(e).indexOf("LANG=") !== 0);
+    const loc = sessionLocales[chosen];
+    if (!chosen || !loc) return (env || []).slice();
+    if (uiLanguage(systemLang, Object.keys(sessionLocales)) === chosen && systemLang) return (env || []).slice();
+    out.push("LANG=" + loc);
+    return out;
+}

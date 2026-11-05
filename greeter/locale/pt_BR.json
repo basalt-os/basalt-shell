@@ -98,6 +98,9 @@
  "That password did not work. Try again.": [
   "Essa senha não funcionou. Tente de novo."
  ],
+ "The login did not answer in time. Try again.": [
+  "O login não respondeu a tempo. Tente de novo."
+ ],
  "The login service is not available.": [
   "O serviço de login não está disponível."
  ],

@@ -163,3 +163,20 @@ test("mainScreen: the card follows the pointer, falls back to the first output",
   // The active output was unplugged.
   assert.equal(L.mainScreen(["eDP-1"], "DP-1"), "eDP-1");
 });
+
+test("sessionEnv passes the language picked on the login screen", () => {
+  const env = ["XDG_SESSION_TYPE=wayland"];
+  // Nothing picked: the system's locale decides.
+  assert.deepEqual(L.sessionEnv(env, "", "en_US.UTF-8"), env);
+  // Picked Portuguese on an English system.
+  assert.deepEqual(L.sessionEnv(env, "pt_BR", "en_US.UTF-8"), ["XDG_SESSION_TYPE=wayland", "LANG=pt_BR.UTF-8"]);
+  assert.deepEqual(L.sessionEnv(env, "pt_BR", ""), ["XDG_SESSION_TYPE=wayland", "LANG=pt_BR.UTF-8"]);
+  // Picked English on a Portuguese system.
+  assert.deepEqual(L.sessionEnv(env, "en", "pt_BR.UTF-8"), ["XDG_SESSION_TYPE=wayland", "LANG=en_US.UTF-8"]);
+  // The system already speaks it: its own locale stays (en_GB).
+  assert.deepEqual(L.sessionEnv(env, "en", "en_GB.UTF-8"), env);
+  assert.deepEqual(L.sessionEnv(env, "pt_BR", "pt_BR.UTF-8"), env);
+  // An unknown id changes nothing; the input is not modified.
+  assert.deepEqual(L.sessionEnv(env, "xx", "en_US.UTF-8"), env);
+  assert.deepEqual(env, ["XDG_SESSION_TYPE=wayland"]);
+});

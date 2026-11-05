@@ -14,11 +14,13 @@ if [ "${BASALT_HEADLESS:-0}" = 1 ]; then
   fi
 elif [ "${BASALT_NESTED:-0}" != 1 ]; then
   # Applications are started by the systemd user manager (in their own
-  # service), so it needs the session's toolkit environment too.
+  # service), so it needs the session's toolkit environment too, and its
+  # language (LANG: the login screen may have started the session in
+  # another language than /etc/locale.conf's).
   vars="WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP
         QT_QPA_PLATFORM QT_QPA_PLATFORMTHEME QT_WAYLAND_DECORATION QT_WAYLAND_DISABLE_WINDOWDECORATION GTK_CSD MOZ_ENABLE_WAYLAND
         ELECTRON_OZONE_PLATFORM_HINT SDL_VIDEODRIVER _JAVA_AWT_WM_NONREPARENTING XCURSOR_THEME XCURSOR_SIZE XDG_DATA_DIRS SSH_AUTH_SOCK
-        BASALT_NIRI_CONFIG"
+        BASALT_NIRI_CONFIG LANG LANGUAGE"
   # niri starts xwayland-satellite on demand and sets DISPLAY for its
   # children; wait briefly so it can be exported as well.
   for _ in 1 2 3 4 5; do [ -n "${DISPLAY:-}" ] && break; sleep 0.5; done

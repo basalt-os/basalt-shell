@@ -26,6 +26,7 @@ build:
 	$(GO) build $(GOFLAGS) -o $(BUILD)/basalt-shell-ui-launch ./cmd/basalt-shell-ui-launch
 	$(GO) build $(GOFLAGS) -o $(BUILD)/basalt-vm-cursor ./cmd/basalt-vm-cursor
 	$(GO) build $(GOFLAGS) -o $(BUILD)/basalt-greetd-cancel ./cmd/basalt-greetd-cancel
+	$(GO) build $(GOFLAGS) -o $(BUILD)/basalt-greetd-ipc ./cmd/basalt-greetd-ipc
 	$(GO) build $(GOFLAGS) -ldflags "-X main.version=$(VERSION)" -o $(BUILD)/basalt-voiced ./cmd/basalt-voiced
 	# The skills worker, four distinct builds (see install): each embeds its
 	# own program name, so no two files are identical.
@@ -59,6 +60,7 @@ install:
 	install -Dm755 $(BUILD)/basalt-shell-ui-launch $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-shell-ui-launch
 	install -Dm755 $(BUILD)/basalt-vm-cursor $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-vm-cursor
 	install -Dm755 $(BUILD)/basalt-greetd-cancel $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-greetd-cancel
+	install -Dm755 $(BUILD)/basalt-greetd-ipc $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-greetd-ipc
 	install -Dm755 $(BUILD)/basalt-voiced $(DESTDIR)$(PREFIX)/bin/basalt-voiced
 	# The skills worker, four programs: four files, four SELinux types (read
 	# content, index documents, send one confirmed e-mail, rename files
@@ -114,7 +116,7 @@ install-greeter:
 
 uninstall:
 	rm -rf $(DESTDIR)$(PREFIX)/share/basalt-shell $(DESTDIR)$(LIBEXECDIR)/basalt-shell
-	rm -f $(DESTDIR)$(PREFIX)/bin/basalt-shell $(DESTDIR)$(PREFIX)/bin/basalt-shelld $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-shell-ui-launch $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-vm-cursor $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-greetd-cancel $(DESTDIR)$(PREFIX)/bin/basalt-shell-ui $(DESTDIR)$(PREFIX)/bin/basalt-session $(DESTDIR)$(PREFIX)/bin/basalt-lock $(DESTDIR)$(PREFIX)/bin/basalt-session-init
+	rm -f $(DESTDIR)$(PREFIX)/bin/basalt-shell $(DESTDIR)$(PREFIX)/bin/basalt-shelld $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-shell-ui-launch $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-vm-cursor $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-greetd-cancel $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-greetd-ipc $(DESTDIR)$(PREFIX)/bin/basalt-shell-ui $(DESTDIR)$(PREFIX)/bin/basalt-session $(DESTDIR)$(PREFIX)/bin/basalt-lock $(DESTDIR)$(PREFIX)/bin/basalt-session-init
 	rm -f $(DESTDIR)$(PREFIX)/share/applications/org.basalt.Settings.desktop
 	rm -f $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-sway.desktop $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-niri.desktop
 	rm -f $(DESTDIR)$(SYSCONFDIR)/xdg/xdg-desktop-portal/sway-portals.conf $(DESTDIR)$(SYSCONFDIR)/xdg/xdg-desktop-portal/niri-portals.conf

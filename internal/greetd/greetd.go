@@ -6,8 +6,9 @@
 // (error_type auth_error or error) or auth_message (a PAM question or
 // notice: visible, secret, info, error).
 //
-// The login screen itself talks to greetd through Quickshell's own client;
-// this package is the reference the greeter is tested against: a client
+// The login screen talks to greetd through basalt-greetd-ipc
+// (cmd/basalt-greetd-ipc), which uses this package's framing; the package
+// is also the reference the greeter is tested against: a client
 // (Client) and a fake greetd (Fake, fake.go) that answers like greetd 0.10,
 // including its quirks, so the greeter's handling of them is covered by
 // tests that need neither PAM nor a display.

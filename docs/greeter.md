@@ -76,16 +76,30 @@ greetd (xdm_t)
      │   └─ sway               greeter's sway.conf: no bindings, no bar, no XWayland
      │       └─ greeter-ui     Quickshell + watchdog, then `swaymsg exit`
      │           └─ quickshell -p /usr/share/basalt-greeter/qml   (GREETD_SOCK)
+     │               └─ basalt-greetd-ipc   greetd's socket, one JSON line per message
      └─ tuigreet               only when the graphical greeter cannot run
 ```
 
 greetd starts `greeter-session` as its greeter user on the first virtual
 terminal (`/etc/basalt/greetd.toml`, from basalt-desktop). The UI talks to
-greetd through Quickshell's greetd client: `create_session`, the answers
-to PAM's questions, `start_session` with the session's command and
-environment (`XDG_SESSION_TYPE`, `XDG_SESSION_DESKTOP` and
-`XDG_CURRENT_DESKTOP` from the session file's `DesktopNames`). greetd runs
-PAM and starts the session; the greeter never does.
+greetd through `/usr/libexec/basalt-shell/basalt-greetd-ipc`, a child
+process that holds greetd's socket and frames its messages (one JSON line
+per request on its stdin, one per answer on its stdout; `GreetdIpc.qml`):
+`create_session`, the answers to PAM's questions, `start_session` with the
+session's command and environment (`XDG_SESSION_TYPE`,
+`XDG_SESSION_DESKTOP` and `XDG_CURRENT_DESKTOP` from the session file's
+`DesktopNames`, and `LANG` when the person picked a language on the login
+screen that is not the system's). greetd runs PAM and starts the session;
+the greeter never does.
+
+Quickshell's own greetd client is not used: the version Fedora ships reads
+one length and one body each time data arrives, and greetd writes the two
+separately. A read that saw only the length dropped the conversation
+without a signal and the spinner turned forever (seen after picking
+Portuguese, release audit 2026-11). basalt-greetd-ipc reads whole messages.
+A conversation that does not answer within 30 seconds is dropped (the
+connection is closed, which ends it in greetd), the person is told and the
+login starts again.
 
 The greeter keeps two places:
 
@@ -153,7 +167,7 @@ choice. An administrator sets it here.
   `execmem` on machines without a GPU). The text fallback runs in greetd's
   own domain, so a broken policy cannot lock anyone out.
 - The password goes from the field to greetd and nowhere else: it is
-  never logged (Quickshell's own debug output censors it, and the greeter
+  never logged (basalt-greetd-ipc never prints a request, and the greeter
   turns debug output off), never written, and cleared from the field as
   soon as it is sent.
 - The greeter's environment cannot steer Qt (no plugin or import paths,
