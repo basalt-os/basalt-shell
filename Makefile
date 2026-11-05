@@ -10,7 +10,7 @@ GO ?= go
 GOFLAGS ?= -trimpath
 BUILD := build
 
-.PHONY: all build test test-greeter test-js ci vet install install-greeter uninstall clean rpm selinux install-selinux help
+.PHONY: check-skill-files all build test test-greeter test-js ci vet install install-greeter uninstall clean rpm selinux install-selinux help
 
 all: build
 
@@ -27,7 +27,11 @@ build:
 	$(GO) build $(GOFLAGS) -o $(BUILD)/basalt-vm-cursor ./cmd/basalt-vm-cursor
 	$(GO) build $(GOFLAGS) -o $(BUILD)/basalt-greetd-cancel ./cmd/basalt-greetd-cancel
 	$(GO) build $(GOFLAGS) -ldflags "-X main.version=$(VERSION)" -o $(BUILD)/basalt-voiced ./cmd/basalt-voiced
-	$(GO) build $(GOFLAGS) -o $(BUILD)/basalt-skill ./cmd/basalt-skill
+	# The skills worker, four distinct builds (see install): each embeds its
+	# own program name, so no two files are identical.
+	for p in basalt-skill basalt-skill-index basalt-skill-send basalt-skill-files; do \
+		$(GO) build $(GOFLAGS) -ldflags "-X main.program=$$p" -o $(BUILD)/$$p ./cmd/basalt-skill || exit 1; \
+	done
 
 test:
 	$(GO) vet ./...
@@ -43,6 +47,11 @@ test-js: test-greeter
 test-greeter:
 	node --test greeter/tests/*.test.js
 
+# The four skill programs must stay four files (DIR: an installed
+# libexec/basalt-shell, a DESTDIR tree or the RPM build root).
+check-skill-files:
+	scripts/check-skill-files.sh $(DESTDIR)$(PREFIX)/libexec/basalt-shell
+
 install:
 	test -x $(BUILD)/basalt-shell || $(MAKE) build
 	install -Dm755 $(BUILD)/basalt-shell $(DESTDIR)$(PREFIX)/bin/basalt-shell
@@ -51,13 +60,15 @@ install:
 	install -Dm755 $(BUILD)/basalt-vm-cursor $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-vm-cursor
 	install -Dm755 $(BUILD)/basalt-greetd-cancel $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-greetd-cancel
 	install -Dm755 $(BUILD)/basalt-voiced $(DESTDIR)$(PREFIX)/bin/basalt-voiced
-	# The skills worker, four times: four files, four SELinux types (read
+	# The skills worker, four programs: four files, four SELinux types (read
 	# content, index documents, send one confirmed e-mail, rename files
-	# inside a grant); each job kind runs only in its own program.
+	# inside a grant); each job kind runs only in its own program. They are
+	# four different builds, never copies or hard links of one file (one
+	# inode carries one label): scripts/check-skill-files.sh checks it.
 	install -Dm755 $(BUILD)/basalt-skill $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill
-	install -Dm755 $(BUILD)/basalt-skill $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-index
-	install -Dm755 $(BUILD)/basalt-skill $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-send
-	install -Dm755 $(BUILD)/basalt-skill $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-files
+	install -Dm755 $(BUILD)/basalt-skill-index $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-index
+	install -Dm755 $(BUILD)/basalt-skill-send $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-send
+	install -Dm755 $(BUILD)/basalt-skill-files $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-skill-files
 	install -Dm644 config/systemd/basalt-voice.service $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-voice.service
 	install -Dm644 config/systemd/80-basalt-shell.preset $(DESTDIR)$(PREFIX)/lib/systemd/user-preset/80-basalt-shell.preset
 	install -Dm644 config/voice/voice.conf $(DESTDIR)$(SYSCONFDIR)/basalt/voice.conf
@@ -123,7 +134,8 @@ selinux:
 install-selinux:
 	semodule -i $(BUILD)/selinux/basalt_shell.pp $(BUILD)/selinux/basalt_greeter.pp
 	restorecon -F $(PREFIX)/bin/basalt-shell $(PREFIX)/bin/basalt-shelld $(PREFIX)/libexec/basalt-shell/basalt-shell-ui-launch \
-		$(PREFIX)/bin/basalt-voiced $(PREFIX)/libexec/basalt-shell/basalt-skill $(PREFIX)/libexec/basalt-shell/basalt-skill-index
+		$(PREFIX)/bin/basalt-voiced $(PREFIX)/libexec/basalt-shell/basalt-skill $(PREFIX)/libexec/basalt-shell/basalt-skill-index \
+		$(PREFIX)/libexec/basalt-shell/basalt-skill-send $(PREFIX)/libexec/basalt-shell/basalt-skill-files
 
 rpm:
 	scripts/build-rpm.sh

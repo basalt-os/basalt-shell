@@ -1,6 +1,11 @@
 # Go binaries built with -trimpath; no separate debuginfo for the prototype.
 %global debug_package %{nil}
 %global selinuxtype targeted
+# No hard link pass over the build root: the four skill programs under
+# libexec/basalt-shell have four SELinux types, and one inode carries one
+# label (they are distinct builds anyway; %%check fails on shared inodes).
+%global __os_install_post_hardlink %{nil}
+%global __brp_linkdupes %{nil}
 
 Name:           basalt-shell
 Version:        %{basalt_version}
@@ -243,6 +248,10 @@ for m in basalt_shell basalt_greeter; do
     install -Dpm 0644 $m.pp.bz2 %{buildroot}%{_datadir}/selinux/packages/%{selinuxtype}/$m.pp.bz2
     install -Dpm 0644 selinux/$m.if %{buildroot}%{_datadir}/selinux/devel/include/distributed/$m.if
 done
+
+%check
+# The four skill programs: four files, four labels (see the top).
+scripts/check-skill-files.sh %{buildroot}%{_libexecdir}/basalt-shell
 
 %post
 # The voice service starts with every person's session (user preset).
