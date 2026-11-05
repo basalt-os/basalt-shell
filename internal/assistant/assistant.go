@@ -79,6 +79,9 @@ func readArgs(args []string) error {
 	if args[0] == "security" {
 		return securityArgs(args[1:])
 	}
+	if args[0] == "fallback" {
+		return fallbackArgs(args[1:])
+	}
 	for _, a := range args {
 		if !reWord.MatchString(a) && !strings.HasPrefix(a, "--") {
 			return fmt.Errorf("invalid argument %q", a)
@@ -574,6 +577,11 @@ func Understood(out string) []string {
 	}
 	// The keyboard: storing keyboard.system starts from Settings, Keyboard.
 	if args[0] == "keyboard" && (len(args) < 2 || args[1] == "set") {
+		return nil
+	}
+	// The fallback's login screen: storing desktop.fallback starts from
+	// Settings, About (or basalt fallback in a terminal).
+	if args[0] == "fallback" && len(args) > 1 && args[1] != "--json" {
 		return nil
 	}
 	return args

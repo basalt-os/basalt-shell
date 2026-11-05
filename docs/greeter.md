@@ -152,6 +152,22 @@ The login screen does not read people's own theme settings: it cannot
 read their home directories (see below), and the theme is a system
 choice. An administrator sets it here.
 
+## GNOME as a fallback
+
+`basalt-desktop-gnome-fallback` installs GNOME next to the Basalt session;
+the login screen lists "GNOME" next to "Basalt". gdm comes with it
+(gnome-shell needs gdm-libs), and basalt-desktop's preset disables
+gdm.service, so greetd stays the display manager. GNOME cannot lock the
+screen without GDM, so while the person uses GNOME the display manager
+should be GDM: Settings, About, "Use GNOME's login screen" asks the system
+assistant to store a `desktop.fallback` proposal (`basalt fallback gnome
+--json` through the read helper), shows it, and applies it like any system
+change (an administrator's password, or the approval gate). The
+assistant's executor switches the units; the change takes effect at the
+next restart and nothing happens to the running sessions. "Use the Basalt
+login screen again" (or `basalt fallback basalt` in a terminal) goes back.
+The shell never enables or disables a unit itself.
+
 ## Security
 
 - SELinux: the graphical greeter runs in `basalt_greeter_t`

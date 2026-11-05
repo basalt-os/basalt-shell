@@ -798,6 +798,32 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 			return nil, err
 		}
 		return map[string]any{"opened": kind}, nil
+	case "fallback.state":
+		// Settings, About: GNOME as the fallback and which login screen
+		// starts.
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		return c.FallbackState(), nil
+	case "fallback.propose":
+		// "Use GNOME's login screen" or back: store the assistant's
+		// desktop.fallback proposal; the page shows it and applies it with
+		// assistant.apply (or the approval gate). The shell never runs
+		// systemctl enable or disable.
+		if err := ss.requireUI(); err != nil {
+			_, _ = c.Audit.Append("refuse", ss.actor(), "fallback refused: not the shell UI", map[string]any{"pid": ss.pid})
+			return nil, err
+		}
+		if c.recentInput() {
+			return nil, errors.New("a request right after agent input is not accepted; ask again")
+		}
+		var a struct {
+			Target string `json:"target"`
+		}
+		if err := decode(req.Args, &a); err != nil {
+			return nil, err
+		}
+		return c.FallbackProposal(ctx, a.Target)
 	case "keyboard.state":
 		// Settings, Keyboard: the person's settings, the system's, the
 		// layouts in use (read only).

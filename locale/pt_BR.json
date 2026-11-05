@@ -781,11 +781,17 @@
  "Done.": [
   "Pronto."
  ],
+ "Done. GNOME's login screen starts from the next restart. To come back, use this page or run basalt fallback basalt.": [
+  "Pronto. A tela de login do GNOME começa a partir do próximo reinício. Para voltar, use esta página ou rode basalt fallback basalt."
+ ],
  "Done. Restart the computer to finish: the first start checks the driver.": [
   "Pronto. Reinicie o computador para concluir: a primeira inicialização verifica o driver."
  ],
  "Done. Say \"undo\" to put the files back.": [
   "Feito. Diga \"desfazer\" para devolver os arquivos."
+ ],
+ "Done. The Basalt login screen starts from the next restart.": [
+  "Pronto. A tela de login do Basalt começa a partir do próximo reinício."
  ],
  "Done. The computer goes back to how it was before the update when it restarts.": [
   "Pronto. O computador volta a como estava antes da atualização quando reiniciar."
@@ -955,6 +961,18 @@
  ],
  "Full": [
   "Completo"
+ ],
+ "GNOME and its login screen (GDM) are not installed. Install basalt-desktop-gnome-fallback first.": [
+  "O GNOME e a tela de login dele (GDM) não estão instalados. Instale antes o basalt-desktop-gnome-fallback."
+ ],
+ "GNOME as a fallback": [
+  "GNOME como alternativa"
+ ],
+ "GNOME is installed next to Basalt. It cannot lock the screen when the Basalt login screen starts it: while you use GNOME, let GNOME's login screen (GDM) start instead. The change takes effect at the next restart, and you can switch back the same way.": [
+  "O GNOME está instalado ao lado do Basalt. Ele não consegue bloquear a tela quando é iniciado pela tela de login do Basalt: enquanto você usa o GNOME, deixe a tela de login do GNOME (GDM) começar no lugar. A mudança vale a partir do próximo reinício, e você pode voltar do mesmo jeito."
+ ],
+ "GNOME's login screen (GDM) is not installed.": [
+  "A tela de login do GNOME (GDM) não está instalada."
  ],
  "GPU: %1, CPUs: %2, memory: %3 MiB": [
   "GPU: %1, CPUs: %2, memória: %3 MiB"
@@ -1305,6 +1323,12 @@
  ],
  "Login screen and new accounts": [
   "Tela de login e novas contas"
+ ],
+ "Login screen now: Basalt's.": [
+  "Tela de login agora: a do Basalt."
+ ],
+ "Login screen now: GNOME's (GDM).": [
+  "Tela de login agora: a do GNOME (GDM)."
  ],
  "Looking at the hardware.": [
   "Olhando o hardware."
@@ -2249,6 +2273,9 @@
  "Swap with Escape": [
   "Trocar com Esc"
  ],
+ "Switch at the next restart": [
+  "Trocar no próximo reinício"
+ ],
  "Switch layouts": [
   "Trocar de layout"
  ],
@@ -2516,6 +2543,9 @@
  "The system assistant (basalt) is not installed: changing the keyboard of the login screen needs it.": [
   "O assistente do sistema (basalt) não está instalado: mudar o teclado da tela de login precisa dele."
  ],
+ "The system assistant (basalt) is not installed: changing the login screen needs it.": [
+  "O assistente do sistema (basalt) não está instalado: ele é necessário para trocar a tela de login."
+ ],
  "The system assistant on this computer is older than this page. A coming update of Basalt OS brings it.": [
   "O assistente do sistema neste computador é mais antigo que esta página. Uma próxima atualização do Basalt OS traz o que falta."
  ],
@@ -2597,6 +2627,9 @@
  ],
  "This changes the whole computer, so it needs an administrator's password.": [
   "Isto muda o computador inteiro, então precisa da senha de um administrador."
+ ],
+ "This changes the whole computer, so it needs an administrator's password. Nothing changes in the sessions running now.": [
+  "Isso muda o computador inteiro, então pede a senha de um administrador. Nada muda nas sessões abertas agora."
  ],
  "This computer has no Wi-Fi adapter that works.": [
   "Este computador não tem um adaptador Wi-Fi funcionando."
@@ -2788,11 +2821,23 @@
  "Updates will also come from this channel. Its packages are signed with the OpenBasalt release key.": [
   "As atualizações também virão deste canal. Os pacotes dele são assinados com a chave de lançamento da OpenBasalt."
  ],
+ "Use GNOME's login screen": [
+  "Usar a tela de login do GNOME"
+ ],
+ "Use GNOME's login screen (GDM) from the next restart?": [
+  "Usar a tela de login do GNOME (GDM) a partir do próximo reinício?"
+ ],
  "Use for the login screen": [
   "Usar na tela de login"
  ],
  "Use my layouts there too": [
   "Usar meus layouts lá também"
+ ],
+ "Use the Basalt login screen again": [
+  "Voltar à tela de login do Basalt"
+ ],
+ "Use the Basalt login screen from the next restart?": [
+  "Usar a tela de login do Basalt a partir do próximo reinício?"
  ],
  "Use the system's layouts": [
   "Usar os layouts do sistema"

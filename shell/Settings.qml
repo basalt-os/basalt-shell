@@ -476,6 +476,8 @@ FloatingWindow {
                         delegate: Txt { required property var modelData; text: Tr.t("Applied to apps: %1").arg(modelData); role: "small"; color: Theme.textMuted; Layout.fillWidth: true; wrapMode: Text.Wrap; elide: Text.ElideNone }
                     }
                     Btn { text: Tr.t("Reload themes"); variant: "outline"; onClicked: Bus.call("reload", {}, () => {}) }
+                    // GNOME as the fallback session: which login screen starts.
+                    FallbackSettings { Layout.fillWidth: true }
                 }
             }
         }
