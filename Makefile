@@ -108,7 +108,7 @@ install:
 # the launchers greetd runs, its configuration and runtime directories.
 install-greeter:
 	install -d $(DESTDIR)$(PREFIX)/share/basalt-greeter/qml $(DESTDIR)$(PREFIX)/share/basalt-greeter/locale $(DESTDIR)$(LIBEXECDIR)/basalt-greeter
-	install -m644 greeter/*.qml greeter/logic.js $(DESTDIR)$(PREFIX)/share/basalt-greeter/qml/
+	install -m644 greeter/*.qml greeter/*.js $(DESTDIR)$(PREFIX)/share/basalt-greeter/qml/
 	install -m644 greeter/locale/*.json $(DESTDIR)$(PREFIX)/share/basalt-greeter/locale/
 	install -m644 greeter/sway.conf $(DESTDIR)$(PREFIX)/share/basalt-greeter/sway.conf
 	install -m755 greeter/bin/greeter-session greeter/bin/basalt-greeter greeter/bin/greeter-ui $(DESTDIR)$(LIBEXECDIR)/basalt-greeter/
