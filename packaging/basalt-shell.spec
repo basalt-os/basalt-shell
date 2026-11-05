@@ -422,6 +422,26 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Thu Nov 05 2026 Basalt OS developers - 0.10.5-1
+- Login screen: an own greetd client (its state machine in greetd.js,
+  with Node tests); a wrong password shows the error and lets the person
+  try again, a greetd answer that never comes times out instead of
+  hanging, and the language picker sets the session's LANG.
+  basalt-greeter requires the langpacks of its languages.
+- Wi-Fi list and join from quick settings: the password reaches nmcli
+  through a passwd-file, escaped (spaces, quotes, backslashes, $, #,
+  non-ASCII letters) and checked for length; a refused network is
+  removed again. nm-connection-editor opens even without a desktop
+  entry. basalt-desktop requires NetworkManager-wifi and wpa_supplicant.
+- GNOME fallback: basalt-desktop-gnome-fallback, gdm kept disabled by
+  preset; the login screen switches to GDM while GNOME is used and back
+  (basalt fallback, assistant 0.13.4); About reads the state each time
+  it opens.
+- Brightness keys and a brightness slider; long quick settings labels
+  wrap; helper entries hidden from the launcher, Settings listed.
+- Fixed-phrase proposals and applied checks in the session's language.
+- SELinux: four distinct skill programs, never hard links.
+
 * Wed Oct 21 2026 Basalt OS developers - 0.10.4-1
 - Settings, Assistant and AI: the available actions list shows each
   action's title and description in the session's language (the
