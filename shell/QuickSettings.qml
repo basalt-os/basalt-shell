@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Io
 import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
 
@@ -53,6 +54,7 @@ PanelWindow {
         target: Ui
         function onQuickSettingsChanged() {
             if (!Ui.quickSettings) { win.netOpen = false; return; }
+            win.readBrightness();
             win.loadVoice();
             Qt.callLater(win.focusFirst);
         }
@@ -64,6 +66,40 @@ PanelWindow {
     Connections {
         target: Bus
         function onVoiceSettings(data) { win.voiceInfo = data; }
+    }
+
+    // Screen brightness (bin/basalt-brightness, brightnessctl): -1 when
+    // the computer has no backlight (a desktop monitor, a VM), and the
+    // slider is hidden. Moving it sends at most one change every 80 ms.
+    property int brightness: -1
+    function readBrightness() { if (!brightGet.running) brightGet.running = true; }
+    Process {
+        id: brightGet
+        command: ["basalt-brightness", "get"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const v = parseInt(text.trim(), 10);
+                win.brightness = isNaN(v) ? -1 : v;
+            }
+        }
+    }
+    property int brightWanted: -1
+    Process { id: brightSet }
+    Timer {
+        id: brightTimer
+        interval: 80
+        onTriggered: {
+            if (win.brightWanted < 0) return;
+            if (brightSet.running) { brightTimer.restart(); return; }
+            brightSet.command = ["basalt-brightness", "set", win.brightWanted + "%"];
+            brightSet.running = true;
+            win.brightWanted = -1;
+        }
+    }
+    function setBrightness(v) {
+        win.brightness = Math.max(1, Math.min(100, Math.round(v)));
+        win.brightWanted = win.brightness;
+        if (!brightTimer.running) brightTimer.start();
     }
 
     MouseArea { anchors.fill: parent; onClicked: Ui.quickSettings = false }
@@ -215,6 +251,22 @@ PanelWindow {
                     from: 0; to: 1
                     value: win.sink && win.sink.audio ? win.sink.audio.volume : 0
                     onMoved: v => { if (win.sink && win.sink.audio) win.sink.audio.volume = v; }
+                }
+            }
+
+            // Brightness.
+            RowLayout {
+                visible: win.brightness >= 0
+                Layout.fillWidth: true
+                spacing: Theme.s2
+                Icon { name: "sun"; size: Theme.fontSize * 1.55; color: Theme.text; Layout.leftMargin: Theme.s2; Layout.rightMargin: Theme.s2 }
+                Slider {
+                    Layout.fillWidth: true
+                    e2e: "quick-brightness"
+                    accessibleName: Tr.t("Brightness")
+                    from: 1; to: 100; stepSize: 5
+                    value: Math.max(1, win.brightness)
+                    onMoved: v => win.setBrightness(v)
                 }
             }
 

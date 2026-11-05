@@ -79,6 +79,7 @@ install:
 	install -Dm755 bin/basalt-shell-ui $(DESTDIR)$(PREFIX)/bin/basalt-shell-ui
 	install -Dm755 bin/basalt-session $(DESTDIR)$(PREFIX)/bin/basalt-session
 	install -Dm755 bin/basalt-lock $(DESTDIR)$(PREFIX)/bin/basalt-lock
+	install -Dm755 bin/basalt-brightness $(DESTDIR)$(PREFIX)/bin/basalt-brightness
 	install -Dm755 bin/basalt-session-init $(DESTDIR)$(PREFIX)/bin/basalt-session-init
 	install -d $(DESTDIR)$(PREFIX)/share/basalt-shell/qml/wallpapers $(DESTDIR)$(PREFIX)/share/basalt-shell/themes
 	install -m644 shell/*.qml shell/*.js $(DESTDIR)$(PREFIX)/share/basalt-shell/qml/
@@ -116,7 +117,7 @@ install-greeter:
 
 uninstall:
 	rm -rf $(DESTDIR)$(PREFIX)/share/basalt-shell $(DESTDIR)$(LIBEXECDIR)/basalt-shell
-	rm -f $(DESTDIR)$(PREFIX)/bin/basalt-shell $(DESTDIR)$(PREFIX)/bin/basalt-shelld $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-shell-ui-launch $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-vm-cursor $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-greetd-cancel $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-greetd-ipc $(DESTDIR)$(PREFIX)/bin/basalt-shell-ui $(DESTDIR)$(PREFIX)/bin/basalt-session $(DESTDIR)$(PREFIX)/bin/basalt-lock $(DESTDIR)$(PREFIX)/bin/basalt-session-init
+	rm -f $(DESTDIR)$(PREFIX)/bin/basalt-shell $(DESTDIR)$(PREFIX)/bin/basalt-shelld $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-shell-ui-launch $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-vm-cursor $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-greetd-cancel $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-greetd-ipc $(DESTDIR)$(PREFIX)/bin/basalt-shell-ui $(DESTDIR)$(PREFIX)/bin/basalt-session $(DESTDIR)$(PREFIX)/bin/basalt-lock $(DESTDIR)$(PREFIX)/bin/basalt-brightness $(DESTDIR)$(PREFIX)/bin/basalt-session-init
 	rm -f $(DESTDIR)$(PREFIX)/share/applications/org.basalt.Settings.desktop
 	rm -f $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-sway.desktop $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-niri.desktop
 	rm -f $(DESTDIR)$(SYSCONFDIR)/xdg/xdg-desktop-portal/sway-portals.conf $(DESTDIR)$(SYSCONFDIR)/xdg/xdg-desktop-portal/niri-portals.conf

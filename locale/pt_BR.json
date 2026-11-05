@@ -531,6 +531,9 @@
  "Bottom": [
   "Embaixo"
  ],
+ "Brightness": [
+  "Brilho"
+ ],
  "Bring a window to the front and focus it (switches to its workspace).": [
   "Traz uma janela para a frente e coloca o foco nela (troca para a área de trabalho dela)."
  ],

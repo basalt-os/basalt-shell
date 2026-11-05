@@ -64,6 +64,8 @@ Recommends:     jetbrains-mono-fonts
 Recommends:     swayidle
 # The lock screen's fallback when the shell UI is not running (basalt-lock).
 Requires:       swaylock
+# Brightness keys and the quick settings slider (basalt-brightness).
+Requires:       brightnessctl
 Recommends:     wl-clipboard
 Recommends:     cliphist
 Recommends:     slurp
@@ -356,6 +358,7 @@ fi
 %{_bindir}/basalt-shell-ui
 %{_bindir}/basalt-session
 %{_bindir}/basalt-lock
+%{_bindir}/basalt-brightness
 %{_bindir}/basalt-session-init
 %{_datadir}/basalt-shell/
 %exclude %{_datadir}/basalt-shell/niri/

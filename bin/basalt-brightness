@@ -1,0 +1,62 @@
+#!/bin/bash
+# Screen brightness for the Basalt session (brightness keys, quick
+# settings), with brightnessctl (through logind: no root needed).
+#   basalt-brightness get          the percentage of the main backlight
+#                                  (exit 1 and no output: no backlight)
+#   basalt-brightness set 40%      set every backlight to 40%
+#   basalt-brightness +5% | 5%-    up or down from the main backlight
+# A laptop with a GPU switch (MUX) can have the panel's backlight on either
+# GPU (intel_backlight, nvidia_0) or on the embedded controller
+# (nvidia_wmi_ec_backlight). The main one is the firmware's, then the
+# platform's, then a raw GPU one; changes go to all of them, so the one
+# that drives the panel follows whatever the switch says. Never below 1%:
+# a black panel cannot be turned up by looking at it.
+set -u
+# Tests point this at a fake sysfs.
+sysdir=${BASALT_BACKLIGHT_DIR:-/sys/class/backlight}
+command -v brightnessctl >/dev/null 2>&1 || { echo "basalt-brightness: brightnessctl is not installed" >&2; exit 2; }
+
+# Backlight devices, the main one first.
+devices() {
+  local d t rank
+  for d in "$sysdir"/*; do
+    [ -e "$d/max_brightness" ] || continue
+    t=$(cat "$d/type" 2>/dev/null || echo raw)
+    case $t in firmware) rank=0 ;; platform) rank=1 ;; *) rank=2 ;; esac
+    printf '%s %s\n' "$rank" "${d##*/}"
+  done | sort -k1,1n -k2 | cut -d' ' -f2
+}
+
+percent() {
+  # brightnessctl -m: name,class,current,percent,max
+  brightnessctl -m -d "$1" info 2>/dev/null | cut -d, -f4 | tr -d '%'
+}
+
+mapfile -t devs < <(devices)
+[ ${#devs[@]} -gt 0 ] || exit 1
+main=${devs[0]}
+
+case ${1:-get} in
+  get)
+    p=$(percent "$main")
+    [ -n "$p" ] || exit 1
+    echo "$p" ;;
+  set)
+    v=${2:-}
+    [[ $v =~ ^[0-9]{1,3}%$ ]] || { echo "usage: basalt-brightness set N%" >&2; exit 2; }
+    n=${v%\%}
+    [ "$n" -ge 1 ] || n=1
+    [ "$n" -le 100 ] || n=100
+    for d in "${devs[@]}"; do brightnessctl -q -d "$d" set "$n%" || true; done ;;
+  +[0-9]*%)
+    brightnessctl -q -n1 -d "$main" set "${1#+}+" || exit 1
+    p=$(percent "$main")
+    for d in "${devs[@]:1}"; do brightnessctl -q -d "$d" set "${p:-50}%" || true; done ;;
+  [0-9]*%-)
+    brightnessctl -q -n1 -d "$main" set "$1" || exit 1
+    p=$(percent "$main")
+    [ "${p:-1}" -ge 1 ] || { brightnessctl -q -d "$main" set 1%; p=1; }
+    for d in "${devs[@]:1}"; do brightnessctl -q -d "$d" set "${p:-50}%" || true; done ;;
+  *)
+    echo "usage: basalt-brightness get | set N% | +N% | N%-" >&2; exit 2 ;;
+esac
