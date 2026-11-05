@@ -165,6 +165,26 @@ default apps (foot, Files, Text Editor, Firefox), Flatpak with the
 Flathub remote, and GCR's SSH agent. The graphical target is
 set by the installer.
 
+%package -n basalt-desktop-gnome-fallback
+Summary:        GNOME as a fallback session of the Basalt OS desktop edition
+BuildArch:      noarch
+Requires:       basalt-desktop = %{version}-%{release}
+Requires:       gnome-shell
+Requires:       gnome-session-wayland-session
+Requires:       ptyxis
+Requires:       gnome-control-center
+
+%description -n basalt-desktop-gnome-fallback
+GNOME next to the Basalt session, as a fallback: the login screen lists
+"GNOME" next to "Basalt", with GNOME's terminal (Ptyxis) and Settings.
+Install it with --exclude=gnome-initial-setup,gnome-software,PackageKit*,
+gnome-classic-session,gnome-tour (the installer does). greetd and the
+Basalt login screen stay the display manager (basalt-desktop's preset
+disables gdm.service); GNOME has no screen lock without GDM, so switching
+the display manager while GNOME is in use is an explicit, confirmed step.
+The fallback has none of the Basalt shell's features and shares GNOME's
+appearance settings, which the Basalt session sets at each login.
+
 %package -n basalt-greeter
 Summary:        Basalt OS login screen: a graphical greetd greeter
 BuildArch:      noarch
@@ -364,6 +384,9 @@ fi
 %{_datadir}/glib-2.0/schemas/50_basalt-desktop.gschema.override
 %dir %{_datadir}/flatpak/remotes.d
 %{_datadir}/flatpak/remotes.d/flathub.flatpakrepo
+
+# A metapackage: no files of its own.
+%files -n basalt-desktop-gnome-fallback
 
 %files -n basalt-greeter
 %license LICENSE

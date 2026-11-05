@@ -1,2 +1,7 @@
 # Basalt OS desktop edition: the graphical login.
 enable greetd.service
+# GDM comes with GNOME (gnome-shell needs gdm-libs, only in gdm), when the
+# GNOME fallback is installed. greetd stays the display manager: a later
+# preset-all must never flip it to GDM. Switching to GDM while GNOME is in
+# use is an explicit, confirmed change (basalt fallback gnome).
+disable gdm.service
