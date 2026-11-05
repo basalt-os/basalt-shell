@@ -296,13 +296,16 @@ PanelWindow {
         property bool on
         property bool toggle: true
         // Two equal columns that always fit the card: the same preferred
-        // width for every tile (the grid shares the width evenly), and the
-        // text elides inside the tile's own padding.
+        // width for every tile (the grid shares the width evenly). A label
+        // longer than the tile ("Movimento reduzido", "Pergunte ao
+        // sistema") wraps to a second line instead of being cut; the tiles
+        // of a row keep the same height.
         Layout.fillWidth: true
+        Layout.fillHeight: true
         Layout.preferredWidth: 1
         Layout.minimumWidth: 0
         implicitWidth: 1
-        implicitHeight: Theme.fontSize * 5
+        implicitHeight: Math.max(Theme.fontSize * 5, tileText.implicitHeight + Theme.s3 * 2)
         radius: Theme.radiusMd
         accessibleName: tile.label
         accessibleDescription: tile.sub
@@ -321,13 +324,14 @@ PanelWindow {
             anchors.verticalCenter: parent.verticalCenter
         }
         Column {
+            id: tileText
             anchors.left: tileIcon.right
             anchors.leftMargin: Theme.s2
             anchors.right: parent.right
             anchors.rightMargin: Theme.s3
             anchors.verticalCenter: parent.verticalCenter
-            Txt { text: tile.label; font.weight: Font.DemiBold; color: tile.on ? Theme.accentText : Theme.text; width: parent.width }
-            Txt { text: tile.sub; role: "small"; color: tile.on ? Theme.alpha(Theme.accentText, 0.8) : Theme.textMuted; width: parent.width }
+            Txt { text: tile.label; font.weight: Font.DemiBold; color: tile.on ? Theme.accentText : Theme.text; width: parent.width; wrapMode: Text.WordWrap; maximumLineCount: 2 }
+            Txt { text: tile.sub; role: "small"; color: tile.on ? Theme.alpha(Theme.accentText, 0.8) : Theme.textMuted; width: parent.width; wrapMode: Text.WordWrap; maximumLineCount: 2 }
         }
     }
 }
