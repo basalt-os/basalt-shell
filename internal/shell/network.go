@@ -164,6 +164,11 @@ func (c *Core) networkEditor() (kind string, argv []string) {
 			return "nm-connection-editor", v
 		}
 	}
+	// Its desktop entry can be hidden from menus (NoDisplay): the
+	// program itself is enough.
+	if p, err := exec.LookPath("nm-connection-editor"); err == nil {
+		return "nm-connection-editor", []string{p}
+	}
 	if _, err := exec.LookPath("nmtui"); err == nil {
 		if t, err := exec.LookPath("foot"); err == nil {
 			return "nmtui", []string{t, "--title", "Network", "nmtui"}
