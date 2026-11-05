@@ -149,7 +149,7 @@ func TestWifiConnectPassword(t *testing.T) {
 	// over; the new connection is deleted.
 	f.fail = "Error: Timeout expired (30 seconds)"
 	f.calls = nil
-	err := c.WifiConnect(context.Background(), "Casa", "wrong")
+	err := c.WifiConnect(context.Background(), "Casa", "wrong-password")
 	if err == nil || !strings.Contains(err.Error(), "password was not accepted") {
 		t.Errorf("wrong password: %v", err)
 	}
@@ -158,5 +158,48 @@ func TestWifiConnectPassword(t *testing.T) {
 	}
 	if err := c.WifiConnect(context.Background(), "Casa", "a\nb"); err == nil {
 		t.Error("a password with a newline must be refused")
+	}
+}
+
+// Passwords nmcli's passwd-file reader would change if written as they
+// are: backslashes (escapes), spaces at either end (stripped), a literal
+// "\n" or octal-looking text, tabs. Each one reaches NetworkManager
+// unchanged after nmcli's unescaping (unescapePasswd follows
+// nm_utils_buf_utf8safe_unescape with STRIP_SPACES).
+func TestWifiPasswdFileEscaping(t *testing.T) {
+	for _, pw := range []string{
+		`plain-password`, `back\slash`, `ends\`, `\\double`, ` leading space`, `trailing space `,
+		"  both  ", "tab\there", `literal\n and \040`, `octal\101`, "çãé senha", `a:b=c#d`,
+	} {
+		line := wifiPasswdFile(pw)
+		if !strings.HasPrefix(line, "802-11-wireless-security.psk:") || !strings.HasSuffix(line, "\n") || strings.Count(line, "\n") != 1 {
+			t.Errorf("%q: line %q", pw, line)
+			continue
+		}
+		v := strings.TrimSuffix(strings.TrimPrefix(line, "802-11-wireless-security.psk:"), "\n")
+		if got := unescapePasswd(v); got != pw {
+			t.Errorf("%q: nmcli would read %q (line %q)", pw, got, line)
+		}
+	}
+	// The model itself: what nmcli does to an unescaped value.
+	if unescapePasswd(` a\qb `) != "aqb" || unescapePasswd(`x\\y`) != `x\y` || unescapePasswd(`\040x\040`) != " x " {
+		t.Error("unescape model")
+	}
+}
+
+func TestValidWifiPassword(t *testing.T) {
+	hex := strings.Repeat("0a", 32)
+	for _, c := range []struct {
+		mgmt, pw string
+		ok       bool
+	}{
+		{"wpa-psk", "1234567", false}, {"wpa-psk", "12345678", true}, {"wpa-psk", strings.Repeat("x", 63), true},
+		{"wpa-psk", strings.Repeat("x", 64), false}, {"wpa-psk", hex, true}, {"wpa-psk", strings.Repeat("x", 65), false},
+		{"wpa-psk", " spaced \\ 1 ", true}, {"wpa-psk", "line\nbreak1", false},
+		{"sae", "short", true}, {"sae", strings.Repeat("x", 128), true}, {"sae", strings.Repeat("x", 129), false},
+	} {
+		if validWifiPassword(c.mgmt, c.pw) != c.ok {
+			t.Errorf("%s %q: want %v", c.mgmt, c.pw, c.ok)
+		}
 	}
 }

@@ -3,6 +3,7 @@ package shell
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"sort"
@@ -271,8 +272,100 @@ func wifiUpArgs(kind, ref string, withPassword bool) []string {
 }
 
 // wifiPasswdFile is the passwd-file line that gives the password.
+// nmcli reads the value through nm_utils_buf_utf8safe_unescape with
+// STRIP_SPACES (libnmc-base nmc_utils_parse_passwd_file): a backslash
+// starts an escape (\\, \n, \ooo octal) and unescaped spaces at either end
+// are dropped. So every backslash, and every space or control character,
+// is written as an escape; anything else (UTF-8 included) goes as it is.
 func wifiPasswdFile(password string) string {
-	return "802-11-wireless-security.psk:" + password + "\n"
+	var b strings.Builder
+	b.WriteString("802-11-wireless-security.psk:")
+	for i := 0; i < len(password); i++ {
+		ch := password[i]
+		switch {
+		case ch == '\\':
+			b.WriteString(`\\`)
+		case ch <= ' ' || ch == 0x7f:
+			fmt.Fprintf(&b, "\\%03o", ch)
+		default:
+			b.WriteByte(ch)
+		}
+	}
+	b.WriteString("\n")
+	return b.String()
+}
+
+// unescapePasswd is nmcli's reading of a passwd-file value, for the tests
+// (the same rules as nm_utils_buf_utf8safe_unescape with STRIP_SPACES).
+func unescapePasswd(v string) string {
+	isSpace := func(c byte) bool { return c == ' ' || (c >= '\t' && c <= '\r') }
+	for len(v) > 0 && isSpace(v[0]) {
+		v = v[1:]
+	}
+	var out []byte
+	keep := 0 // bytes of out that came from escapes or before them (not stripped)
+	for i := 0; i < len(v); i++ {
+		if v[i] != '\\' {
+			out = append(out, v[i])
+			continue
+		}
+		i++
+		if i >= len(v) {
+			break
+		}
+		ch := v[i]
+		if ch >= '0' && ch <= '9' {
+			n := uint(ch - '0')
+			for k := 0; k < 2 && i+1 < len(v) && v[i+1] >= '0' && v[i+1] <= '7'; k++ {
+				i++
+				n = n*8 + uint(v[i]-'0')
+			}
+			ch = byte(n & 0xff)
+		} else {
+			switch ch {
+			case 'b':
+				ch = '\b'
+			case 'f':
+				ch = '\f'
+			case 'n':
+				ch = '\n'
+			case 'r':
+				ch = '\r'
+			case 't':
+				ch = '\t'
+			case 'v':
+				ch = '\v'
+			}
+		}
+		out = append(out, ch)
+		keep = len(out)
+	}
+	for len(out) > keep && isSpace(out[len(out)-1]) {
+		out = out[:len(out)-1]
+	}
+	return string(out)
+}
+
+// validWifiPassword checks a password for the network's key management the
+// way NetworkManager does (nm_utils_wpa_psk_valid): WPA-PSK takes 8 to 63
+// bytes, or 64 hexadecimal digits (the key itself); WPA3-SAE takes 1 to
+// 128 bytes. One line only.
+func validWifiPassword(mgmt, pw string) bool {
+	if strings.ContainsAny(pw, "\n\r") {
+		return false
+	}
+	if mgmt == "sae" {
+		return len(pw) >= 1 && len(pw) <= 128
+	}
+	if len(pw) == 64 {
+		for _, c := range pw {
+			if !strings.ContainsRune("0123456789abcdefABCDEF", c) {
+				return false
+			}
+		}
+		return true
+	}
+	return len(pw) >= 8 && len(pw) <= 63
 }
 
 // parseAddedUUID reads the UUID from nmcli's "Connection 'X' (UUID)
@@ -292,7 +385,7 @@ func (c *Core) WifiConnect(ctx context.Context, ssid, password string) error {
 		return errors.New(i18n.G("That is not a network name."))
 	}
 	if strings.ContainsAny(password, "\n\r") || len(password) > 128 {
-		return errors.New(i18n.G("That password cannot be right: a Wi-Fi password has at most 63 characters on one line."))
+		return errors.New(i18n.G("A Wi-Fi password has 8 to 63 characters (or 64 hexadecimal digits), on one line."))
 	}
 	st := c.Wifi(ctx, false)
 	if st.Device == "" {
@@ -313,6 +406,9 @@ func (c *Core) WifiConnect(ctx context.Context, ssid, password string) error {
 	}
 	if net.Secure && !net.Known && password == "" {
 		return errors.New(i18n.G("%s needs a password.", ssid))
+	}
+	if password != "" && !validWifiPassword(mgmt, password) {
+		return errors.New(i18n.G("A Wi-Fi password has 8 to 63 characters (or 64 hexadecimal digits), on one line."))
 	}
 	cctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()

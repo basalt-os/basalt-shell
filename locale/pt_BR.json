@@ -198,6 +198,9 @@
  "A COPR project": [
   "Um projeto do COPR"
  ],
+ "A Wi-Fi password has 8 to 63 characters (or 64 hexadecimal digits), on one line.": [
+  "Uma senha de Wi-Fi tem de 8 a 63 caracteres (ou 64 dígitos hexadecimais), em uma linha."
+ ],
  "A coming update of Basalt OS installs drivers such as NVIDIA's from this page. Until then the open drivers in use keep your hardware working, and nothing needs to be done.": [
   "Uma próxima atualização do Basalt OS instala drivers como o da NVIDIA por esta página. Até lá, os drivers abertos em uso mantêm o seu hardware funcionando, e não é preciso fazer nada."
  ],
@@ -2347,9 +2350,6 @@
  ],
  "That network is not in range any more.": [
   "Essa rede não está mais ao alcance."
- ],
- "That password cannot be right: a Wi-Fi password has at most 63 characters on one line.": [
-  "Essa senha não pode estar certa: uma senha de Wi-Fi tem no máximo 63 caracteres, em uma linha."
  ],
  "That password did not work. Check Caps Lock and the keyboard layout (%1).": [
   "Essa senha não funcionou. Confira o Caps Lock e o layout do teclado (%1)."
