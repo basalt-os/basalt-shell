@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/basalt-os/basalt-shell/internal/i18n"
 	"github.com/basalt-os/basalt-shell/internal/theme"
 )
 
@@ -246,9 +247,9 @@ func spokenAnswersClause(c string) ([]Call, []string, bool) {
 	c = strings.ReplaceAll(c, "’", "'")
 	switch {
 	case reSpokenOff.MatchString(c):
-		return []Call{{Action: "voice.answers.set", Args: map[string]any{"spoken": "off"}}}, []string{"spoken answers off"}, true
+		return []Call{{Action: "voice.answers.set", Args: map[string]any{"spoken": "off"}}}, []string{i18n.G("spoken answers off")}, true
 	case reSpokenOn.MatchString(c):
-		return []Call{{Action: "voice.answers.set", Args: map[string]any{"spoken": "on"}}}, []string{"spoken answers on"}, true
+		return []Call{{Action: "voice.answers.set", Args: map[string]any{"spoken": "on"}}}, []string{i18n.G("spoken answers on")}, true
 	}
 	return nil, nil, false
 }
@@ -269,16 +270,16 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 	switch {
 	case c == "escuro" || c == "escura" || c == "dark":
 		*mode, *switched = "dark", "dark"
-		return nil, []string{"dark mode"}, true
+		return nil, []string{i18n.G("dark mode")}, true
 	case c == "claro" || c == "clara" || c == "light":
 		*mode, *switched = "light", "light"
-		return nil, []string{"light mode"}, true
+		return nil, []string{i18n.G("light mode")}, true
 	case has(c, "dark mode", "modo escuro", "dark theme", "tema escuro", "night mode", "modo noturno", "modo dark"):
 		*mode, *switched = "dark", "dark"
-		return nil, []string{"dark mode"}, true
+		return nil, []string{i18n.G("dark mode")}, true
 	case has(c, "light mode", "modo claro", "light theme", "tema claro", "day mode", "modo diurno", "modo light"):
 		*mode, *switched = "light", "light"
-		return nil, []string{"light mode"}, true
+		return nil, []string{i18n.G("light mode")}, true
 	case has(c, "toggle mode", "switch mode", "alternar modo", "inverte"):
 		if *mode == "dark" {
 			*mode = "light"
@@ -286,24 +287,24 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 			*mode = "dark"
 		}
 		*switched = *mode
-		return nil, []string{*mode + " mode"}, true
+		return nil, []string{modeLine(*mode)}, true
 	}
 	// Darker / lighter.
 	if has(c, "darker", "mais escuro", "mais escura", "escurec", "escureç", "dimmer", "deeper") {
 		if *mode == "light" {
 			*mode, *switched = "dark", "dark"
-			return nil, []string{"darker: switch to dark mode"}, true
+			return nil, []string{i18n.G("darker: switch to dark mode")}, true
 		}
 		ch := scaleColors(work, 0.72, setTok)
-		return nil, []string{"darker: surfaces 28% darker (" + strings.Join(ch, ", ") + ")"}, true
+		return nil, []string{i18n.G("darker: surfaces %s darker (%s)", "28%", strings.Join(ch, ", "))}, true
 	}
 	if has(c, "lighter", "brighter", "mais claro", "mais clara", "clarear", "clareia", "clareie", "clareá") {
 		if *mode == "dark" && has(c, "much", "muito") {
 			*mode, *switched = "light", "light"
-			return nil, []string{"lighter: switch to light mode"}, true
+			return nil, []string{i18n.G("lighter: switch to light mode")}, true
 		}
 		ch := scaleColors(work, 1.2, setTok)
-		return nil, []string{"lighter: surfaces 20% lighter (" + strings.Join(ch, ", ") + ")"}, true
+		return nil, []string{i18n.G("lighter: surfaces %s lighter (%s)", "20%", strings.Join(ch, ", "))}, true
 	}
 	// Corners.
 	corner := func(f float64, add float64, label string) ([]Call, []string, bool) {
@@ -318,11 +319,11 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 	}
 	switch {
 	case has(c, "square corner", "no corner", "sem cantos", "cantos retos", "sharp corners off", "no rounding"):
-		return corner(0, 0, "square corners")
+		return corner(0, 0, i18n.G("square corners"))
 	case has(c, "rounder", "more round", "round corner", "rounded", "arredondad", "mais redond", "softer corners"):
-		return corner(1.5, 4, "rounder corners")
+		return corner(1.5, 4, i18n.G("rounder corners"))
 	case has(c, "sharper", "less round", "menos arredond", "squarer", "tighter corners"):
-		return corner(0.5, 0, "sharper corners")
+		return corner(0.5, 0, i18n.G("sharper corners"))
 	}
 	// Text size.
 	if has(c, "bigger text", "larger text", "bigger font", "larger font", "fonte maior", "texto maior", "letra maior", "letras maiores", "zoom in",
@@ -343,7 +344,7 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 		g := clampSpec("window.gaps", work.Num("window.gaps")+6)
 		setTok("current", "spacing.unit", u)
 		setTok("current", "window.gaps", g)
-		return nil, []string{fmt.Sprintf("spacing unit %g, gaps %g", u, g)}, true
+		return nil, []string{i18n.G("spacing unit %g, gaps %g", u, g)}, true
 	}
 	if has(c, "compact", "denser", "less space", "menos espaç", "smaller gaps", "no gaps") {
 		u := clampSpec("spacing.unit", work.Num("spacing.unit")-1)
@@ -353,48 +354,48 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 		}
 		setTok("current", "spacing.unit", u)
 		setTok("current", "window.gaps", g)
-		return nil, []string{fmt.Sprintf("spacing unit %g, gaps %g", u, g)}, true
+		return nil, []string{i18n.G("spacing unit %g, gaps %g", u, g)}, true
 	}
 	// Motion.
 	switch {
 	case has(c, "reduce motion", "reduced motion", "no animation", "less motion", "disable animation", "sem animaç", "menos animaç", "stop animating",
 		"less animation", "animations off", "turn off the animation", "turn off animation", "desliga as animaç", "desligar animaç"):
-		return []Call{{Action: "motion.set", Args: map[string]any{"motion": "reduced"}}}, []string{"reduced motion"}, true
+		return []Call{{Action: "motion.set", Args: map[string]any{"motion": "reduced"}}}, []string{i18n.G("reduced motion")}, true
 	case has(c, "enable animation", "full motion", "more animation", "com animaç", "turn on animation"):
-		return []Call{{Action: "motion.set", Args: map[string]any{"motion": "full"}}}, []string{"full motion"}, true
+		return []Call{{Action: "motion.set", Args: map[string]any{"motion": "full"}}}, []string{i18n.G("full motion")}, true
 	}
 	// Panel position.
 	if has(c, "panel") || has(c, "painel") || has(c, "barra") {
 		if has(c, "bottom", "embaixo", "baixo") {
 			setTok("current", "panel.position", "bottom")
-			return nil, []string{"panel at the bottom"}, true
+			return nil, []string{i18n.G("panel at the bottom")}, true
 		}
 		if has(c, "top", "topo", "cima") {
 			setTok("current", "panel.position", "top")
-			return nil, []string{"panel at the top"}, true
+			return nil, []string{i18n.G("panel at the top")}, true
 		}
 	}
 	// Shadows / blur.
 	if has(c, "shadow", "sombra") {
 		on := !has(c, "no shadow", "without shadow", "off", "sem sombra", "remove")
 		setTok("current", "window.shadows", on)
-		return nil, []string{fmt.Sprintf("window shadows %v", on)}, true
+		return nil, []string{onOff(on, i18n.G("window shadows on"), i18n.G("window shadows off"))}, true
 	}
 	if has(c, "blur", "desfoque") {
 		on := !has(c, "no blur", "off", "sem desfoque", "remove")
 		setTok("current", "window.blur", on)
-		return nil, []string{fmt.Sprintf("blur %v", on)}, true
+		return nil, []string{onOff(on, i18n.G("blur on"), i18n.G("blur off"))}, true
 	}
 	// Accent color.
 	if has(c, "accent", "destaque", "cor de", "color", "cor ") {
 		if hx := reHex.FindString(c); hx != "" {
 			setTok("current", "color.accent", hx)
-			return nil, []string{"accent " + hx}, true
+			return nil, []string{i18n.G("accent %s", hx)}, true
 		}
 		for name, hx := range colorNames {
 			if regexp.MustCompile(`\b` + name + `\b`).MatchString(c) {
 				setTok("current", "color.accent", hx)
-				return nil, []string{"accent " + name + " " + hx}, true
+				return nil, []string{i18n.G("accent %s %s", name, hx)}, true
 			}
 		}
 	}
@@ -407,18 +408,18 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 	for _, m := range ctx.Themes {
 		n := strings.ToLower(m.Name)
 		if (has(c, "theme", "tema", "use ", "switch to", "muda para", "mude para", "troque para", "troca para", "usar", "visual", "aparência")) && (strings.Contains(c, n) || strings.Contains(c, m.ID)) {
-			return []Call{{Action: "theme.switch", Args: map[string]any{"theme": m.ID}}}, []string{"theme " + m.Name}, true
+			return []Call{{Action: "theme.switch", Args: map[string]any{"theme": m.ID}}}, []string{i18n.G("theme %s", m.Name)}, true
 		}
 	}
 	if has(c, "reset theme", "default look", "reset the look", "restaurar tema", "padrão", "reset tokens", "undo theme") {
-		return []Call{{Action: "theme.reset", Args: map[string]any{}}}, []string{"reset to the theme's values"}, true
+		return []Call{{Action: "theme.reset", Args: map[string]any{}}}, []string{i18n.G("reset to the theme's values")}, true
 	}
 	// Windows and apps.
 	if m := regexp.MustCompile(`^(?:move|send|mova|manda|envia)\s+(.+?)\s+(?:to|para)\s+(?:workspace|área|area|desktop)\s*(\d+)$`).FindStringSubmatch(c); m != nil {
-		return []Call{{Action: "window.to_workspace", Args: map[string]any{"window": windowRef(m[1]), "workspace": m[2]}}}, []string{"send " + m[1] + " to workspace " + m[2]}, true
+		return []Call{{Action: "window.to_workspace", Args: map[string]any{"window": windowRef(m[1]), "workspace": m[2]}}}, []string{i18n.G("send %s to workspace %s", m[1], m[2])}, true
 	}
 	if m := regexp.MustCompile(`(?:workspace|área de trabalho|area de trabalho|desktop)\s*(\d+)`).FindStringSubmatch(c); m != nil {
-		return []Call{{Action: "workspace.switch", Args: map[string]any{"workspace": m[1]}}}, []string{"workspace " + m[1]}, true
+		return []Call{{Action: "workspace.switch", Args: map[string]any{"workspace": m[1]}}}, []string{i18n.G("workspace %s", m[1])}, true
 	}
 	for _, l := range []struct {
 		words  []string
@@ -433,11 +434,11 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 		{[]string{"float all", "float everything", "floating windows", "janelas flutuantes"}, "float"},
 	} {
 		if has(c, l.words...) && !has(c, "corner") {
-			return []Call{{Action: "windows.arrange", Args: map[string]any{"layout": l.layout}}}, []string{"arrange: " + l.layout}, true
+			return []Call{{Action: "windows.arrange", Args: map[string]any{"layout": l.layout}}}, []string{i18n.G("arrange: %s", l.layout)}, true
 		}
 	}
 	if m := regexp.MustCompile(`^snap\s+(.*?)\s*(?:to\s+the\s+)?(left|right)(?:\s+half)?$`).FindStringSubmatch(c); m != nil {
-		return []Call{{Action: "window.set_state", Args: map[string]any{"window": windowRef(m[1]), "state": m[2]}}}, []string{"snap " + orFocused(m[1]) + " " + m[2]}, true
+		return []Call{{Action: "window.set_state", Args: map[string]any{"window": windowRef(m[1]), "state": m[2]}}}, []string{snapLine(orFocused(m[1]), m[2])}, true
 	}
 	for _, st := range []struct {
 		re    string
@@ -448,14 +449,14 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 		{`^(?:restore|restaura|restaurar|unminimi[sz]e)\s*(.*)$`, "normal"},
 	} {
 		if m := regexp.MustCompile(st.re).FindStringSubmatch(c); m != nil {
-			return []Call{{Action: "window.set_state", Args: map[string]any{"window": windowRef(m[1]), "state": st.state}}}, []string{st.state + ": " + orFocused(m[1])}, true
+			return []Call{{Action: "window.set_state", Args: map[string]any{"window": windowRef(m[1]), "state": st.state}}}, []string{stateLine(st.state, orFocused(m[1]))}, true
 		}
 	}
 	if m := regexp.MustCompile(`^(?:close|fecha|fechar|feche|quit)\s*(.*)$`).FindStringSubmatch(c); m != nil {
-		return []Call{{Action: "window.close", Args: map[string]any{"window": windowRef(m[1])}}}, []string{"close " + orFocused(m[1])}, true
+		return []Call{{Action: "window.close", Args: map[string]any{"window": windowRef(m[1])}}}, []string{i18n.G("close %s", orFocused(m[1]))}, true
 	}
 	if m := regexp.MustCompile(`^(?:focus|foca|switch to|go to|vai para|mostra|show)\s+(.+)$`).FindStringSubmatch(c); m != nil {
-		return []Call{{Action: "window.focus", Args: map[string]any{"window": windowRef(m[1])}}}, []string{"focus " + m[1]}, true
+		return []Call{{Action: "window.focus", Args: map[string]any{"window": windowRef(m[1])}}}, []string{i18n.G("focus %s", m[1])}, true
 	}
 	if has(c, "settings", "configuraç", "preferences", "preferências", "ajustes") {
 		page := "appearance"
@@ -470,21 +471,21 @@ func rulesClause(c string, ctx Context, work theme.Tokens, mode *string, switche
 		if has(c, "update", "atualizaç", "channel", "canais", "canal") {
 			page = "updates"
 		}
-		return []Call{{Action: "settings.open", Args: map[string]any{"page": page}}}, []string{"open settings: " + page}, true
+		return []Call{{Action: "settings.open", Args: map[string]any{"page": page}}}, []string{i18n.G("open settings: %s", page)}, true
 	}
 	if m := regexp.MustCompile(`^(?:open|launch|start|run|abr[aei]r?|abre|inicia|iniciar|executa)\s+(?:the\s+|o\s+|a\s+)?(.+)$`).FindStringSubmatch(c); m != nil {
-		return []Call{{Action: "app.launch", Args: map[string]any{"app": strings.TrimSuffix(m[1], " app")}}}, []string{"launch " + m[1]}, true
+		return []Call{{Action: "app.launch", Args: map[string]any{"app": strings.TrimSuffix(m[1], " app")}}}, []string{i18n.G("launch %s", m[1])}, true
 	}
 	if m := regexp.MustCompile(`^(?:float|flutua)\s*(.*)$`).FindStringSubmatch(c); m != nil {
-		return []Call{{Action: "window.set_floating", Args: map[string]any{"window": windowRef(m[1]), "floating": true}}}, []string{"float " + orFocused(m[1])}, true
+		return []Call{{Action: "window.set_floating", Args: map[string]any{"window": windowRef(m[1]), "floating": true}}}, []string{i18n.G("float %s", orFocused(m[1]))}, true
 	}
 	if m := regexp.MustCompile(`^(?:tile|encaixa)\s*(.*)$`).FindStringSubmatch(c); m != nil {
-		return []Call{{Action: "window.set_floating", Args: map[string]any{"window": windowRef(m[1]), "floating": false}}}, []string{"tile " + orFocused(m[1])}, true
+		return []Call{{Action: "window.set_floating", Args: map[string]any{"window": windowRef(m[1]), "floating": false}}}, []string{i18n.G("tile %s", orFocused(m[1]))}, true
 	}
 	if n := reNum.FindString(c); n != "" && has(c, "radius", "raio") {
 		v, _ := strconv.Atoi(n)
 		setTok("current", "radius.md", clampSpec("radius.md", float64(v)))
-		return nil, []string{"radius.md " + n}, true
+		return nil, []string{i18n.G("radius.md %s", n)}, true
 	}
 	return nil, nil, false
 }
@@ -506,4 +507,39 @@ func orFocused(s string) string {
 		return r
 	}
 	return "the focused window"
+}
+
+// The lines that say how a request was understood are shown to the person
+// in the command bar, in the session's language (English without a
+// catalog, as in the tests).
+
+func modeLine(m string) string {
+	if m == "light" {
+		return i18n.G("light mode")
+	}
+	return i18n.G("dark mode")
+}
+
+func onOff(on bool, yes, no string) string {
+	if on {
+		return yes
+	}
+	return no
+}
+
+func snapLine(w, side string) string {
+	if side == "left" {
+		return i18n.G("snap %s left", w)
+	}
+	return i18n.G("snap %s right", w)
+}
+
+func stateLine(state, w string) string {
+	switch state {
+	case "minimized":
+		return i18n.G("minimized: %s", w)
+	case "maximized":
+		return i18n.G("maximized: %s", w)
+	}
+	return i18n.G("normal: %s", w)
 }

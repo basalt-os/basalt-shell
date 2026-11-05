@@ -3,6 +3,8 @@ package intent
 import (
 	"regexp"
 	"strings"
+
+	"github.com/basalt-os/basalt-shell/internal/i18n"
 )
 
 // Power requests (lock, log out, suspend, restart, power off), in English
@@ -68,5 +70,22 @@ func PowerRequest(text string) (op string, ok bool) {
 }
 
 func powerCall(op string) ([]Call, []string) {
-	return []Call{{Action: "session.power", Args: map[string]any{"op": op}}}, []string{"session " + op}
+	return []Call{{Action: "session.power", Args: map[string]any{"op": op}}}, []string{powerLine(op)}
+}
+
+// powerLine says how a power request was understood (command bar).
+func powerLine(op string) string {
+	switch op {
+	case "lock":
+		return i18n.G("session: lock")
+	case "logout":
+		return i18n.G("session: log out")
+	case "suspend":
+		return i18n.G("session: suspend")
+	case "restart":
+		return i18n.G("session: restart")
+	case "poweroff":
+		return i18n.G("session: power off")
+	}
+	return "session " + op
 }
