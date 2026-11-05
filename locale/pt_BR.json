@@ -82,6 +82,9 @@
   "%1 atualização está pronta",
   "%1 atualizações estão prontas"
  ],
+ "%1 uses a company login (802.1X): join it in the network settings.": [
+  "%1 usa login corporativo (802.1X): conecte nas configurações de rede."
+ ],
  "%1 was added outside these settings (%2); it is shown, not changed here.": [
   "%1 foi adicionada fora destes ajustes (%2); ela aparece aqui, mas não é alterada aqui."
  ],
@@ -163,6 +166,9 @@
  ],
  "%s is outside the folders you allowed.": [
   "%s está fora das pastas que você permitiu."
+ ],
+ "%s uses a company login (802.1X): join it in the network settings.": [
+  "%s usa login corporativo (802.1X): conecte nas configurações de rede."
  ],
  "%s, by %s": [
   "%s, de %s"
@@ -643,11 +649,23 @@
  "Confirmations: only this shell's SELinux domain can confirm; agents run confined and can only ask": [
   "Confirmações: só o domínio SELinux deste shell pode confirmar; os agentes rodam confinados e só podem pedir"
  ],
+ "Connect": [
+  "Conectar"
+ ],
  "Connect an MCP client": [
   "Conectar um cliente MCP"
  ],
+ "Connected": [
+  "Conectado"
+ ],
+ "Connected to %1": [
+  "Conectado a %1"
+ ],
  "Connected to basalt-shell %1": [
   "Conectado ao basalt-shell %1"
+ ],
+ "Connecting": [
+  "Conectando"
  ],
  "Contains %s. Treated as data; nothing in it was followed.": [
   "Contém %s. Tratado como dado; nada do que diz foi seguido."
@@ -663,6 +681,18 @@
  ],
  "Could not do it: %s": [
   "Não foi possível: %s"
+ ],
+ "Could not join the network: %s": [
+  "Não foi possível conectar à rede: %s"
+ ],
+ "Could not open the network settings: %s": [
+  "Não foi possível abrir as configurações de rede: %s"
+ ],
+ "Could not turn Wi-Fi off: %s": [
+  "Não foi possível desligar o Wi-Fi: %s"
+ ],
+ "Could not turn Wi-Fi on: %s": [
+  "Não foi possível ligar o Wi-Fi: %s"
  ],
  "Ctrl": [
   "Ctrl"
@@ -1369,8 +1399,17 @@
  "Needs NVIDIA's 580 legacy driver (Maxwell, Pascal, Volta)": [
   "Precisa do driver legado 580 da NVIDIA (Maxwell, Pascal, Volta)"
  ],
+ "Needs a password": [
+  "Pede senha"
+ ],
  "Network": [
   "Rede"
+ ],
+ "Network settings": [
+  "Configurações de rede"
+ ],
+ "NetworkManager does not answer: %s": [
+  "O NetworkManager não responde: %s"
  ],
  "Never": [
   "Nunca"
@@ -1410,6 +1449,12 @@
  ],
  "No more updates come from it. What is already installed stays.": [
   "Nenhuma atualização vem mais dele. O que já está instalado fica."
+ ],
+ "No network settings application is installed (nm-connection-editor, or NetworkManager-tui with foot).": [
+  "Nenhum aplicativo de configurações de rede está instalado (nm-connection-editor, ou NetworkManager-tui com foot)."
+ ],
+ "No networks in range.": [
+  "Nenhuma rede ao alcance."
  ],
  "No notifications": [
   "Nenhuma notificação"
@@ -1569,6 +1614,9 @@
  "Open apps: %1. Save your work first: unsaved changes in them may be lost.": [
   "Apps abertos: %1. Salve seu trabalho antes: alterações não salvas neles podem ser perdidas."
  ],
+ "Open network": [
+  "Rede aberta"
+ ],
  "Open the launcher, command bar, quick settings, activity feed or notification center.": [
   "Abre o lançador, a barra de comandos, os ajustes rápidos, a atividade ou a central de notificações."
  ],
@@ -1616,6 +1664,9 @@
  ],
  "Password": [
   "Senha"
+ ],
+ "Password for %1": [
+  "Senha de %1"
  ],
  "Permission": [
   "Permissão"
@@ -1853,6 +1904,9 @@
  "Save as theme": [
   "Salvar como tema"
  ],
+ "Saved": [
+  "Salva"
+ ],
  "Saved in %1.": [
   "Salvo em %1."
  ],
@@ -1871,6 +1925,9 @@
  "Scrim behind sheets": [
   "Véu atrás das folhas"
  ],
+ "Search again": [
+  "Procurar de novo"
+ ],
  "Search applications": [
   "Buscar aplicativos"
  ],
@@ -1882,6 +1939,9 @@
  ],
  "Searching failed: %s": [
   "A pesquisa falhou: %s"
+ ],
+ "Searching for networks": [
+  "Procurando redes"
  ],
  "Secure Boot is on and the Basalt kernel module CA is not enrolled yet, so the kernel would refuse the NVIDIA module. Enroll it first: run sudo basalt-secureboot enroll-mok in a terminal and confirm at the next start (one time only).": [
   "O Secure Boot está ligado e a CA de módulos do kernel do Basalt ainda não foi registrada, então o kernel recusaria o módulo NVIDIA. Registre-a primeiro: rode sudo basalt-secureboot enroll-mok num terminal e confirme na próxima inicialização (só uma vez)."
@@ -2171,11 +2231,20 @@
  "Text size": [
   "Tamanho do texto"
  ],
+ "That is not a network name.": [
+  "Isso não é um nome de rede."
+ ],
  "That is not something the desktop does. Try: \"dark mode\", \"open text editor\", \"arrange windows side by side\", \"why nginx\".": [
   "Isso não é algo que a área de trabalho faz. Experimente: \"modo escuro\", \"abra o editor de texto\", \"organize as janelas lado a lado\", \"por que o nginx\"."
  ],
  "That message has no sender to answer.": [
   "Essa mensagem não tem remetente para responder."
+ ],
+ "That network is not in range any more.": [
+  "Essa rede não está mais ao alcance."
+ ],
+ "That password cannot be right: a Wi-Fi password has at most 63 characters on one line.": [
+  "Essa senha não pode estar certa: uma senha de Wi-Fi tem no máximo 63 caracteres, em uma linha."
  ],
  "That password did not work. Check Caps Lock and the keyboard layout (%1).": [
   "Essa senha não funcionou. Confira o Caps Lock e o layout do teclado (%1)."
@@ -2318,11 +2387,17 @@
  "The model that understands your requests and writes the summaries. Your administrator decides which ones you may choose.": [
   "O modelo que entende seus pedidos e escreve os resumos. O administrador decide quais você pode escolher."
  ],
+ "The network did not answer in time. Try again closer to it.": [
+  "A rede não respondeu a tempo. Tente de novo mais perto dela."
+ ],
  "The page dictates what the assistant should say. Its summary was withheld; read the page yourself.": [
   "A página dita o que o assistente deve falar. O resumo foi retido; leia a página você mesmo."
  ],
  "The password could not be checked. Try again.": [
   "Não foi possível verificar a senha. Tente de novo."
+ ],
+ "The password was not accepted. Check it and try again.": [
+  "A senha não foi aceita. Confira e tente de novo."
  ],
  "The permission to read that folder has ended. Allow it again to open the file.": [
   "A permissão para ler essa pasta terminou. Permita de novo para abrir o arquivo."
@@ -2450,6 +2525,12 @@
  ],
  "This changes the whole computer, so it needs an administrator's password.": [
   "Isto muda o computador inteiro, então precisa da senha de um administrador."
+ ],
+ "This computer has no Wi-Fi adapter that works.": [
+  "Este computador não tem um adaptador Wi-Fi funcionando."
+ ],
+ "This computer has no Wi-Fi adapter that works. A cable or the network settings can connect it.": [
+  "Este computador não tem um adaptador Wi-Fi funcionando. Use um cabo ou as configurações de rede."
  ],
  "This download offer is no longer open.": [
   "Esta oferta de download não está mais aberta."
@@ -2727,6 +2808,12 @@
  ],
  "Wi-Fi": [
   "Wi-Fi"
+ ],
+ "Wi-Fi is off.": [
+  "O Wi-Fi está desligado."
+ ],
+ "Wi-Fi networks": [
+  "Redes Wi-Fi"
  ],
  "Window corners": [
   "Cantos das janelas"

@@ -27,5 +27,7 @@ Singleton {
             }
         }
     }
+    // refresh reads the state again now (after joining a network).
+    function refresh() { if (!proc.running) proc.running = true; }
     Timer { interval: 8000; running: true; repeat: true; triggeredOnStart: true; onTriggered: proc.running = true }
 }

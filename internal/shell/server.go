@@ -741,6 +741,63 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 			return nil, err
 		}
 		return p, nil
+	case "network.wifi":
+		// Quick settings: the Wi-Fi networks in range (the shell UI only:
+		// what is around the person is not for agents).
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		var a struct {
+			Rescan bool `json:"rescan"`
+		}
+		_ = decode(req.Args, &a)
+		return c.Wifi(ctx, a.Rescan), nil
+	case "network.wifi.connect":
+		// Joining a network: only the person, in quick settings. The
+		// password goes to nmcli's standard input, never to the log.
+		if err := ss.requireUI(); err != nil {
+			_, _ = c.Audit.Append("refuse", ss.actor(), "wifi refused: not the shell UI", map[string]any{"pid": ss.pid})
+			return nil, err
+		}
+		if c.recentInput() {
+			return nil, errors.New("a change right after agent input is not accepted; choose again")
+		}
+		var a struct {
+			SSID     string `json:"ssid"`
+			Password string `json:"password"`
+		}
+		if err := decode(req.Args, &a); err != nil {
+			return nil, err
+		}
+		if err := c.WifiConnect(ctx, a.SSID, a.Password); err != nil {
+			return nil, err
+		}
+		return c.Wifi(ctx, false), nil
+	case "network.wifi.radio":
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		var a struct {
+			On bool `json:"on"`
+		}
+		if err := decode(req.Args, &a); err != nil {
+			return nil, err
+		}
+		if err := c.WifiRadio(ctx, a.On); err != nil {
+			return nil, err
+		}
+		return c.Wifi(ctx, false), nil
+	case "network.settings":
+		// The network settings application (nm-connection-editor), or
+		// nmtui in a terminal; an error when neither can start.
+		if err := ss.requireUI(); err != nil {
+			return nil, err
+		}
+		kind, err := c.OpenNetworkSettings(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"opened": kind}, nil
 	case "keyboard.state":
 		// Settings, Keyboard: the person's settings, the system's, the
 		// layouts in use (read only).

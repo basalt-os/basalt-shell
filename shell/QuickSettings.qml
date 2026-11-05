@@ -6,7 +6,8 @@ import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
 
 // Quick settings: light/dark, theme, motion, spoken answers, volume,
-// network, battery and a door to the full settings page. Changes made
+// brightness, network (the Wi-Fi list opens under the tiles), battery and
+// a door to the full settings page. Changes made
 // here are the person's own, so they apply at once (audited as "ui").
 // Keyboard: it takes the keyboard while open; Tab moves between the
 // tiles, the themes, the volume and the buttons at the bottom; arrows
@@ -42,10 +43,16 @@ PanelWindow {
             else win.voiceError = res;
         });
     }
+    // The Wi-Fi list under the tiles (the network tile opens and closes it).
+    property bool netOpen: false
+    function toggleNet() {
+        win.netOpen = !win.netOpen;
+        if (win.netOpen) { wifi.reset(); wifi.load(false); }
+    }
     Connections {
         target: Ui
         function onQuickSettingsChanged() {
-            if (!Ui.quickSettings) return;
+            if (!Ui.quickSettings) { win.netOpen = false; return; }
             win.loadVoice();
             Qt.callLater(win.focusFirst);
         }
@@ -119,7 +126,9 @@ PanelWindow {
                     label: Net.online ? (Net.name || Net.kind) : Tr.t("Offline")
                     sub: Net.online ? (Net.kind === "wifi" ? Tr.t("Wi-Fi") : Tr.t("Wired")) : Tr.t("Network")
                     on: Net.online
-                    onClicked: Bus.act("app.launch", { app: "nm-connection-editor" })
+                    checkable: true
+                    checked: win.netOpen
+                    onClicked: win.toggleNet()
                 }
                 Tile {
                     // Spoken answers: off means answers are only shown and
@@ -141,6 +150,12 @@ PanelWindow {
                     toggle: false
                     onClicked: Ui.openFrom("commandbar", "", "quicksettings", "quick-ask")
                 }
+            }
+
+            WifiList {
+                id: wifi
+                visible: win.netOpen
+                Layout.fillWidth: true
             }
 
             Txt {

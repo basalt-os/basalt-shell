@@ -117,6 +117,11 @@ Requires:       NetworkManager
 # package set).
 Requires:       NetworkManager-wifi
 Requires:       wpa_supplicant
+# Joining networks: quick settings lists Wi-Fi networks through nmcli; the
+# "Network settings" button opens nm-connection-editor (hidden networks,
+# 802.1X, VPN, static addresses), or nmtui in a terminal.
+Requires:       NetworkManager-tui
+Requires:       nm-connection-editor
 Requires:       xdg-user-dirs
 Requires:       xdg-utils
 Requires:       adwaita-icon-theme
