@@ -89,6 +89,7 @@ install:
 	install -Dm644 config/niri/basalt-theme.kdl $(DESTDIR)$(PREFIX)/share/basalt-shell/niri/basalt-theme.kdl
 	install -Dm644 config/niri/basalt-keyboard.kdl $(DESTDIR)$(PREFIX)/share/basalt-shell/niri/basalt-keyboard.kdl
 	install -Dm644 config/portals/xdpw-config $(DESTDIR)$(PREFIX)/share/basalt-shell/portals/xdpw-config
+	install -Dm644 config/applications/org.basalt.Settings.desktop $(DESTDIR)$(PREFIX)/share/applications/org.basalt.Settings.desktop
 	install -Dm644 config/sessions/basalt-sway.desktop $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-sway.desktop
 	install -Dm644 config/sessions/basalt-niri.desktop $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-niri.desktop
 	install -Dm644 config/portals/sway-portals.conf $(DESTDIR)$(SYSCONFDIR)/xdg/xdg-desktop-portal/sway-portals.conf
@@ -114,6 +115,7 @@ install-greeter:
 uninstall:
 	rm -rf $(DESTDIR)$(PREFIX)/share/basalt-shell $(DESTDIR)$(LIBEXECDIR)/basalt-shell
 	rm -f $(DESTDIR)$(PREFIX)/bin/basalt-shell $(DESTDIR)$(PREFIX)/bin/basalt-shelld $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-shell-ui-launch $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-vm-cursor $(DESTDIR)$(PREFIX)/libexec/basalt-shell/basalt-greetd-cancel $(DESTDIR)$(PREFIX)/bin/basalt-shell-ui $(DESTDIR)$(PREFIX)/bin/basalt-session $(DESTDIR)$(PREFIX)/bin/basalt-lock $(DESTDIR)$(PREFIX)/bin/basalt-session-init
+	rm -f $(DESTDIR)$(PREFIX)/share/applications/org.basalt.Settings.desktop
 	rm -f $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-sway.desktop $(DESTDIR)$(PREFIX)/share/wayland-sessions/basalt-niri.desktop
 	rm -f $(DESTDIR)$(SYSCONFDIR)/xdg/xdg-desktop-portal/sway-portals.conf $(DESTDIR)$(SYSCONFDIR)/xdg/xdg-desktop-portal/niri-portals.conf
 	rm -f $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-session.target $(DESTDIR)$(PREFIX)/lib/systemd/user/basalt-headless.service

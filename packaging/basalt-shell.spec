@@ -237,6 +237,10 @@ make install DESTDIR=%{buildroot} PREFIX=%{_prefix} SYSCONFDIR=%{_sysconfdir} LI
 install -Dpm 0644 config/desktop/greetd.toml %{buildroot}%{_sysconfdir}/basalt/greetd.toml
 install -Dpm 0644 config/desktop/greetd-basalt.conf %{buildroot}%{_unitdir}/greetd.service.d/50-basalt.conf
 install -Dpm 0644 config/desktop/80-basalt-desktop.preset %{buildroot}%{_presetdir}/80-basalt-desktop.preset
+# Launcher overrides of the Basalt session (bin/basalt-session puts this
+# directory first in XDG_DATA_DIRS): helper entries hidden.
+install -d %{buildroot}%{_datadir}/basalt-desktop/applications
+install -pm 0644 config/desktop/applications/*.desktop %{buildroot}%{_datadir}/basalt-desktop/applications/
 # Application defaults (GSettings vendor override; glib2's file trigger
 # compiles the schemas). Keys of applications that are not installed are
 # skipped by glib-compile-schemas.
@@ -331,6 +335,7 @@ fi
 %{_datadir}/basalt-shell/
 %exclude %{_datadir}/basalt-shell/niri/
 %{_datadir}/wayland-sessions/basalt-sway.desktop
+%{_datadir}/applications/org.basalt.Settings.desktop
 %config(noreplace) %{_sysconfdir}/xdg/xdg-desktop-portal/sway-portals.conf
 %{_userunitdir}/basalt-session.target
 %{_userunitdir}/basalt-headless.service
@@ -355,6 +360,7 @@ fi
 %dir %{_unitdir}/greetd.service.d
 %{_unitdir}/greetd.service.d/50-basalt.conf
 %{_presetdir}/80-basalt-desktop.preset
+%{_datadir}/basalt-desktop/
 %{_datadir}/glib-2.0/schemas/50_basalt-desktop.gschema.override
 %dir %{_datadir}/flatpak/remotes.d
 %{_datadir}/flatpak/remotes.d/flathub.flatpakrepo
