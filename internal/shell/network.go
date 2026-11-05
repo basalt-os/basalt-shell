@@ -3,6 +3,7 @@ package shell
 import (
 	"context"
 	"errors"
+	"os"
 	"os/exec"
 	"sort"
 	"strconv"
@@ -51,6 +52,9 @@ type WifiState struct {
 // nmcliRun runs nmcli with the given standard input (tests replace it).
 var nmcliRun = func(ctx context.Context, stdin string, args ...string) (string, error) {
 	cmd := exec.CommandContext(ctx, "nmcli", args...)
+	// Messages in English, so they can be read here (the person sees the
+	// shell's own translated text).
+	cmd.Env = append(os.Environ(), "LC_ALL=C")
 	if stdin != "" {
 		cmd.Stdin = strings.NewReader(stdin)
 	}
@@ -230,28 +234,59 @@ func validSSID(s string) bool {
 	return true
 }
 
-// wifiConnectArgs is the nmcli request that joins a network: a saved
-// connection is brought up as it is; a new one is created by nmcli, which
-// reads the password from its standard input (--ask) when the network
-// needs one.
-func wifiConnectArgs(ssid string, known, withPassword bool, device string) []string {
-	if known && !withPassword {
-		return []string{"--wait", "45", "connection", "up", "id", ssid}
+// keyMgmt is the key management a new connection uses for a network's
+// security as nmcli lists it ("WPA2", "WPA1 WPA2", "WPA3", "WPA2 WPA3"):
+// sae for WPA3 alone, wpa-psk otherwise; "" when this list cannot join it
+// (WEP, 802.1X: the network settings can).
+func keyMgmt(security string) string {
+	switch {
+	case strings.Contains(security, "802.1X") || strings.Contains(security, "WEP"):
+		return ""
+	case strings.Contains(security, "WPA3") && !strings.Contains(security, "WPA2") && !strings.Contains(security, "WPA1"):
+		return "sae"
 	}
-	args := []string{"--wait", "45"}
-	if withPassword {
-		args = append(args, "--ask")
-	}
-	args = append(args, "device", "wifi", "connect", ssid)
-	if device != "" {
-		args = append(args, "ifname", device)
+	return "wpa-psk"
+}
+
+// The nmcli requests that join a network. A network's password never goes
+// on a command line (other processes can read those): a new connection is
+// added without it, then brought up with the password in a passwd-file
+// read from standard input, and NetworkManager keeps it with the
+// connection (the system's secret store, as for nm-connection-editor).
+
+func wifiAddArgs(ssid, device, mgmt string) []string {
+	args := []string{"connection", "add", "type", "wifi", "ifname", device, "con-name", ssid, "ssid", ssid}
+	if mgmt != "" {
+		args = append(args, "wifi-sec.key-mgmt", mgmt)
 	}
 	return args
 }
 
-// WifiConnect joins a network. password is "" for open or saved networks.
-// A saved network whose password changed is joined again with the new
-// password (its old connection is replaced by nmcli).
+func wifiUpArgs(kind, ref string, withPassword bool) []string {
+	args := []string{"--wait", "30", "connection", "up", kind, ref}
+	if withPassword {
+		args = append(args, "passwd-file", "/dev/stdin")
+	}
+	return args
+}
+
+// wifiPasswdFile is the passwd-file line that gives the password.
+func wifiPasswdFile(password string) string {
+	return "802-11-wireless-security.psk:" + password + "\n"
+}
+
+// parseAddedUUID reads the UUID from nmcli's "Connection 'X' (UUID)
+// successfully added."
+func parseAddedUUID(out string) string {
+	i, j := strings.LastIndex(out, "("), strings.LastIndex(out, ")")
+	if i < 0 || j <= i {
+		return ""
+	}
+	return out[i+1 : j]
+}
+
+// WifiConnect joins a network. password is "" for open or saved networks;
+// a saved network can be given a new password.
 func (c *Core) WifiConnect(ctx context.Context, ssid, password string) error {
 	if !validSSID(ssid) {
 		return errors.New(i18n.G("That is not a network name."))
@@ -263,33 +298,96 @@ func (c *Core) WifiConnect(ctx context.Context, ssid, password string) error {
 	if st.Device == "" {
 		return errors.New(i18n.G("This computer has no Wi-Fi adapter that works."))
 	}
-	known := false
-	for _, n := range st.Networks {
-		if n.SSID == ssid {
-			if n.Enterprise {
-				return errors.New(i18n.G("%s uses a company login (802.1X): join it in the network settings.", ssid))
-			}
-			known = n.Known
+	var net *WifiNetwork
+	for i := range st.Networks {
+		if st.Networks[i].SSID == ssid {
+			net = &st.Networks[i]
 		}
+	}
+	if net == nil {
+		return errors.New(i18n.G("That network is not in range any more."))
+	}
+	mgmt := keyMgmt(net.Security)
+	if net.Secure && mgmt == "" {
+		return errors.New(i18n.G("%s uses a company login (802.1X) or WEP: join it in the network settings.", ssid))
+	}
+	if net.Secure && !net.Known && password == "" {
+		return errors.New(i18n.G("%s needs a password.", ssid))
 	}
 	cctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	stdin := ""
-	if password != "" {
-		stdin = password + "\n"
+	var err error
+	switch {
+	case !net.Secure && !net.Known:
+		_, err = nmcliRun(cctx, "", "--wait", "30", "device", "wifi", "connect", ssid, "ifname", st.Device)
+	case net.Known:
+		stdin := ""
+		if password != "" {
+			stdin = wifiPasswdFile(password)
+		}
+		_, err = nmcliRun(cctx, stdin, wifiUpArgs("id", ssid, password != "")...)
+	default:
+		var out, uuid string
+		out, err = nmcliRun(cctx, "", wifiAddArgs(ssid, st.Device, mgmt)...)
+		if err == nil {
+			uuid = parseAddedUUID(out)
+			if uuid == "" {
+				err = errors.New("nmcli did not say which connection it added")
+			}
+		}
+		if err == nil {
+			_, err = nmcliRun(cctx, wifiPasswdFile(password), wifiUpArgs("uuid", uuid, true)...)
+			if err != nil && authenticated(st.Device) {
+				// The password was right; the network has not given an
+				// address yet (NetworkManager keeps trying).
+				_, _ = c.Audit.Append("ui", "ui", "wifi.connect", map[string]any{"ssid": ssid, "ok": true, "address": false})
+				return errors.New(i18n.G("Joined %s, but the network has not given this computer an address yet. It keeps trying.", ssid))
+			}
+			if err != nil {
+				// A refused password must not leave a connection behind
+				// that tries again on its own.
+				dctx, dcancel := context.WithTimeout(context.Background(), 10*time.Second)
+				_, _ = nmcliRun(dctx, "", "connection", "delete", "uuid", uuid)
+				dcancel()
+			}
+		}
 	}
-	_, err := nmcliRun(cctx, stdin, wifiConnectArgs(ssid, known, password != "", st.Device)...)
 	_, _ = c.Audit.Append("ui", "ui", "wifi.connect", map[string]any{"ssid": ssid, "ok": err == nil})
 	if err != nil {
-		return wifiError(err)
+		return wifiError(err, net.Secure)
 	}
 	return nil
 }
 
-// wifiError turns nmcli's message into one for the person.
-func wifiError(err error) error {
+// authenticated reports whether the Wi-Fi device got past the password
+// (NetworkManager is getting or checking an address, or is connected).
+func authenticated(device string) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	out, err := nmcliRun(ctx, "", "-t", "-f", "GENERAL.STATE", "device", "show", device)
+	if err != nil {
+		return false
+	}
+	return parseAuthenticated(out)
+}
+
+// parseAuthenticated reads `nmcli -t -f GENERAL.STATE device show`:
+// "GENERAL.STATE:70 (connecting (getting IP configuration))". States 70
+// (ip-config) to 100 (connected) come after the authentication.
+func parseAuthenticated(out string) bool {
+	v := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(out), "GENERAL.STATE:"))
+	n, err := strconv.Atoi(strings.SplitN(v, " ", 2)[0])
+	return err == nil && n >= 70 && n <= 100
+}
+
+// wifiError turns nmcli's message (in the C locale) into one for the
+// person. A wrong WPA password shows as a timeout: NetworkManager asks for
+// the secrets again until the wait is over.
+func wifiError(err error, secure bool) error {
 	m := err.Error()
 	switch {
+	case secure && (strings.Contains(m, "Timeout") || strings.Contains(m, "timed out")):
+		return errors.New(i18n.G("The password was not accepted, or the network did not answer. Check the password and try again."))
 	case strings.Contains(m, "Secrets were required") || strings.Contains(m, "802-11-wireless-security.psk: property is invalid") ||
 		(strings.Contains(m, "password") && strings.Contains(m, "invalid")):
 		return errors.New(i18n.G("The password was not accepted. Check it and try again."))

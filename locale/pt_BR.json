@@ -167,8 +167,11 @@
  "%s is outside the folders you allowed.": [
   "%s está fora das pastas que você permitiu."
  ],
- "%s uses a company login (802.1X): join it in the network settings.": [
-  "%s usa login corporativo (802.1X): conecte nas configurações de rede."
+ "%s needs a password.": [
+  "%s pede uma senha."
+ ],
+ "%s uses a company login (802.1X) or WEP: join it in the network settings.": [
+  "%s usa login corporativo (802.1X) ou WEP: conecte nas configurações de rede."
  ],
  "%s, by %s": [
   "%s, de %s"
@@ -1191,6 +1194,9 @@
  ],
  "January": [
   "janeiro"
+ ],
+ "Joined %s, but the network has not given this computer an address yet. It keeps trying.": [
+  "Conectado a %s, mas a rede ainda não deu um endereço a este computador. Ele continua tentando."
  ],
  "July": [
   "julho"
@@ -2494,6 +2500,9 @@
  ],
  "The password could not be checked. Try again.": [
   "Não foi possível verificar a senha. Tente de novo."
+ ],
+ "The password was not accepted, or the network did not answer. Check the password and try again.": [
+  "A senha não foi aceita, ou a rede não respondeu. Confira a senha e tente de novo."
  ],
  "The password was not accepted. Check it and try again.": [
   "A senha não foi aceita. Confira e tente de novo."

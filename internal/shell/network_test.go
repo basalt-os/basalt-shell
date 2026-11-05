@@ -49,20 +49,26 @@ func TestParseWifi(t *testing.T) {
 	}
 }
 
-func TestWifiConnectArgs(t *testing.T) {
-	cases := []struct {
-		known, pw bool
-		want      string
-	}{
-		{true, false, "--wait 45 connection up id Casa"},
-		{false, false, "--wait 45 device wifi connect Casa ifname wlan0"},
-		{false, true, "--wait 45 --ask device wifi connect Casa ifname wlan0"},
-		{true, true, "--wait 45 --ask device wifi connect Casa ifname wlan0"},
+func TestWifiArgs(t *testing.T) {
+	if got := strings.Join(wifiAddArgs("Casa", "wlan0", "wpa-psk"), " "); got != "connection add type wifi ifname wlan0 con-name Casa ssid Casa wifi-sec.key-mgmt wpa-psk" {
+		t.Errorf("add %q", got)
 	}
-	for _, c := range cases {
-		if got := strings.Join(wifiConnectArgs("Casa", c.known, c.pw, "wlan0"), " "); got != c.want {
-			t.Errorf("%v %v: %q", c.known, c.pw, got)
+	if got := strings.Join(wifiUpArgs("id", "Casa", true), " "); got != "--wait 30 connection up id Casa passwd-file /dev/stdin" {
+		t.Errorf("up %q", got)
+	}
+	for sec, want := range map[string]string{"WPA2": "wpa-psk", "WPA1 WPA2": "wpa-psk", "WPA2 WPA3": "wpa-psk", "WPA3": "sae", "WEP": "", "WPA2 802.1X": ""} {
+		if got := keyMgmt(sec); got != want {
+			t.Errorf("%s: %q", sec, got)
 		}
+	}
+	for out, want := range map[string]bool{"GENERAL.STATE:70 (connecting (getting IP configuration))\n": true,
+		"GENERAL.STATE:100 (connected)": true, "GENERAL.STATE:60 (connecting (need authentication))": false, "GENERAL.STATE:30 (disconnected)": false} {
+		if parseAuthenticated(out) != want {
+			t.Errorf("%q", out)
+		}
+	}
+	if u := parseAddedUUID("Connection 'Casa' (46d64f85-3bd5-44d3-bd87-200d02399a9a) successfully added.\n"); u != "46d64f85-3bd5-44d3-bd87-200d02399a9a" {
+		t.Errorf("uuid %q", u)
 	}
 	for _, s := range []string{"", strings.Repeat("a", 33), "a\nb"} {
 		if validSSID(s) {
@@ -91,11 +97,15 @@ func (f *fakeNmcli) run(ctx context.Context, stdin string, args ...string) (stri
 		return "", nil
 	case strings.Contains(a, "wifi list"):
 		return " :Casa:WPA2:70\n", nil
-	case strings.Contains(a, "wifi connect"):
+	case strings.Contains(a, "GENERAL.STATE"):
+		return "GENERAL.STATE:30 (disconnected)\n", nil
+	case strings.Contains(a, "connection add"):
+		return "Connection 'Casa' (0000-1111) successfully added.\n", nil
+	case strings.Contains(a, "connection up"):
 		if f.fail != "" {
 			return f.fail, &stringErr{f.fail}
 		}
-		return "Device 'wlan0' successfully activated.\n", nil
+		return "Connection successfully activated.\n", nil
 	}
 	return "", nil
 }
@@ -116,10 +126,15 @@ func TestWifiConnectPassword(t *testing.T) {
 		t.Fatal(err)
 	}
 	last := f.calls[len(f.calls)-1]
-	if !strings.Contains(last, "--ask device wifi connect Casa") || strings.Contains(last, "s3cret") {
+	if last != "--wait 30 connection up uuid 0000-1111 passwd-file /dev/stdin" {
 		t.Errorf("argv %q", last)
 	}
-	if f.stdins[len(f.stdins)-1] != "s3cret-pass\n" {
+	for _, a := range f.calls {
+		if strings.Contains(a, "s3cret") {
+			t.Errorf("the password is on a command line: %q", a)
+		}
+	}
+	if f.stdins[len(f.stdins)-1] != "802-11-wireless-security.psk:s3cret-pass\n" {
 		t.Errorf("stdin %q", f.stdins[len(f.stdins)-1])
 	}
 	_ = filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
@@ -130,10 +145,16 @@ func TestWifiConnectPassword(t *testing.T) {
 		}
 		return nil
 	})
-	f.fail = "Error: Connection activation failed: Secrets were required, but not provided."
+	// A wrong password: NetworkManager asks again until the wait is
+	// over; the new connection is deleted.
+	f.fail = "Error: Timeout expired (30 seconds)"
+	f.calls = nil
 	err := c.WifiConnect(context.Background(), "Casa", "wrong")
 	if err == nil || !strings.Contains(err.Error(), "password was not accepted") {
 		t.Errorf("wrong password: %v", err)
+	}
+	if last := f.calls[len(f.calls)-1]; last != "connection delete uuid 0000-1111" {
+		t.Errorf("not cleaned up: %q", last)
 	}
 	if err := c.WifiConnect(context.Background(), "Casa", "a\nb"); err == nil {
 		t.Error("a password with a newline must be refused")
