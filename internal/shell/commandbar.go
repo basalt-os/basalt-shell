@@ -157,6 +157,19 @@ func (c *Core) Ask(ctx context.Context, text string) AskResult {
 }
 
 // AssistantApply runs an assistant proposal the person accepted.
+// AssistantChecks are the checks of an applied proposal in the reader's
+// language (nil when the assistant has none or cannot be asked).
+func (c *Core) AssistantChecks(ctx context.Context, id string) []assistant.CheckLine {
+	if c.Assistant == nil {
+		return nil
+	}
+	p, err := c.Assistant.Show(ctx, id)
+	if err != nil {
+		return nil
+	}
+	return p.CheckLines
+}
+
 func (c *Core) AssistantApply(ctx context.Context, id, code string) (string, error) {
 	if c.Assistant == nil {
 		return "", fmt.Errorf("the system assistant is not installed")

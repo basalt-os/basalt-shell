@@ -579,7 +579,7 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 		}
 		_ = decode(req.Args, &a)
 		out, err := c.AssistantApply(ctx, a.ID, a.Code)
-		return map[string]any{"output": out, "ok": err == nil}, nil
+		return map[string]any{"output": out, "ok": err == nil, "checks": c.AssistantChecks(ctx, a.ID)}, nil
 	case "assistant.ignore":
 		if err := ss.requireUI(); err != nil {
 			return nil, err
