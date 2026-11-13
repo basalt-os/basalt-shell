@@ -200,3 +200,74 @@ func TestAPIKeyFile(t *testing.T) {
 		t.Errorf("auth %q err %v", auth, err)
 	}
 }
+
+// The local check decides the allow_remote gate and the "local" label:
+// only a Unix socket, the exact host localhost and loopback IP addresses
+// count; anything that merely contains them does not.
+func TestEndpointIsLocal(t *testing.T) {
+	for _, c := range []struct {
+		endpoint string
+		local    bool
+	}{
+		{"unix:/run/basalt-llm/llm.sock", true},
+		{"http://127.0.0.1:8080/v1", true},
+		{"http://127.0.0.1", true},
+		{"https://127.10.20.30:8443", true},
+		{"http://localhost:11434", true},
+		{"http://[::1]:8080", true},
+		{"http://[::1]", true},
+		{"http://[::ffff:127.0.0.1]:8080", true}, // IPv4-mapped loopback
+		{"https://127.attacker.example", false},
+		{"https://127.0.0.1.attacker.example", false},
+		{"http://localhost.attacker.example", false},
+		{"https://x.example/?a=://localhost", false},
+		{"https://x.example/://127.0.0.1", false},
+		{"https://x.example/#://[::1]", false},
+		{"http://127.0.0.1@evil.example", false},
+		{"http://localhost:pw@evil.example:8080", false},
+		{"http://user@127.0.0.1@evil.example", false},
+		{"http://evil.example\\@127.0.0.1", false},
+		{"http://localhost.", false},
+		{"http://127.0.0.1.", false},
+		{"http://LOCALHOST", false},
+		{"http://[::ffff:8.8.8.8]", false},
+		{"http://[::ffff:7f00:1]", true}, // same address as ::ffff:127.0.0.1
+		{"http://[::2]", false},
+		{"http://[0:0:0:0:0:0:0:1]", true},
+		{"http://2130706433", false}, // decimal 127.0.0.1
+		{"http://0x7f000001", false},
+		{"http://0x7f.0.0.1", false},
+		{"http://0177.0.0.1", false}, // octal
+		{"http://127.000.000.001", false},
+		{"http://127.1", false},
+		{"http://0.0.0.0", false},
+		{"http://10.0.0.5:8080", false},
+		{"ftp://127.0.0.1", false},
+		{"127.0.0.1:8080", false},
+		{"localhost:8080", false},
+		{"http:127.0.0.1", false},
+		{"", false},
+		{"unix-not:/x", false},
+	} {
+		if got := endpointIsLocal(c.endpoint); got != c.local {
+			t.Errorf("%q: local %v, want %v", c.endpoint, got, c.local)
+		}
+		if got := (&Model{Endpoint: c.endpoint}).Local(); got != c.local {
+			t.Errorf("Model{%q}.Local() = %v", c.endpoint, got)
+		}
+	}
+}
+
+// An endpoint that only looks local is refused before any request when
+// allow_remote is off.
+func TestLookalikeEndpointNeedsAllowRemote(t *testing.T) {
+	for _, e := range []string{"https://127.attacker.example", "http://localhost.attacker.example", "http://127.0.0.1@evil.example"} {
+		m := &Model{Endpoint: e, Model: "m"}
+		if _, err := m.Translate(context.Background(), "open firefox", Context{}); err == nil || !strings.Contains(err.Error(), "allow_remote") {
+			t.Errorf("%s: Translate: %v", e, err)
+		}
+		if _, err := m.Complete(context.Background(), "s", "u", nil, 10); err == nil || !strings.Contains(err.Error(), "allow_remote") {
+			t.Errorf("%s: Complete: %v", e, err)
+		}
+	}
+}

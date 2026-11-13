@@ -10,6 +10,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/netip"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -104,17 +106,38 @@ func FromAssistantConfig(path string) *Model {
 	return m
 }
 
-// Local reports whether the endpoint is on this machine.
-func (m *Model) Local() bool {
-	if strings.HasPrefix(m.Endpoint, "unix:") {
+// Local reports whether the endpoint is on this machine. It decides the
+// allow_remote gate and the "local" label of replies, so it is strict:
+// see endpointIsLocal.
+func (m *Model) Local() bool { return endpointIsLocal(m.Endpoint) }
+
+// endpointIsLocal is true for a Unix socket ("unix:/path") and for an
+// http(s) URL whose host, once parsed, is exactly "localhost" or a
+// loopback IP address (127.0.0.0/8, ::1, and 127.0.0.0/8 written as an
+// IPv4-mapped IPv6 address). Everything else counts as remote: host names
+// that only start with "127." or "localhost", a loopback address in the
+// userinfo, path or query, "localhost." with a final dot, and IP forms that
+// netip.ParseAddr does not accept (decimal, octal, hexadecimal, shortened
+// IPv4), which some resolvers would still send elsewhere. A false
+// "remote" only asks for allow_remote; a false "local" would send
+// private text off the machine.
+func endpointIsLocal(endpoint string) bool {
+	if strings.HasPrefix(endpoint, "unix:") {
 		return true
 	}
-	for _, h := range []string{"://127.", "://localhost", "://[::1]"} {
-		if strings.Contains(m.Endpoint, h) {
-			return true
-		}
+	u, err := url.Parse(endpoint)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Opaque != "" {
+		return false
 	}
-	return false
+	host := u.Hostname()
+	if host == "localhost" {
+		return true
+	}
+	addr, err := netip.ParseAddr(host)
+	if err != nil {
+		return false
+	}
+	return addr.Unmap().IsLoopback()
 }
 
 func (m *Model) timeout() time.Duration {
