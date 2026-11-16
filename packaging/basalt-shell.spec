@@ -426,6 +426,16 @@ fi
 %{_datadir}/selinux/devel/include/distributed/basalt_shell.if
 
 %changelog
+* Mon Nov 16 2026 Basalt OS developers - 0.10.6-1
+- Agent control sessions: input is refused while a terminal or a system
+  tool has the keyboard focus or lies under the pointer target, and when
+  the focused window cannot be identified; typed text is checked again
+  after each line. The consent sheet says the agent acts as the person
+  and shows its reason quoted, apart from the shell's text.
+- Built with the official Go 1.27.4 (checksum pinned), not Fedora's
+  golang 1.26, which has standard library vulnerabilities on reachable
+  paths (net/http).
+
 * Thu Nov 05 2026 Basalt OS developers - 0.10.5-1
 - Login screen: an own greetd client (its state machine in greetd.js,
   with Node tests); a wrong password shows the error and lets the person
