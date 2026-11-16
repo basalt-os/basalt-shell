@@ -8,6 +8,7 @@ import (
 	"math"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/basalt-os/basalt-shell/internal/agentio"
 	"github.com/basalt-os/basalt-shell/internal/compositor"
@@ -31,6 +32,10 @@ import (
 //     sheet, a choice, an authentication dialog), and a confirmation that
 //     arrives less than InputQuiet after synthetic input is refused, so an
 //     agent cannot click or type "Confirm" for itself.
+//   - Input is refused while a terminal or a system tool has the keyboard
+//     focus or lies under the pointer target, and whenever the focused
+//     window cannot be identified (inputguard.go): inside a session the
+//     agent acts as the person, outside its own confinement.
 //   - Every capture and input is written to the activity log (the text an
 //     agent types too, so the person can see what was typed).
 
@@ -467,6 +472,10 @@ func (c *Core) Input(ctx context.Context, m Meta, in InputRequest) (map[string]a
 		_, _ = c.Audit.Append("refuse", m.Actor, "input refused: "+why, map[string]any{"kind": in.Kind, "control": ct.ID})
 		return nil, fmt.Errorf("input refused: %s; wait until the person answers it", why)
 	}
+	if why := c.inputTargetRefused(ctx, in); why != "" {
+		_, _ = c.Audit.Append("refuse", m.Actor, "input refused: "+why, map[string]any{"kind": in.Kind, "control": ct.ID})
+		return nil, fmt.Errorf("input refused: %s; agents may not type or click in terminals or system tools, ask the person to do this step", why)
+	}
 	var summary string
 	var run func(ctx context.Context) error
 	ptr, hasPtr := c.pointer()
@@ -479,9 +488,24 @@ func (c *Core) Input(ctx context.Context, m Meta, in InputRequest) (map[string]a
 	switch in.Kind {
 	case "type":
 		summary = fmt.Sprintf("Type %q", truncate(in.Text, 200))
-		run = func(ctx context.Context) error { return c.Tools.TypeText(ctx, in.Text) }
+		typeText := c.Tools.TypeText
 		if c.TypeText != nil {
-			run = func(ctx context.Context) error { return c.TypeText(ctx, in.Text) }
+			typeText = c.TypeText
+		}
+		// Line by line: a line break may move the focus to another
+		// window, which is checked again before the next line.
+		run = func(ctx context.Context) error {
+			for i, seg := range typeSegments(in.Text) {
+				if i > 0 {
+					if why := c.inputTargetRefused(ctx, in); why != "" {
+						return fmt.Errorf("typing stopped after %d line(s): %s", i, why)
+					}
+				}
+				if err := typeText(ctx, seg); err != nil {
+					return err
+				}
+			}
+			return nil
 		}
 	case "key":
 		if _, _, err := agentio.ParseCombo(in.Keys); err != nil {
@@ -600,6 +624,12 @@ var agentActions = []*ActionDef{
 			if reason == "" || len(reason) > 300 {
 				return step{}, errors.New("reason is required (at most 300 characters)")
 			}
+			// The sheet shows the reason as the agent's own words, apart
+			// from the shell's text: one line, no control characters, so it
+			// cannot fake lines of the sheet.
+			if strings.IndexFunc(reason, unicode.IsControl) >= 0 {
+				return step{}, errors.New("reason must be one line without control characters")
+			}
 			min, ok := argInt(a, "minutes")
 			if !ok {
 				min = 5
@@ -626,8 +656,12 @@ var agentActions = []*ActionDef{
 				what = append(what, "type and use the pointer")
 			}
 			m := p.meta
-			sum := fmt.Sprintf("Let %s control the desktop for %d minutes: %s. Reason: %s", m.Actor, min, strings.Join(what, ", "), reason)
-			return step{Summary: sum, run: func(ctx context.Context) (any, error) {
+			// The reason is not part of the summary: the sheet shows it as a
+			// quoted field of its own (the preview), so an agent's words
+			// never read as the shell's. The activity log keeps both.
+			sum := fmt.Sprintf("Let %s control the desktop for %d minutes: %s, as you, with your permissions in every app it uses (not in terminals or system tools)",
+				m.Actor, min, strings.Join(what, ", "))
+			return step{Summary: sum, Preview: map[string]any{"kind": "control", "reason": reason}, run: func(ctx context.Context) (any, error) {
 				return p.c.startControl(m, min, input, screen, reason)
 			}}, nil
 		},

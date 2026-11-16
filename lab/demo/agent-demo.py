@@ -114,12 +114,13 @@ tool("input_type_text", {"text": "should not be typed"})
 
 # 3. A control session: the person allows it on the sheet.
 p = person("03-sheet-control", delay=2.5) if person_on else None
-tool("agent_control_request", {"reason": "type a command into the terminal (demo of the last-resort tools)", "minutes": 3})
+tool("agent_control_request", {"reason": "try to type a command into the terminal (demo of the last-resort tools)", "minutes": 3})
 if p: p.join()
 time.sleep(1)
 grim("04-frame-and-banner")
 
-# 4. Act: click into the terminal, type, press Enter.
+# 4. A terminal never takes an agent's input: the click, the typing and
+# Enter are refused (the activity log shows the refusals).
 cx, cy = term["rect"]["x"] + term["rect"]["width"] // 2, term["rect"]["y"] + term["rect"]["height"] // 2
 tool("input_pointer_click", {"x": cx, "y": cy})
 tool("input_type_text", {"text": "echo typed by an agent inside a control session"})

@@ -88,7 +88,8 @@ minutes and the agent is told so.
 - in each: the shell UI renders, `lab/demo/agent-demo.py` (a scripted MCP
   client standing in for a model) lists windows, gets a confirmed window
   screenshot, is refused input without a session, gets a control session,
-  clicks into a terminal, types a command and Enter, takes a screenshot
+  clicks into a terminal, types a command and Enter (since 2026-11 the
+  demo shows these refused: terminals never take agent input), takes a screenshot
   inside the session, is refused input while another request waits for
   the person, ends its session and is refused input again. Screenshots in
   the report.

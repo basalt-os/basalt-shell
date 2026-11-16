@@ -175,7 +175,13 @@ While a session runs, every screen has a frame and a banner saying which
 agent controls the desktop, the time left and a Stop button; the panel
 shows "Agent in control"; Super+Shift+Escape stops it. A screenshot
 outside a session flashes a short banner. Input is refused while the
-person has a confirmation, a choice or an authentication dialog open; a
+person has a confirmation, a choice or an authentication dialog open, and
+while a terminal or a system tool (settings, firewall, disks, packages,
+password managers) has the keyboard focus or lies under the pointer
+target; when the focused window cannot be identified, input is refused
+too. Text is typed line by line, with the focus checked again before
+each line. The sheet says the agent acts as the person and shows its
+reason quoted, apart from the shell's text; a
 confirmation that arrives less than 1.5 s after synthetic input is
 refused, and the sheet's buttons take no input for 0.7 s after a request
 appears, so an agent cannot click or type its own "Confirm". Every

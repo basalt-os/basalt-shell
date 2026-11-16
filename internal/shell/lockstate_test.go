@@ -13,9 +13,13 @@ import (
 // talk is refused. The flag only takes power away: it never unlocks
 // anything (the daemon has no unlock operation; PAM decides in the UI).
 func TestLockedRefusesAgentsAndVoice(t *testing.T) {
-	c, _, _ := newCore(t)
+	c, fk, _ := newCore(t)
 	ctx := context.Background()
 	c.ScreenLocked = func() bool { return false }
+	// An ordinary app has the focus (the fake desktop focuses a terminal).
+	if err := fk.Focus(ctx, "2"); err != nil {
+		t.Fatal(err)
+	}
 	var typed []string
 	c.TypeText = func(_ context.Context, s string) error { typed = append(typed, s); return nil }
 	m := agentMeta(4343)
