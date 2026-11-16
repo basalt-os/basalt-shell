@@ -5,8 +5,14 @@
 # BASALT_AGENT_SELINUX=DIR with basalt_agent_base.if (default: the
 # basalt-os checkout next to this one), used in place of the
 # basalt-agent-selinux build dependency.
+# Go: the official release pinned in scripts/go-toolchain.sh (checksum
+# verified, cached in build/cache), not Fedora's golang.
 set -eu
 cd "$(dirname "$0")/.."
+# shellcheck source=scripts/go-toolchain.sh
+. scripts/go-toolchain.sh
+go_mod_check .
+go_tarball=$(go_toolchain build/cache)
 rel=${1:-44}
 ver=$(cat VERSION)
 podman=${PODMAN:-podman}
@@ -23,9 +29,11 @@ mkdir -p build/rpm
 cp "$base/basalt_agent_base.if" build/rpm/
 tar --transform "s,^\.,basalt-shell-$ver," --exclude=./build --exclude=./.git --exclude='./media' --exclude='*.local.md' \
   -czf "build/rpm/basalt-shell-$ver.tar.gz" .
-$podman run --rm --net=host -v "$PWD/build/rpm:/out:Z" -v "$PWD/packaging:/spec:ro,Z" \
+$podman run --rm --net=host -v "$PWD/build/rpm:/out:Z" -v "$PWD/packaging:/spec:ro,Z" -v "$PWD/$go_tarball:/go.tar.gz:ro,Z" \
   "registry.fedoraproject.org/fedora:$rel" bash -euc "
-    dnf -y -q install rpm-build golang make systemd-rpm-macros systemd-devel selinux-policy-devel bzip2 >/dev/null
+    dnf -y -q install rpm-build gcc make systemd-rpm-macros systemd-devel selinux-policy-devel bzip2 >/dev/null
+    tar -C /opt -xzf /go.tar.gz
+    export PATH=/opt/go/bin:\$PATH GOTOOLCHAIN=local
     cp /out/basalt_agent_base.if /usr/share/selinux/devel/include/distributed/
     mkdir -p ~/rpmbuild/SOURCES && cp /out/basalt-shell-$ver.tar.gz ~/rpmbuild/SOURCES/
     rpmbuild -bb --nodeps --define 'basalt_version $ver' /spec/basalt-shell.spec >/out/rpmbuild.log 2>&1 || { tail -40 /out/rpmbuild.log; exit 1; }

@@ -188,7 +188,7 @@ go in `~/.config/basalt-shell/sway.d/` (sway) or the copied niri config.
 ## Build
 
 ```sh
-make build test               # Go 1.24 or newer
+make build test               # Go 1.27.4 or newer (scripts/go-toolchain.sh)
 make install PREFIX=/usr/local
 scripts/build-selinux.sh      # the SELinux module in a Fedora container (needs basalt_agent_base)
 make rpm                      # basalt-shell and basalt-shell-selinux RPMs in a Fedora container

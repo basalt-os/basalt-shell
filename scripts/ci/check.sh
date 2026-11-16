@@ -4,7 +4,10 @@
 #   scripts/ci/check.sh              run the checks here (needs go, make; node,
 #                                    qmllint, shellcheck and actionlint optional)
 #   scripts/ci/check.sh --container  run them in a throwaway Fedora container that
-#                                    has every tool (what CI does)
+#                                    has every tool (what CI does), with the
+#                                    official Go release pinned in
+#                                    scripts/go-toolchain.sh (checksum verified,
+#                                    cached in build/cache)
 #
 # Checks: go vet and go test (make test: the translation catalogs, the QML
 # label and model checks, the command bar's chips), the JavaScript tests
@@ -18,6 +21,9 @@ FEDORA_RELEASE=${FEDORA_RELEASE:-44}
 FEDORA_IMAGE=${FEDORA_IMAGE:-registry.fedoraproject.org/fedora:$FEDORA_RELEASE}
 PODMAN=${PODMAN:-podman}
 REPO_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+# shellcheck source=scripts/go-toolchain.sh
+source "$REPO_ROOT/scripts/go-toolchain.sh"
+go_mod_check "$REPO_ROOT"
 
 # actionlint, pinned by version and SHA-256 of the release archive (the same
 # as basalt-os's CI).
@@ -25,13 +31,17 @@ ACTIONLINT_VERSION=1.7.12
 ACTIONLINT_SHA256=8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
 
 if [[ "${1:-}" == --container ]]; then
-  echo "running the checks in $FEDORA_IMAGE" >&2
+  go_tarball="$(go_toolchain "$REPO_ROOT/build/cache")"
+  echo "running the checks in $FEDORA_IMAGE (Go $GO_VERSION)" >&2
   # shellcheck disable=SC2086 # PODMAN may be "sudo podman"
   $PODMAN run --rm --network=host --security-opt label=disable -v "$REPO_ROOT:/src:ro" -w /src \
+    -v "$go_tarball:/go.tar.gz:ro" \
     -e CI -e ACTIONLINT_VERSION="$ACTIONLINT_VERSION" -e ACTIONLINT_SHA256="$ACTIONLINT_SHA256" \
     "$FEDORA_IMAGE" bash -euc '
-      dnf -q -y install make golang nodejs qt6-qtdeclarative-devel ShellCheck tar gzip git >/dev/null 2>&1 ||
+      dnf -q -y install make gcc nodejs qt6-qtdeclarative-devel ShellCheck tar gzip git >/dev/null 2>&1 ||
         { echo "dnf install failed" >&2; exit 1; }
+      tar -C /opt -xzf /go.tar.gz
+      export PATH=/opt/go/bin:$PATH GOTOOLCHAIN=local
       tmp=$(mktemp -d)
       url="https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
       if curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 -o "$tmp/a.tgz" "$url" && echo "$ACTIONLINT_SHA256  $tmp/a.tgz" | sha256sum -c --quiet -; then
@@ -40,7 +50,7 @@ if [[ "${1:-}" == --container ]]; then
         echo "actionlint download or checksum failed" >&2; exit 1
       fi
       # The tree is mounted read-only: work on a copy (go test and make write).
-      cp -a /src /tmp/src && cd /tmp/src && scripts/ci/check.sh'
+      cp -a /src /tmp/src && rm -rf /tmp/src/build && cd /tmp/src && scripts/ci/check.sh'
   exit $?
 fi
 

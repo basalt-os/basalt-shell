@@ -27,9 +27,17 @@ pkgs=(sway niri quickshell xwayland-satellite xorg-x11-server-Xwayland
   pipewire wireplumber upower polkit gnome-keyring gnome-keyring-pam gcr
   foot adw-gtk3-theme adwaita-icon-theme adwaita-cursor-theme qt6ct qt5ct qt6-qtwayland
   rsms-inter-fonts jetbrains-mono-fonts google-noto-sans-fonts
-  swayidle swaylock wl-clipboard cliphist grim slurp wtype wayvnc brightnessctl xdg-utils dbus-daemon golang make)
+  swayidle swaylock wl-clipboard cliphist grim slurp wtype wayvnc brightnessctl xdg-utils dbus-daemon gcc make curl tar)
 sudo dnf -y install "${pkgs[@]}"
-make build
+# Go: the official release pinned in scripts/go-toolchain.sh (checksum
+# verified), unpacked under build/; Fedora's golang can lag behind Go's
+# security releases.
+# shellcheck source=scripts/go-toolchain.sh
+. scripts/go-toolchain.sh
+go_mod_check .
+go_tarball=$(go_toolchain build/cache)
+rm -rf build/go && mkdir -p build/go && tar -C build/go --strip-components=1 -xzf "$go_tarball"
+GOTOOLCHAIN=local make build GO="$PWD/build/go/bin/go"
 sudo make install PREFIX=/usr/local
 echo
 echo "Installed. Log out and choose \"Basalt\" or \"Basalt (niri)\", or run scripts/try-nested.sh sway|niri."
