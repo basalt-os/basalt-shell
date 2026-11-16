@@ -36,6 +36,10 @@ PanelWindow {
     readonly property var actionNames: shown ? (shown.calls || []).map(c => c.action) : []
     readonly property bool asksControl: actionNames.indexOf("agent.control") >= 0
     readonly property bool asksScreen: actionNames.indexOf("screen.capture") >= 0
+    readonly property string controlReason: {
+        const pv = shown && shown.previews ? shown.previews.find(p => p.kind === "control") : null;
+        return pv && pv.reason ? "" + pv.reason : "";
+    }
     readonly property bool fromApp: shown !== null && shown.from_kind === "app"
     onHasKeyboardChanged: if (hasKeyboard) declineBtn.forceActiveFocus(Qt.TabFocusReason)
 
@@ -118,6 +122,26 @@ PanelWindow {
 
             ProposalView { width: parent.width; proposal: win.shown }
 
+            // The agent's reason, quoted and apart from the shell's own
+            // text: its words, not something the shell checked.
+            Rectangle {
+                visible: win.asksControl && win.controlReason !== ""
+                width: parent.width
+                height: reasonCol.implicitHeight + Theme.s3 * 2
+                radius: Theme.radiusMd
+                color: Theme.bg
+                border.width: 1
+                border.color: Theme.border
+                Rectangle { width: 3; radius: 1; color: Theme.textMuted; anchors { left: parent.left; top: parent.top; bottom: parent.bottom; margins: Theme.s2 } }
+                Column {
+                    id: reasonCol
+                    anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.s3; leftMargin: Theme.s6 }
+                    spacing: Theme.s1
+                    Txt { text: Tr.t("Its reason, in its own words (not checked by Basalt):"); role: "small"; color: Theme.textMuted; width: parent.width; wrapMode: Text.Wrap; elide: Text.ElideNone }
+                    Txt { text: "“" + win.controlReason + "”"; textFormat: Text.PlainText; font.italic: true; width: parent.width; wrapMode: Text.Wrap; elide: Text.ElideNone }
+                }
+            }
+
             Rectangle {
                 visible: win.asksControl || win.asksScreen
                 width: parent.width
@@ -133,7 +157,7 @@ PanelWindow {
                     wrapMode: Text.Wrap
                     elide: Text.ElideNone
                     text: win.asksControl
-                        ? Tr.t("It will see everything on your screens and can type and click in any window until the time runs out. A frame shows while it is in control; stop it any time with the Stop button or Super+Shift+Escape. It cannot answer this kind of request for itself.")
+                        ? Tr.t("Until the time runs out it acts as you: it sees everything on your screens and can do anything you can do in the apps it types and clicks in, with your files, accounts and permissions. Terminals and system tools are refused to it. A frame shows while it is in control; stop it any time with the Stop button or Super+Shift+Escape. It cannot answer this kind of request for itself.")
                         : Tr.t("It will receive an image of what is on the screen now, including any private content shown there.")
                 }
             }

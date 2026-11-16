@@ -1189,11 +1189,11 @@
  "It will receive an image of what is on the screen now, including any private content shown there.": [
   "Ele vai receber uma imagem do que está na tela agora, incluindo qualquer conteúdo privado que apareça nela."
  ],
- "It will see everything on your screens and can type and click in any window until the time runs out. A frame shows while it is in control; stop it any time with the Stop button or Super+Shift+Escape. It cannot answer this kind of request for itself.": [
-  "Ele vai ver tudo nas suas telas e poderá digitar e clicar em qualquer janela até o tempo acabar. Uma moldura aparece enquanto ele estiver no controle; pare a qualquer momento com o botão Parar ou Super+Shift+Escape. Ele não pode responder sozinho a este tipo de pedido."
- ],
  "It writes the summaries and understands requests in your own words. What you ask stays on this computer. The file is checked before it is used: a damaged or altered download is never installed.": [
   "Ele escreve os resumos e entende pedidos com as suas palavras. O que você pede fica neste computador. O arquivo é conferido antes de ser usado: um download danificado ou alterado nunca é instalado."
+ ],
+ "Its reason, in its own words (not checked by Basalt):": [
+  "O motivo dele, com as palavras dele (não conferido pelo Basalt):"
  ],
  "January": [
   "janeiro"
@@ -2808,6 +2808,9 @@
  ],
  "Unlocking": [
   "Desbloqueando"
+ ],
+ "Until the time runs out it acts as you: it sees everything on your screens and can do anything you can do in the apps it types and clicks in, with your files, accounts and permissions. Terminals and system tools are refused to it. A frame shows while it is in control; stop it any time with the Stop button or Super+Shift+Escape. It cannot answer this kind of request for itself.": [
+  "Até o tempo acabar ele age como você: vê tudo nas suas telas e pode fazer tudo o que você pode fazer nos apps em que digitar e clicar, com os seus arquivos, contas e permissões. Terminais e ferramentas do sistema são recusados a ele. Uma moldura aparece enquanto ele estiver no controle; pare a qualquer momento com o botão Parar ou Super+Shift+Escape. Ele não pode responder sozinho a este tipo de pedido."
  ],
  "Update history": [
   "Histórico de atualizações"

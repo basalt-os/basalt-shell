@@ -15,7 +15,11 @@ License:        Apache-2.0 AND CC-BY-SA-4.0
 URL:            https://github.com/basalt-os/basalt-shell
 Source0:        basalt-shell-%{version}.tar.gz
 
-BuildRequires:  golang >= 1.24
+# Go: built with the official Go release named by go.mod (go 1.27.4), not
+# Fedora's golang, which can lag behind Go's security releases. The build
+# scripts (scripts/build-rpm.sh here, packages/basalt-shell/build.sh in
+# basalt-os) put a checksum-verified copy first in PATH; nothing is
+# downloaded here.
 BuildRequires:  make
 BuildRequires:  systemd-rpm-macros
 BuildRequires:  selinux-policy-devel
@@ -260,7 +264,7 @@ Basalt agent family (basalt_agent_base, from basalt-agent-selinux).
 
 %build
 # PIE, like the other Basalt OS Go packages (rpmlint: no static binaries).
-export GOFLAGS="-trimpath -mod=readonly -buildmode=pie"
+export GOFLAGS="-trimpath -mod=readonly -buildmode=pie" GOTOOLCHAIN=local GOPROXY=off
 make build VERSION=%{version}
 make selinux
 
