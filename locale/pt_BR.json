@@ -1489,6 +1489,9 @@
  "No NVIDIA GPU: the drivers in use are the right ones.": [
   "Nenhuma GPU NVIDIA: os drivers em uso são os certos."
  ],
+ "No application matches \"%1\".": [
+  "Nenhum aplicativo corresponde a \"%1\"."
+ ],
  "No display controller was found.": [
   "Nenhuma placa de vídeo foi encontrada."
  ],

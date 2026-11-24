@@ -69,15 +69,23 @@ function score(app, query) {
     }
     if (name.indexOf(q) >= 0 || id.indexOf(q) >= 0 || (generic !== "" && generic.indexOf(q) >= 0)) return 300;
     if (qw.length > 0 && qw.every(w => strong.some(x => x.startsWith(w)) || weak.some(x => x.startsWith(w)))) return 200;
-    // Letters in order ("fx" for Firefox): below every word match.
+    // Letters in order ("fx" for Firefox, "kpxc" for KeePassXC): below
+    // every word match. Across the whole name (initials of its words),
+    // otherwise inside one word of the generic name, a keyword or the id,
+    // starting with that word: letters picked across a long list of
+    // keywords match nearly anything ("cotty" found Settings in
+    // "preferences settings control theme keyboard").
     let best = null;
-    const fields = [app.name, app.generic, (app.keywords || []).join(" "), app.id];
-    for (let i = 0; i < fields.length; i++) {
-        const s = fuzzy(q, fields[i] || "");
+    const consider = (s, weight) => {
         if (s !== null) {
-            const w = Math.min(99, s) * (i === 0 ? 1 : 0.6);
+            const w = Math.min(99, s) * weight;
             if (best === null || w > best) best = w;
         }
+    };
+    consider(fuzzy(q, app.name || ""), 1);
+    const one = words([app.generic].concat(app.keywords || [], [app.id]).join(" "));
+    for (const w of one) {
+        if (w[0] === q[0]) consider(fuzzy(q, w), 0.6);
     }
     return best;
 }

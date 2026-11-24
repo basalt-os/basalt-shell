@@ -49,6 +49,24 @@ test("letters in order still find an app, below every word match", () => {
   assert.ok(A.score(apps[3], "frfx") < 200, "a fuzzy match stays below the word tiers");
 });
 
+test("letters spread over keywords or words find nothing", () => {
+  // Command line tools have no desktop entry: "cotty" matched two apps
+  // only through letters picked across their keywords and generic name.
+  const basalt = [
+    { id: "org.basalt_os.SecurityActivity", name: "Security and Activity", generic: "Security overview and activity record",
+      comment: "See how this computer is protected and what agents, the assistant and administrators did",
+      keywords: ["security", "selinux", "secure boot", "tpm", "encryption", "updates", "audit", "ledger", "activity", "agents"] },
+    { id: "org.basalt.Settings", name: "Settings", generic: "", comment: "Appearance, keyboard, updates, drivers, assistant and AI",
+      keywords: ["preferences", "settings", "control", "theme", "keyboard", "updates"] },
+  ];
+  assert.deepEqual(ids(A.rank(basalt, "cotty")), []);
+  assert.deepEqual(ids(A.rank(apps.concat(basalt), "cotty")), []);
+  // A real word or the start of one still finds them.
+  assert.equal(ids(A.rank(basalt, "secur"))[0], "org.basalt_os.SecurityActivity");
+  assert.equal(ids(A.rank(basalt, "sttngs"))[0], "org.basalt.Settings");
+  assert.equal(ids(A.rank(basalt, "selnx"))[0], "org.basalt_os.SecurityActivity");
+});
+
 test("an empty query lists every app by name", () => {
   assert.deepEqual(ids(A.rank(apps, "")), ["Alacritty", "firefox", "foot", "org.keepassxc.KeePassXC", "org.xfce.mousepad"]);
   assert.deepEqual(ids(A.rank(apps, "   ")).length, apps.length);

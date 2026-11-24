@@ -21,6 +21,7 @@ PanelWindow {
     property var apps: []
     property var results: []
     property int sel: 0
+    property string queryText: ""
 
     // The ranking is shell/apps.js (the same tiers as the daemon's
     // app.launch): the name, the generic name and the kind of app before
@@ -29,6 +30,7 @@ PanelWindow {
     function query() { return (search.text + (search.input.preeditText || "")).trim(); }
     function update() {
         const q = query();
+        win.queryText = q;
         win.results = A.rank(win.apps, q).slice(0, 40);
         // With an empty query nothing is chosen yet: Return does not start
         // the first app of the alphabet; Down picks it.
@@ -91,8 +93,19 @@ PanelWindow {
                     e.accepted = true;
                 }
             }
+            // Nothing matches: say so; no other app is offered in its place.
+            Txt {
+                id: noMatch
+                visible: win.queryText !== "" && win.results.length === 0 && win.apps.length > 0
+                width: parent.width
+                height: win.rowHeight
+                horizontalAlignment: Text.AlignHCenter
+                color: Theme.textMuted
+                text: Tr.t("No application matches \"%1\".").arg(win.queryText)
+            }
             ListView {
                 id: list
+                visible: !noMatch.visible
                 width: parent.width
                 height: parent.height - search.height - Theme.s3
                 clip: true
