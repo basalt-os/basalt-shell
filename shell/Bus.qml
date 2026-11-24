@@ -292,6 +292,8 @@ Singleton {
             bus.gate = s.gate || ({ present: false, enforce: [] });
             bus.keyboard = s.keyboard || ({ labels: [], current: 0, live: false, names: [] });
             bus.ready = true;
+            // Connect to the approval gate now, not on the first decision.
+            GateBus.ensure();
             bus.call("ui.state", { modal: Ui.modal, locked: Ui.locked });
             bus.refreshAssistant();
         });
@@ -331,11 +333,14 @@ Singleton {
     }
 
     // The gate may be installed, started or reconfigured while the shell runs.
+    function refreshGate() {
+        bus.call("gate", {}, (ok, g) => { if (ok && JSON.stringify(g) !== JSON.stringify(bus.gate)) bus.gate = g; });
+    }
     Timer {
         interval: 30000
         running: bus.connected
         repeat: true
-        onTriggered: bus.call("gate", {}, (ok, g) => { if (ok && JSON.stringify(g) !== JSON.stringify(bus.gate)) bus.gate = g; })
+        onTriggered: bus.refreshGate()
     }
 
     Timer {

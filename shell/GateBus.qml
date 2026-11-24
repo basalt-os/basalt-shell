@@ -28,14 +28,55 @@ Singleton {
         return available && (e.indexOf(path) >= 0 || e.indexOf("all") >= 0);
     }
 
+    // A request sent before the connection is up (the first decision after
+    // the session starts, while the socket is still connecting) waits for
+    // it, a few seconds at most, instead of failing at once: the first
+    // Download on a model offer was lost that way, with nothing shown.
+    property var _waiting: []         // { req, cb, until } until connected
+    readonly property int connectWait: 8000
+
     function _send(req, cb) {
         if (!sock.connected) {
-            if (cb) cb(false, Tr.t("The approvals service is not connected."));
+            // Only the daemon's word that the gate decides leads here, so
+            // the gate is there even when this UI has not heard of it yet:
+            // ask the daemon again and wait for the connection.
+            gate._waiting.push({ req: req, cb: cb || null, until: Date.now() + gate.connectWait });
+            waitTimer.start();
+            if (!gate.available) Bus.refreshGate();
+            else gate.ensure();
             return;
         }
         gate._queue.push(cb || null);
         sock.write(JSON.stringify(req) + "\n");
         sock.flush();
+    }
+
+    // ensure connects now where the gate is present (the shell calls it
+    // once its state arrives, so the connection is up before the person
+    // decides anything).
+    function ensure() {
+        if (gate.available && !sock.connected) { sock.connected = false; sock.connected = true; }
+    }
+
+    function _flushWaiting() {
+        const list = gate._waiting;
+        gate._waiting = [];
+        for (const w of list) gate._send(w.req, w.cb);
+    }
+
+    Timer {
+        id: waitTimer
+        interval: 500; repeat: true
+        onTriggered: {
+            if (gate._waiting.length === 0) { stop(); return; }
+            const now = Date.now();
+            const keep = [];
+            for (const w of gate._waiting) {
+                if (now < w.until) keep.push(w);
+                else if (w.cb) w.cb(false, Tr.t("The approvals service is not connected."));
+            }
+            gate._waiting = keep;
+        }
     }
 
     function _handle(line) {
@@ -87,12 +128,17 @@ Singleton {
         connected: gate.available
         onConnectedChanged: {
             gate.connected = connected;
+            // Requests sent on the connection that went away get no reply:
+            // say so instead of dropping their callbacks.
+            const lost = gate._queue;
             gate._queue = [];
+            for (const cb of lost) if (cb) cb(false, Tr.t("The approvals service is not connected."));
             gate.ready = false;
             if (connected) {
                 gate._send({ op: "hello", role: "decider", client: "basalt-shell-ui/" + Bus.version, protocol: "gate/1" }, (ok, res) => {
                     gate.ready = ok && (res.roles || []).indexOf("decider") >= 0;
                     if (!gate.ready) console.warn("basalt-gate: this UI is not a decider here:", JSON.stringify(res));
+                    gate._flushWaiting();
                 });
             }
         }

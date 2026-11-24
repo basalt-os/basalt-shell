@@ -21,20 +21,28 @@ import (
 
 // fakeGate is a minimal approval gate: hello says what it enforces,
 // propose answers with the decision set for the action (asked by default),
-// wait blocks until the test decides, claim checks nothing but records,
-// result, cancel and observe are recorded.
+// wait blocks until the test decides (every waiter of the request sees the
+// decision, as with the real gate), claim checks nothing but records,
+// result, cancel and observe are recorded. With dedup, an identical
+// request still waiting gets the same id, as the real gate answers.
 type fakeGate struct {
 	mu       sync.Mutex
 	enforce  []string
 	decision map[string]string // action -> allowed, refused, asked
 	reqs     []gateclient.Request
-	waiting  map[string]chan string
-	n        int
+	waiting  map[string]chan struct{}
+	decided  map[string]string
+	dedup    bool
+	// refuseClaim: claims are refused with this error.
+	refuseClaim string
+	asked       map[string]string // calls -> id of the request still waiting
+	n           int
 }
 
 func newFakeGate(t *testing.T, enforce ...string) (*fakeGate, string) {
 	t.Helper()
-	f := &fakeGate{enforce: enforce, decision: map[string]string{}, waiting: map[string]chan string{}}
+	f := &fakeGate{enforce: enforce, decision: map[string]string{}, waiting: map[string]chan struct{}{},
+		decided: map[string]string{}, asked: map[string]string{}}
 	sock := filepath.Join(t.TempDir(), "gate.sock")
 	ln, err := net.Listen("unix", sock)
 	if err != nil {
@@ -66,11 +74,16 @@ func (f *fakeGate) serve(c net.Conn) {
 		f.mu.Lock()
 		f.reqs = append(f.reqs, req)
 		rep := gateclient.Reply{OK: true}
-		var wait chan string
+		var wait chan struct{}
 		switch req.Op {
 		case "hello":
 			rep.Protocol, rep.Enforce = gateclient.Protocol, f.enforce
 		case "propose":
+			key := mustJSON(req.Calls)
+			if id, ok := f.asked[key]; ok && f.dedup {
+				rep.ID, rep.Decision = id, gateclient.Asked
+				break
+			}
 			f.n++
 			rep.ID = "g-00000000000" + string(rune('0'+f.n))
 			rep.Decision = gateclient.Asked
@@ -80,17 +93,27 @@ func (f *fakeGate) serve(c net.Conn) {
 			if rep.Decision == gateclient.Allowed {
 				rep.By = "rule:r-test@abc"
 			}
-			f.waiting[rep.ID] = make(chan string, 1)
+			f.waiting[rep.ID] = make(chan struct{})
+			if rep.Decision == gateclient.Asked {
+				f.asked[key] = rep.ID
+			}
 		case "status":
 			rep.Request = &gateclient.View{ID: req.ID, Remember: "8h"}
 		case "wait":
 			wait = f.waiting[req.ID]
-		case "claim", "result", "cancel", "observe":
+		case "claim":
+			if f.refuseClaim != "" {
+				rep = gateclient.Reply{Error: f.refuseClaim}
+			}
+		case "result", "cancel", "observe":
 		}
 		f.mu.Unlock()
 		if wait != nil {
 			select {
-			case d := <-wait:
+			case <-wait:
+				f.mu.Lock()
+				d := f.decided[req.ID]
+				f.mu.Unlock()
 				rep.ID, rep.Decision, rep.By = req.ID, d, "person:shell"
 			case <-time.After(time.Duration(req.Timeout) * time.Second):
 				rep.ID, rep.Decision, rep.TimedOut = req.ID, gateclient.Asked, true
@@ -106,9 +129,14 @@ func (f *fakeGate) serve(c net.Conn) {
 // decide is the person's decision on the sheet, sent to the gate.
 func (f *fakeGate) decide(id, decision string) {
 	f.mu.Lock()
-	ch := f.waiting[id]
-	f.mu.Unlock()
-	ch <- decision
+	defer f.mu.Unlock()
+	f.decided[id] = decision
+	for k, v := range f.asked {
+		if v == id {
+			delete(f.asked, k)
+		}
+	}
+	close(f.waiting[id])
 }
 
 func (f *fakeGate) find(op string) []gateclient.Request {
@@ -399,4 +427,119 @@ func TestGateModelDownload(t *testing.T) {
 		}
 		return false
 	})
+}
+
+// TestGateModelDownloadAgain: the first Download's approval did not reach
+// the gate (the UI's gate connection was not up yet), so the request
+// stays asked; the person closes the offer, is offered the download again
+// and chooses Download. The gate answers the identical request with the
+// same id: the daemon must keep one waiter for it (one claim, no "already
+// claimed" refusal) and start the offer on the card, not the closed one.
+func TestGateModelDownloadAgain(t *testing.T) {
+	c, _, dir := newCore(t)
+	f, sock := newFakeGate(t, "models")
+	f.dedup = true
+	c.GateSocket = sock
+	m, fm := newFakeModels(t, dir)
+	c.Models = m
+	c.WireModels()
+	ctx := context.Background()
+	download := func() *GateInfo {
+		t.Helper()
+		o, err := m.NewOffer(ctx, models.Voice, "english", "push-to-talk", "en")
+		if err != nil || o == nil {
+			t.Fatalf("offer: %v", err)
+		}
+		c.setVoice(VoiceState{State: "offer", Offer: o})
+		res, err := c.modelsOp(ctx, "models.download", json.RawMessage(`{"id":"`+o.ID+`"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		// The approval that never reached the gate: Not now.
+		return res.(map[string]any)["gate"].(*GateInfo)
+	}
+	first := download()
+	for _, o := range m.Snapshot().Offers {
+		c.DismissOffer(o.ID)
+	}
+	second := download()
+	if first.ID != second.ID {
+		t.Fatalf("the fake gate did not answer with the same request: %s, %s", first.ID, second.ID)
+	}
+	f.decide(second.ID, gateclient.Allowed)
+	eventually(t, "download not started", func() bool {
+		fm.mu.Lock()
+		defer fm.mu.Unlock()
+		for _, call := range fm.calls {
+			if strings.Contains(call, "download voice english") {
+				return true
+			}
+		}
+		return false
+	})
+	eventually(t, "download not done", func() bool {
+		for _, j := range m.Snapshot().Jobs {
+			if j.State == models.StateDone {
+				return true
+			}
+		}
+		return false
+	})
+	// A second waiter would claim the same decision again some time after
+	// the first one.
+	time.Sleep(100 * time.Millisecond)
+	if n := len(f.find("claim")); n != 1 {
+		t.Errorf("%d claims of one decision, want 1", n)
+	}
+	for _, r := range c.Audit.Tail(50) {
+		if strings.Contains(r.Text, "refused the claim") || strings.Contains(r.Text, "not started") {
+			t.Errorf("audit: %s", r.Text)
+		}
+	}
+}
+
+// TestGateModelDownloadClaimRefused: the gate approved the download but
+// refused to hand it over: the voice card says so (never silence).
+func TestGateModelDownloadClaimRefused(t *testing.T) {
+	c, _, dir := newCore(t)
+	f, sock := newFakeGate(t, "models")
+	f.refuseClaim = "refused: already claimed (a decision is used once)"
+	c.GateSocket = sock
+	m, _ := newFakeModels(t, dir)
+	c.Models = m
+	c.WireModels()
+	ctx := context.Background()
+	o, err := m.NewOffer(ctx, models.Voice, "english", "push-to-talk", "en")
+	if err != nil || o == nil {
+		t.Fatalf("offer: %v", err)
+	}
+	c.setVoice(VoiceState{State: "offer", Offer: o})
+	res, err := c.modelsOp(ctx, "models.download", json.RawMessage(`{"id":"`+o.ID+`"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.decide(res.(map[string]any)["gate"].(*GateInfo).ID, gateclient.Allowed)
+	eventually(t, "no error on the voice card", func() bool {
+		st := c.VoiceStatus()
+		return st.State == "error" && strings.Contains(st.Error, "already claimed")
+	})
+}
+
+// TestGateInState: the UI's first state says where the gate decides, so
+// the UI connects to the gate before the person decides anything (the
+// first Download on a model offer used to be lost: the UI took the gate
+// for absent until its 30 second refresh).
+func TestGateInState(t *testing.T) {
+	c, _, _ := newCore(t)
+	_, sock := newFakeGate(t, "models")
+	c.GateSocket = sock
+	ss := &session{s: &Server{Core: c}, role: RoleUI}
+	res, err := ss.handle(context.Background(), Request{Op: "state"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, ok := res.(map[string]any)["gate"].(GateStatus)
+	if !ok || !g.Present || g.Socket != sock || len(g.Enforce) != 1 || g.Enforce[0] != "models" {
+		t.Fatalf("gate in state: %#v", res.(map[string]any)["gate"])
+	}
 }
