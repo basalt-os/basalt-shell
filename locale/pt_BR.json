@@ -1495,6 +1495,9 @@
  "No driver in use": [
   "Nenhum driver em uso"
  ],
+ "No installed application is called \"%s\".": [
+  "Nenhum aplicativo instalado se chama \"%s\"."
+ ],
  "No internet connection. The download starts again by itself when the computer is back online.": [
   "Sem conexão com a internet. O download recomeça sozinho quando o computador voltar a ficar online."
  ],

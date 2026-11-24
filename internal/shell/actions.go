@@ -65,6 +65,13 @@ type step struct {
 	end func(status string)
 }
 
+// personError is a planning error written for the person, in their
+// language: shown as it is, without the action's name in front
+// ("app.launch: ...").
+type personError struct{ msg string }
+
+func (e personError) Error() string { return e.msg }
+
 // planner carries what planning needs and the working theme settings,
 // so that several theme actions in one proposal compose.
 type planner struct {
@@ -340,7 +347,7 @@ var Actions = []*ActionDef{
 			ref := argStr(a, "app")
 			app, ok := apps.Find(p.c.Apps(), ref)
 			if !ok {
-				return step{}, fmt.Errorf("no installed application matches %q", ref)
+				return step{}, personError{i18n.G("No installed application is called \"%s\".", ref)}
 			}
 			argv, err := app.Argv()
 			if err != nil {
