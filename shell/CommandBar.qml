@@ -505,11 +505,14 @@ PanelWindow {
                 Repeater {
                     model: win.status !== "" ? win.applyChecks : []
                     delegate: Row {
+                        id: checkRow
                         required property var modelData
                         spacing: Theme.s2
-                        Icon { name: modelData.ok ? "check" : "warning"; color: modelData.ok ? Theme.success : Theme.warning; size: Theme.fontSize * 1.2 }
+                        Icon { id: checkIcon; name: modelData.ok ? "check" : "warning"; color: modelData.ok ? Theme.success : Theme.warning; size: Theme.fontSize * 1.2 }
+                        // The width left next to the icon (Theme has no s8:
+                        // the width was NaN, so the text was never drawn).
                         Txt {
-                            width: Math.min(implicitWidth, card.width - Theme.s8 * 2)
+                            width: Math.min(implicitWidth, content.width - checkIcon.width - checkRow.spacing)
                             wrapMode: Text.Wrap; elide: Text.ElideNone; role: "small"
                             text: modelData.output ? Tr.t("%1: %2").arg(modelData.what).arg(modelData.output) : modelData.what
                         }
