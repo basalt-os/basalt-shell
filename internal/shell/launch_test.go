@@ -1,9 +1,13 @@
 package shell
 
 import (
+	"context"
 	"slices"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/basalt-os/basalt-shell/internal/apps"
 )
 
 // Applications must start as services of the user manager, never as a
@@ -54,5 +58,19 @@ func TestLaunchArgsSanitizeUnitName(t *testing.T) {
 	i := slices.Index(args, "--unit")
 	if got := args[i+1]; got != "app-basalt-.._evil_app_rm-ff.service" {
 		t.Fatalf("unit %q", got)
+	}
+}
+
+// An application that is not installed is said in plain words, without
+// the action's name in front ("app.launch: no installed application
+// matches ..." was shown in red in the command bar).
+func TestLaunchUnknownAppPlainWords(t *testing.T) {
+	c, _, _ := newCore(t)
+	c.mu.Lock()
+	c.appsCache, c.appsTime = []apps.App{}, time.Now()
+	c.mu.Unlock()
+	res := c.Ask(context.Background(), "open nosuchapp")
+	if res.Kind != "error" || strings.Contains(res.Error, "app.launch") || !strings.Contains(res.Error, "nosuchapp") {
+		t.Fatalf("%+v", res)
 	}
 }

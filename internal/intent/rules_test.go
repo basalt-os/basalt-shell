@@ -90,6 +90,29 @@ func TestRules(t *testing.T) {
 	}
 }
 
+// TestRulesSecurityAudit: the sentence Security and Activity puts in the
+// command bar, sent again as the person's own words (Enter on it), runs
+// the security audit, in English and Portuguese, and is never read as
+// "run <app>"; a question about the audit stays a question.
+func TestRulesSecurityAudit(t *testing.T) {
+	ctx := Context{Tokens: tokens()}
+	for _, q := range []string{
+		"Run the security audit on this computer", "Run the security audit on this computer.",
+		"Rodar a auditoria de segurança neste computador", "run the AI audit suite", "security audit",
+		"executar a auditoria de segurança", "please run a security audit",
+	} {
+		r := Rules(q, ctx)
+		if !reflect.DeepEqual(r.System, []string{"security", "audit"}) || len(r.Calls) != 0 {
+			t.Errorf("%q: system %v, calls %+v", q, r.System, r.Calls)
+		}
+	}
+	for _, q := range []string{"Which security audit checks failed, and what does it mean?", "run firefox"} {
+		if r := Rules(q, ctx); reflect.DeepEqual(r.System, []string{"security", "audit"}) {
+			t.Errorf("%q: read as a request to run the audit", q)
+		}
+	}
+}
+
 func TestRulesSpokenAnswers(t *testing.T) {
 	ctx := Context{Tokens: tokens()}
 	for in, want := range map[string]string{

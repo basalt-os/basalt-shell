@@ -632,6 +632,10 @@ func (c *Core) plan(ctx context.Context, calls []Call, m Meta) (*Proposal, error
 		}
 		st, err := def.plan(ctx, p, call.Args)
 		if err != nil {
+			var pe personError
+			if errors.As(err, &pe) {
+				return nil, err
+			}
 			return nil, fmt.Errorf("%s: %w", def.Name, err)
 		}
 		pr.Steps = append(pr.Steps, st.Summary)

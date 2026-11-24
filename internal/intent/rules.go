@@ -160,10 +160,21 @@ var reShow = regexp.MustCompile(`^(?:show|mostra|review)\s+(p-[0-9a-f]{6})$`)
 
 var reUnit = regexp.MustCompile(`^(?:why|por que|porque|por quê|what happened to|o que houve com|diagnose|diagnostica|diagnosticar)\s+(?:is\s+|did\s+|o\s+|a\s+|the\s+)?([a-z0-9@._:-]+)`)
 
+// reAuditRun is a request to run the security audit (the AI audit
+// suite), in English or Portuguese: the words Security and Activity
+// puts in the command bar ("Run the security audit on this computer")
+// and the person's own. Only the request to run it: a question about it
+// ("which security audit checks failed?") stays a question. Before the
+// app launcher's "run <app>", which read it as an app name.
+var reAuditRun = regexp.MustCompile(`^(?:please\s+|por favor,?\s+)?(?:run|start|do|rodar|roda|rode|executar|executa|execute|iniciar|inicia|inicie|fazer|faz|faça|faca)\s+(?:the\s+|an?\s+|o\s+|a\s+|uma\s+)?(?:security audit|ai audit|audit suite|auditoria de segurança|auditoria de seguranca|auditoria de ia|suíte de auditoria|suite de auditoria)\b`)
+
 // systemRequest maps assistant questions to basalt CLI arguments.
 func systemRequest(t string) []string {
 	if m := reShow.FindStringSubmatch(t); m != nil {
 		return []string{"show", m[1]}
+	}
+	if t == "security audit" || t == "auditoria de segurança" || reAuditRun.MatchString(t) {
+		return []string{"security", "audit"}
 	}
 	if m := reUnit.FindStringSubmatch(t); m != nil {
 		unit := m[1]
