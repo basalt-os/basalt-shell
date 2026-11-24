@@ -207,6 +207,14 @@ func TestVoicePressOffersSpeechModel(t *testing.T) {
 	if err := c.VoiceRelease(ctx); err != nil || c.VoiceStatus().State != "offer" {
 		t.Errorf("release: %v %+v", err, c.VoiceStatus())
 	}
+	// Pressing again (the panel button sends its press and its click)
+	// shows the same offer: no second one.
+	if err := c.VoicePress(ctx, true); err != nil {
+		t.Fatalf("second press: %v", err)
+	}
+	if again := c.VoiceStatus(); again.Offer == nil || again.Offer.ID != st.Offer.ID || len(m.Snapshot().Offers) != 1 {
+		t.Errorf("second press: %+v, %d offers", again.Offer, len(m.Snapshot().Offers))
+	}
 	for _, call := range fm.calls {
 		if strings.HasPrefix(call, "pkexec") {
 			t.Fatal("download before consent")

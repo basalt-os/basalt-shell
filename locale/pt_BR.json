@@ -2417,6 +2417,15 @@
  "The desktop, the assistant and the other parts made for Basalt OS.": [
   "A área de trabalho, o assistente e as outras partes feitas para o Basalt OS."
  ],
+ "The download did not start": [
+  "O download não começou"
+ ],
+ "The download did not start: %1": [
+  "O download não começou: %1"
+ ],
+ "The download did not start: %s": [
+  "O download não começou: %s"
+ ],
  "The download failed. Try again later.": [
   "O download falhou. Tente de novo mais tarde."
  ],
@@ -2512,6 +2521,9 @@
  ],
  "The permission to that folder has ended. Allow it again first.": [
   "A permissão para essa pasta terminou. Permita de novo primeiro."
+ ],
+ "The request was not approved (%s).": [
+  "O pedido não foi aprovado (%s)."
  ],
  "The screen is locked. Unlock it to talk.": [
   "A tela está bloqueada. Desbloqueie para falar."

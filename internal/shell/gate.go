@@ -565,12 +565,39 @@ func (c *Core) gateRemoveRules(ids []string) {
 	}()
 }
 
+// decideWait is what gateDecideThen runs once the gate allows a request,
+// and how it tells the person that nothing ran.
+type decideWait struct {
+	run  func() error
+	fail func(error)
+}
+
+// takeDecideWait removes and returns the waiter of a gate request.
+func (c *Core) takeDecideWait(id string) *decideWait {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	w := c.decideWaits[id]
+	delete(c.decideWaits, id)
+	return w
+}
+
 // gateDecideThen asks the gate for one request the person is deciding
 // right now on a card of their own (a model download's Download): the
 // shell UI then approves it at the gate. Once allowed, the daemon claims
 // it and runs run; a refusal is an error. The reply carries the request
-// for the UI.
-func (c *Core) gateDecideThen(req gateclient.Proposal, what string, run func() error) (*GateInfo, error) {
+// for the UI. fail (may be nil) is told when the request was approved but
+// did not run (the claim was refused, run failed) or was not approved, so
+// the person sees why instead of nothing.
+//
+// The gate answers an identical request that is still waiting with the
+// same id. The daemon then keeps a single waiter for that id and only
+// replaces what it runs (the latest Download, for an offer that may have
+// been closed and offered again): a second waiter would claim the same
+// decision again and be refused ("a decision is used once").
+func (c *Core) gateDecideThen(req gateclient.Proposal, what string, run func() error, fail func(error)) (*GateInfo, error) {
+	if fail == nil {
+		fail = func(error) {}
+	}
 	cl, err := c.gateDial()
 	if err != nil {
 		return nil, fmt.Errorf("the approval gate did not answer: %w", err)
@@ -582,17 +609,22 @@ func (c *Core) gateDecideThen(req gateclient.Proposal, what string, run func() e
 	}
 	info := &GateInfo{ID: rep.ID, Decision: rep.Decision, By: rep.By, Class: rep.Class, Reason: rep.Reason}
 	_, _ = c.Audit.Append("gate", "ui", what, map[string]any{"gate_id": rep.ID, "decision": rep.Decision, "by": rep.By})
-	claimRun := func(id, by string) {
+	claimRun := func(id, by string, w *decideWait) {
 		cl, err := c.gateDial()
 		if err != nil {
+			w.fail(fmt.Errorf("the approval gate went away before the claim: %w", err))
 			return
 		}
 		defer cl.Close()
 		if _, err := cl.ClaimCalls(id, req.Calls, req.Preview, "basalt-shell"); err != nil {
 			_, _ = c.Audit.Append("refuse", gateBy(by), what+": the approval gate refused the claim: "+err.Error(), map[string]any{"gate_id": id})
+			w.fail(fmt.Errorf("the approval gate refused the claim: %w", err))
 			return
 		}
-		err = run()
+		err = w.run()
+		if err != nil {
+			w.fail(err)
+		}
 		detail := "done"
 		if err != nil {
 			detail = err.Error()
@@ -607,27 +639,50 @@ func (c *Core) gateDecideThen(req gateclient.Proposal, what string, run func() e
 	case gateclient.Refused:
 		return info, errors.New(i18n.G("Not allowed: %s", rep.Reason))
 	case gateclient.Allowed:
-		go claimRun(rep.ID, rep.By)
+		go claimRun(rep.ID, rep.By, &decideWait{run: run, fail: fail})
 	case gateclient.Asked:
+		c.mu.Lock()
+		if c.decideWaits == nil {
+			c.decideWaits = map[string]*decideWait{}
+		}
+		if w, ok := c.decideWaits[rep.ID]; ok {
+			// Already waiting for this request: run the latest Download.
+			w.run, w.fail = run, fail
+			c.mu.Unlock()
+			return info, nil
+		}
+		c.decideWaits[rep.ID] = &decideWait{run: run, fail: fail}
+		c.mu.Unlock()
 		go func() {
 			for {
 				cl, err := c.gateDial()
 				if err != nil {
+					if w := c.takeDecideWait(rep.ID); w != nil {
+						w.fail(fmt.Errorf("the approval gate did not answer: %w", err))
+					}
 					return
 				}
-				w, err := cl.Wait(rep.ID, 120)
+				rw, err := cl.Wait(rep.ID, 120)
 				cl.Close()
 				if err != nil {
+					if w := c.takeDecideWait(rep.ID); w != nil {
+						w.fail(fmt.Errorf("the approval gate: %w", err))
+					}
 					return
 				}
-				switch w.Decision {
-				case gateclient.Asked:
+				if rw.Decision == gateclient.Asked {
 					continue
-				case gateclient.Allowed:
-					claimRun(rep.ID, w.By)
-				default:
-					_, _ = c.Audit.Append("decline", gateBy(w.By), what+": "+w.Decision, map[string]any{"gate_id": rep.ID})
 				}
+				w := c.takeDecideWait(rep.ID)
+				if w == nil {
+					return
+				}
+				if rw.Decision == gateclient.Allowed {
+					claimRun(rep.ID, rw.By, w)
+					return
+				}
+				_, _ = c.Audit.Append("decline", gateBy(rw.By), what+": "+rw.Decision, map[string]any{"gate_id": rep.ID})
+				w.fail(errors.New(i18n.G("The request was not approved (%s).", rw.Decision)))
 				return
 			}
 		}()

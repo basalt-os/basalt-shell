@@ -308,6 +308,11 @@ func (ss *session) handle(ctx context.Context, req Request) (any, error) {
 			// language settings.
 			"ui_lang": i18n.SessionTag(), "ui_catalog": uiCatalog(),
 			"models": modelsOf(c),
+			// The approval gate, so the UI connects to it at once: without
+			// it the UI took the gate for absent until its 30 second
+			// refresh, and a decision sent before then (the first Download
+			// on a model offer) never reached the gate.
+			"gate": c.Gate(),
 		}, nil
 	case "desktop":
 		return c.Refresh(ctx), nil

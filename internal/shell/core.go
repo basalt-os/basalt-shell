@@ -169,14 +169,17 @@ type Core struct {
 	uiLocked  bool
 	lastInput time.Time
 	// voice is the push-to-talk state shown by the UI.
-	voice            VoiceState
-	voicePress       time.Time
-	voiceRoute       voiceRoute
-	voiceModel       string          // the speech model chosen when the key went down
-	voiceSession     pttSession      // how the open microphone was opened (ptt.go)
-	voiceGen         uint64          // the open utterance; bumped when it ends
-	speakClient      *voice.Client   // the voice service connection for "speak" (skills.go)
-	llmDeclined      bool            // Not now on the local model offer, this session
+	voice        VoiceState
+	voicePress   time.Time
+	voiceRoute   voiceRoute
+	voiceModel   string        // the speech model chosen when the key went down
+	voiceSession pttSession    // how the open microphone was opened (ptt.go)
+	voiceGen     uint64        // the open utterance; bumped when it ends
+	speakClient  *voice.Client // the voice service connection for "speak" (skills.go)
+	llmDeclined  bool          // Not now on the local model offer, this session
+	// decideWaits are the gate requests gateDecideThen waits on, by gate
+	// id: one waiter per request, running the latest Download for it.
+	decideWaits      map[string]*decideWait
 	voiceLangNoticed map[string]bool // answer languages told "shown, not spoken" this session
 	// prefs are the person's voice and assistant settings (voiceprefs.go).
 	prefs prefsState

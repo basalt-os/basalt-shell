@@ -17,7 +17,24 @@ Column {
     readonly property string kind: offer ? offer.kind : (job ? job.kind : "")
     readonly property string st: job ? job.state : ""
     readonly property string titleText: title()
+    // Why the person's Download did not go through (the daemon or the
+    // approval gate refused it): shown on the card, never dropped.
+    property string actionError: ""
+    property bool starting: false
+    onOfferChanged: { actionError = ""; starting = false; }
     spacing: Theme.s2
+
+    function download() {
+        if (!offer || starting) return;
+        actionError = "";
+        starting = true;
+        const id = offer.id;
+        Bus.modelsDownload(id, (ok, res) => {
+            if (!dv.offer || dv.offer.id !== id) return;
+            dv.starting = false;
+            if (!ok) dv.actionError = Tr.t("The download did not start: %1").arg(String(res || ""));
+        });
+    }
 
     function mb(bytes) { return Math.max(1, Math.round((bytes || 0) / 1000000)); }
     function gb(bytes) { return (Math.round((bytes || 0) / 100000000) / 10).toFixed(1); }
@@ -103,13 +120,21 @@ Column {
         color: Theme.textMuted
         text: dv.detail()
     }
+    Txt {
+        visible: dv.actionError !== ""
+        width: parent.width
+        wrapMode: Text.Wrap
+        color: Theme.danger
+        text: dv.actionError
+    }
     Row {
         spacing: Theme.s2
         // The offer.
         Btn {
             visible: dv.offer !== null && dv.offer.ask !== ""
             text: Tr.t("Download"); icon: "download"; variant: "primary"; e2e: "model-download"; KeyNavigation.right: notNowBtn
-            onClicked: Bus.modelsDownload(dv.offer.id)
+            enabled: !dv.starting
+            onClicked: dv.download()
         }
         Btn {
             id: notNowBtn

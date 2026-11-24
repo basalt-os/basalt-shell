@@ -185,6 +185,16 @@ func (c *Core) offerVoice(ctx context.Context, eff voiceprefs.Effective, model s
 		c.setVoice(VoiceState{State: "error", Error: msg})
 		return errors.New(msg)
 	}
+	// A press while the same offer is open (the panel button's press and
+	// its click, a second press) shows that offer again: one offer, one
+	// record in the activity.
+	for _, open := range c.Models.Snapshot().Offers {
+		if open.Kind == models.Voice && open.Target == target && open.Lang == lang {
+			oo := open
+			c.setVoice(VoiceState{State: "offer", Offer: &oo, LangName: langName})
+			return nil
+		}
+	}
 	o, err := c.Models.NewOffer(ctx, models.Voice, target, "push-to-talk", lang)
 	if err != nil || o == nil {
 		msg := i18n.G("The speech model for %s cannot be downloaded here.", langName)
@@ -459,12 +469,29 @@ func (c *Core) modelsDownloadViaGate(ctx context.Context, id, kind, target strin
 			_, err = c.StartDownload(context.Background(), kind, target)
 		}
 		return err
-	})
+	}, func(err error) { c.downloadNotStarted(kind, err) })
 	if err != nil {
 		_, _ = c.Audit.Append("refuse", "gate", "model download not started: "+err.Error(), map[string]any{"kind": kind, "what": target})
 		return nil, err
 	}
 	return map[string]any{"gate": info, "kind": kind, "target": target}, nil
+}
+
+// downloadNotStarted tells the person that a download they agreed to did
+// not start (the approval gate refused to hand it over, or starting it
+// failed after the approval): on the voice card for the speech model, as a
+// notification otherwise (also for the speech model when the card moved
+// on, so nothing pops up later over other work). A Download must never
+// end in silence.
+func (c *Core) downloadNotStarted(kind string, err error) {
+	msg := i18n.G("The download did not start: %s", err.Error())
+	_, _ = c.Audit.Append("fail", "daemon", "model download not started after the approval: "+kind+" ("+err.Error()+")", map[string]any{"kind": kind})
+	if st := c.VoiceStatus().State; kind == models.Voice && (st == "offer" || st == "download") {
+		c.setVoice(VoiceState{State: "error", Error: msg})
+		return
+	}
+	c.Broadcast("notify", map[string]any{"summary": i18n.G("The download did not start"), "body": msg, "urgency": "normal",
+		"app": i18n.G("Voice and assistant"), "page": "voice"})
 }
 
 // modelsObserve tells the gate (shadow mode) that the person agreed to a
